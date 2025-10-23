@@ -1,0 +1,51 @@
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;   /* ili 100dvh */
+  background: #f3f4f6;
+  padding: 1rem;       /* može i 0 ako želiš baš od ruba do ruba */
+}
+
+
+.login-form {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.login-form h2 { margin-bottom: 1rem; }
+
+.login-form input {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+}
+
+.login-form input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+.login-form button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.7rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-form button:disabled { opacity: .6; cursor: not-allowed; }
+
+.error { color: #b91c1c; margin-top: .75rem; }
