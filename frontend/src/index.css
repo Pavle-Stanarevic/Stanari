@@ -1,4 +1,14 @@
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 
-#root { min-height: 100vh; }
+* {
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+html, body, #root {
+    height: 100%;
+    margin: 0;
+}
+
+#root {
+    min-height: 100vh;
+}

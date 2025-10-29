@@ -11,12 +11,9 @@ export default function LoginPage() {
   const handleLogin = async ({ email, password }) => {
     setErr("");
     setLoading(true);
-    try {
+    try{
       const data = await login(email, password);
-      // očekuješ { token, user }
       signIn(data);
-      // TODO: redirect na / (home) ili /profile
-      // npr. ako dodaš react-router: navigate("/")
     } catch (e) {
       setErr("Neuspješna prijava. Provjeri podatke.");
     } finally {
@@ -25,9 +22,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-page">
+  <div className="login-page">
+    <div className="login-wrapper">
       <LoginForm onSubmit={handleLogin} loading={loading} />
-      {err && <p className="error">{err}</p>}
+      <div className="error-space">
+        {err && <p className="error">{err}</p>}
+      </div>
     </div>
-  );
+  </div>
+);
+
 }

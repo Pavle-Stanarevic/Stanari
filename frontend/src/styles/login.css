@@ -2,11 +2,17 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;   /* ili 100dvh */
+  height: 100%; 
   background: #f3f4f6;
-  padding: 1rem;       /* može i 0 ako želiš baš od ruba do ruba */
+  padding: 1rem;     
 }
 
+.login-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
 
 .login-form {
   background: #fff;
@@ -16,6 +22,7 @@
   width: 100%;
   max-width: 420px;
   text-align: center;
+  margin-bottom: 200px;
 }
 
 .login-form h2 { margin-bottom: 1rem; }
@@ -46,6 +53,25 @@
   cursor: pointer;
 }
 
-.login-form button:disabled { opacity: .6; cursor: not-allowed; }
+.login-form button:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 
-.error { color: #b91c1c; margin-top: .75rem; }
+.error-space {
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.error { 
+  color: red;
+  margin-top: 50px;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}

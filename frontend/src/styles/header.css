@@ -1,0 +1,78 @@
+.header {
+  background-color: #6fa8dc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 40px;
+  height: 70px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  width: auto;
+  height: 100px;
+  object-fit: contain;
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-links a {
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 500;
+  color: black;
+  overflow: hidden;
+}
+
+.nav-links a span {
+  display: inline-block;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover span {
+  animation: wave 0.4s ease forwards;
+}
+
+@keyframes wave {
+  0% {
+    color: black;
+  }
+  30% {
+    color: #6fa8dc;
+  }
+  100% {
+    color: #ffffff;
+  }
+}
+
+.sign-btn {
+  background: linear-gradient(to top, #6fa8dc 0%, #000000 100%);
+  background-size: 100% 300%;
+  background-position: center top;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-position 0.5s ease-in-out;
+}
+
+.sign-btn:hover {
+  background-position: center bottom;
+}

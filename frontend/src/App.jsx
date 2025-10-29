@@ -1,8 +1,12 @@
 import React from "react";
-import LoginPage from "./pages/LoginPage";
+import Header from "./components/header";
+import LoginPage from "./pages/loginPage";
 
-function App() {
-  return <LoginPage />;
+export default function App() {
+  return (
+    <>
+      <Header />
+      <LoginPage />
+    </>
+  );
 }
-
-export default App;
