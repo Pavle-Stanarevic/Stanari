@@ -44,19 +44,21 @@
   transition: color 0.3s ease;
 }
 
+/* aktivira efekt */
 .nav-links a:hover span {
-  animation: wave 0.4s ease forwards;
+  animation: wave 1.5s ease forwards;
 }
 
+/* promjena boje svakog slova */
 @keyframes wave {
   0% {
     color: black;
   }
   30% {
-    color: #6fa8dc;
+    color: #6fa8dc; /* plava prolazi */
   }
   100% {
-    color: #ffffff;
+    color: white;
   }
 }
 

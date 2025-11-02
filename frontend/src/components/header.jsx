@@ -1,33 +1,57 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import "../styles/header.css";
 import logo from "../images/logo.png";
+
+const NAV_ITEMS = [
+  { label: "Rezervacije Termina", to: "/rezervacije" },
+  { label: "Shop", to: "/shop" },
+  { label: "Izložbe", to: "/izlozbe" },
+  { label: "Naš Tim", to: "/tim" },
+];
 
 export default function Header() {
   return (
     <header className="header">
-  <div className="logo">
-    <img src={logo} alt="Clay Play" className="logo-img" />
-  </div>
+      {/* Logo */}
+      <div className="logo">
+        <Link to="/" aria-label="Clay Play - Početna">
+          <img src={logo} alt="Clay Play" className="logo-img" />
+        </Link>
+      </div>
 
-  <div className="nav-container">
-    <nav className="nav-links">
-        {["Rezervacije Termina", "Shop", "Izložbe", "Naš Tim"].map((word, i) => (
-            <a href="#" key={i}>
-                {word.split("").map((char, j) => (
-                   <span
-                        key={j}
-                        style={{ animationDelay: `${j * 0.05}s` }} // ⏳ svako slovo malo kasni
-                    >
-                        {char === " " ? "\u00A0" : char}
-                   </span>
+      {/* Navigacija + Sign in */}
+      <div className="nav-container">
+        <nav className="nav-links" aria-label="Main">
+          {NAV_ITEMS.map(({ label, to }, i) => {
+            const chars = label.split("");
+            const totalDuration = 0.5; // ukupno trajanje animacije
+            const perLetterDelay = totalDuration / chars.length; // proporcionalno broju slova
+
+            return (
+              <Link to={to} key={i} className="nav-link">
+                {chars.map((char, j) => (
+                  <span
+                    key={j}
+                    style={{
+                      animationDelay: `${j * perLetterDelay}s`,
+                      animationDuration: `${totalDuration}s`,
+                    }}
+                    className="nav-char"
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </span>
                 ))}
-            </a>
-        ))}
-    </nav>
+              </Link>
+            );
+          })}
+        </nav>
 
-    <button className="sign-btn">Sign in</button>
-  </div>
-</header>
-
+        {/* Sign in -> /login */}
+        <Link to="/login" className="sign-btn">
+          Sign in
+        </Link>
+      </div>
+    </header>
   );
 }
