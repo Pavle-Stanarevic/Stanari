@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import "../styles/login.css";
 
 export default function LoginForm({ onSubmit, loading = false }) {
@@ -32,6 +33,12 @@ export default function LoginForm({ onSubmit, loading = false }) {
       <button type="submit" disabled={loading}>
         {loading ? "Prijava..." : "Prijavi se"}
       </button>
+      <p>
+        Nemaš račun?{" "}
+        <Link to="/register" className = "register-link">
+          Registriraj se
+        </Link>
+      </p>
     </form>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import LoginForm from "../components/LoginForm";
+import LoginForm from "../components/loginForm.jsx";
 import { login } from "../api/auth";
 import useAuth from "../hooks/useAuth";
 
@@ -21,15 +21,15 @@ export default function LoginPage() {
     }
   };
 
-  return (
-  <div className="login-page">
-    <div className="login-wrapper">
-      <LoginForm onSubmit={handleLogin} loading={loading} />
-      <div className="error-space">
-        {err && <p className="error">{err}</p>}
+    return (
+    <div className="login-page">
+      <div className="login-wrapper">
+        <LoginForm onSubmit={handleLogin} loading={loading} />
+        <div className="error-space">
+          {err && <p className="error">{err}</p>}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 
 }
