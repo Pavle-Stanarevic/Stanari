@@ -87,3 +87,36 @@
 .register-link:hover {
   color: darkblue; 
 }
+.register-form{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: auto;
+  gap: 10px;
+}
+
+.upload p{
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 150%;
+  color: #828282;
+  text-align: left;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.upload{
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  grid-template-rows: auto;
+}
+
+.upload-icon{
+  margin-top: 21px;
+  size: 10;
+}
+
+.upload:hover  {
+  cursor: pointer;
+}

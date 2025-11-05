@@ -1,23 +1,41 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import RegisterForm from "../components/registerForm.jsx";
-// import { register } from "../api/auth"; // uključi kad spojiš backend
+// import { register } from "../api/auth";
 // import useAuth from "../hooks/useAuth";
+// import { useNavigate } from "react-router-dom";
 
 export default function RegisterPage() {
-  // const { signIn } = useAuth(); // ako želiš auto-login nakon registracije
+  // const { signIn } = useAuth();
+  // const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const handleSubmit = async (values) => {
-    // values: { firstName, lastName, email, password }
     setErr("");
     setLoading(true);
+
+    // ✅ VALIDACIJA OVDJE (isti pattern kao login)
+    if (!values.userType) {
+      setLoading(false);
+      setErr("Odaberi vrstu korisnika.");
+      return;
+    }
+    if (!values.email || !values.password) {
+      setLoading(false);
+      setErr("Molimo unesite e-mail i lozinku.");
+      return;
+    }
+    if (values.password !== values.confirmPassword) {
+      setLoading(false);
+      setErr("Lozinke se ne podudaraju.");
+      return;
+    }
+
     try {
       // const data = await register(values);
-      // signIn(data); // opcionalno
+      // signIn?.(data);
       // navigate("/", { replace: true });
-      console.log("submit:", values); // za sada samo provjera
+      console.log("submit:", values);
     } catch (e) {
       setErr("Neuspješna registracija. Provjeri podatke.");
     } finally {
@@ -28,11 +46,8 @@ export default function RegisterPage() {
   return (
     <div className="login-page">
       <div className="login-wrapper">
-
-        {err && <div className="error-banner">{err}</div>}
-
         <RegisterForm onSubmit={handleSubmit} loading={loading} />
-
+        <div className="error-space">{err && <p className="error">{err}</p>}</div>
       </div>
     </div>
   );

@@ -2,13 +2,19 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/login.css";
 import UserTypeSelect from "./userTypeSelect.jsx";
+import { Upload } from "lucide-react";
+
 
 export default function RegisterForm({ onSubmit, loading = false }) {
   const [values, setValues] = useState({
     firstName: "",
     lastName: "",
+    address: "",
+    contact: "",
     email: "",
     password: "",
+    confirmPassword: "",    
+    userType: "", 
   });
 
   const handleChange = (e) => {
@@ -30,7 +36,7 @@ export default function RegisterForm({ onSubmit, loading = false }) {
       <form className="login-form" onSubmit={handleSubmit} noValidate>
         <h2>Kreiraj račun</h2>
 
-        <label>
+        <div className = "register-form">
           <input
             placeholder="Ime"
             name="firstName"
@@ -39,9 +45,7 @@ export default function RegisterForm({ onSubmit, loading = false }) {
             onChange={handleChange}
             required
           />
-        </label>
 
-        <label>
           <input
             placeholder="Prezime"
             name="lastName"
@@ -50,33 +54,66 @@ export default function RegisterForm({ onSubmit, loading = false }) {
             onChange={handleChange}
             required
           />
-        </label>
 
-        <label>
           <input
-            placeholder="E-mail"
-            name="email"
-            type="email"
-            value={values.email}
+            placeholder="Adresa"
+            name="address"
+            type="text"
+            value={values.address}
             onChange={handleChange}
             required
           />
-        </label>
 
-        <label>
           <input
-            placeholder="Zaporka"
+            placeholder="Kontakt"
+            name="contact"
+            type="tel"
+            value={values.contact}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div>
+            <input
+              placeholder="E-mail"
+              name="email"
+              type="email"
+              value={values.email}
+              onChange={handleChange}
+              required
+          />
+        </div>
+
+        <div className = "register-form">
+          <input
+            placeholder="Lozinka"
             name="password"
             type="password"
             value={values.password}
             onChange={handleChange}
             required
           />
-        </label>
+          <input
+            placeholder="Ponovite lozinku"
+            name="confirmPassword"
+            type="password"
+            value={values.confirmPassword}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div class = "upload">
+          <p >**Priložite fotografiju ili logo</p>
+          <Upload className="upload-icon" size = {18}/>
+        </div>
+
 
         <button type="submit" disabled={loading}>
           {loading ? "Kreiram..." : "Registriraj se"}
         </button>
+
 
         <p className="login-redirect">
           Već imaš račun? <Link to="/login">Prijava</Link>

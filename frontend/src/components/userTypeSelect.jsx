@@ -1,5 +1,6 @@
 import React from "react";
 import "../styles/userTypeSelect.css";
+import { useNavigate } from "react-router-dom";
 
 /**
  * UserTypeSelect komponenta — omogućuje odabir vrste korisnika.
@@ -14,16 +15,31 @@ import "../styles/userTypeSelect.css";
  */
 
 export default function UserTypeSelect({ value, onChange}) {
+  const navigate = useNavigate();
+
+  const handleSelectChange = (event) => {
+    const selectedValue = event.target.value; //cita vrijednost iz selecta
+    onChange(event); //javlja da se vrijednost promjenila
+
+    if(selectedValue === "polaznik"){
+      navigate("/register-polaznik");
+
+    }else if(selectedValue === "organizator"){
+      navigate("/register-organizator");
+    }
+  };
+
+
   return (
     <div className = "user-type-select">
       <select
         name="userType"
         value={value}
-        onChange={onChange}
+        onChange={handleSelectChange}
         required
       > 
         <option value="" disabled>Odaberi...</option>
-        <option value="korisnik">Polaznik</option>
+        <option value="polaznik">Polaznik</option>
         <option value="organizator">Organizator</option>
       </select>
     </div>
