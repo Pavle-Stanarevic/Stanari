@@ -1,37 +1,31 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import RegisterForm from "../components/registerForm.jsx";
-import { login } from "../api/auth";
+// src/pages/register-organizator.jsx
+import React from "react";
+import RegisterFormBase from "../components/registerFormBase.jsx";
+import UserTypeSelect from "../components/userTypeSelect.jsx";
 
-export default function RegisterPage() {
-  // const { signIn } = useAuth(); // ako želiš auto-login nakon registracije
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const handleSubmit = async (values) => {
-    // values: { firstName, lastName, email, password }
-    setErr("");
-    setLoading(true);
-    try {
-      // const data = await register(values);
-      // signIn(data); // opcionalno
-      // navigate("/", { replace: true });
-      console.log("submit:", values); // za sada samo provjera
-    } catch (e) {
-      setErr("Neuspješna registracija. Provjeri podatke.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function RegisterOrganizator({ onSubmit, loading = false }) {
   return (
-    <div className="login-page">
-      <div className="login-wrapper">
-
-        {err && <div className="error-banner">{err}</div>}
-
-        <RegisterForm onSubmit={handleSubmit} loading={loading} />
-
+    <div className="register-page">
+      <div className="register-box">
+        <UserTypeSelect value="organizator" onChange={() => {}} />
+        <RegisterFormBase
+          title="Kreiraj račun (organizator)"
+          defaultUserType="organizator"
+          loading={loading}
+          onSubmit={onSubmit}
+          renderExtra={({ values, handleChange }) => (
+            <div>
+              <input
+                placeholder="Naziv studija"
+                name="studyName"
+                type="text"
+                value={values.studyName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          )}
+        />
       </div>
     </div>
   );

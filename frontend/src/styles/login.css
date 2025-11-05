@@ -120,3 +120,31 @@
 .upload:hover  {
   cursor: pointer;
 }
+
+/* Cijelu stranicu centriraj (uzmi u obzir header visinu) */
+.register-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px); /* prilagodi 80px visini headera ako treba */
+  padding: 16px;
+}
+
+/* Select + forma složeni u kolonu i centrirani */
+.register-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px; /* razmak između selecta i forme */
+}
+
+/* Select neka prati širinu forme */
+.register-box select {
+  width: 100%;
+  max-width: 420px;        /* uskladi s max-širinom .login-form ako je ima */
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
