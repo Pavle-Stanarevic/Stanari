@@ -9,7 +9,7 @@ export default function RegisterOrganizator({ onSubmit, loading = false }) {
       <div className="register-box">
         <UserTypeSelect value="organizator" onChange={() => {}} />
         <RegisterFormBase
-          title="Kreiraj račun (organizator)"
+          title="Kreiraj račun (Organizator)"
           defaultUserType="organizator"
           loading={loading}
           onSubmit={onSubmit}

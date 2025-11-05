@@ -43,7 +43,7 @@ export default function LandingPage() {
 
           <SectionCard title="Izložbe Radova" cta="Termini izložbi" href="#">
             Naše izložbe radova polaznika dokaz su da se glina ne radi samo
-            žlicama i žlicama — nego i ponosom, strpljenjem i čistom radošću
+            žlicama i žlicama - nego i ponosom, strpljenjem i čistom radošću
             stvaranja. Svaki izloženi komad priča svoju malu priču o prvim
             pokušajima, neočekivanim oblinama, pobjedama koje su postale čari, i
             trenucima kad se ruke i mašta savršeno razumiju.

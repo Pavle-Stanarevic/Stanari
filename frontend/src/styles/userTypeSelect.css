@@ -1,12 +1,11 @@
 
-
 .user-type-select select {
   margin-bottom: 6rem;
-  padding: 0.6rem 20rem;
   border: 1px solid #ccc;
   border-radius: 8px;
   background-color: #ffffff;
   padding-left: 10px;
+  width: 420px;
 }
 
 .user-type-select select:hover {
