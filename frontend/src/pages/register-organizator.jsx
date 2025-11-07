@@ -1,9 +1,23 @@
 // src/pages/register-organizator.jsx
-import React from "react";
+import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
+import { register } from "../api/auth.js";
 
-export default function RegisterOrganizator({ onSubmit, loading = false }) {
+export default function RegisterOrganizator() {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (values) => {
+    setLoading(true);
+    try {
+      await register(values);
+    } catch (error) {
+      console.error("Registration error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="register-page">
       <div className="register-box">
@@ -12,7 +26,7 @@ export default function RegisterOrganizator({ onSubmit, loading = false }) {
           title="Kreiraj račun (Organizator)"
           defaultUserType="organizator"
           loading={loading}
-          onSubmit={onSubmit}
+          onSubmit={handleSubmit}
           renderExtra={({ values, handleChange }) => (
             <div>
               <input
