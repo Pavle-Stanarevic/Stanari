@@ -30,6 +30,7 @@ export default function RegisterFormBase({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("Registracija - uneseni podaci:", values);
     onSubmit?.(values);
   };
 

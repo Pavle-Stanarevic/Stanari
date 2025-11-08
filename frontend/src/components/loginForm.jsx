@@ -8,6 +8,7 @@ export default function LoginForm({ onSubmit, loading = false }) {
 
   const submit = (e) => {
     e.preventDefault();
+    console.log("Prijava - uneseni podaci:", { email, password });
     onSubmit({ email, password });
   };
 
