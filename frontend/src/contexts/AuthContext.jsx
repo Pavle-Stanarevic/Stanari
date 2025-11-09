@@ -1,44 +1,37 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
+import { me, logout as apiLogout } from "../api/auth";
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext({
+  user: undefined,
+  setUser: () => {},
+  signIn: () => {},
+  signOut: () => {},
+  isAuthenticated: false,
+});
 
 export function AuthProvider({ children }) {
-  // Persist both token and user to sessionStorage so auth survives page refresh
-  // within the browser session but is cleared when the session ends.
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = sessionStorage.getItem("user");
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
-  });
+  const [user, setUser] = useState(undefined);
 
-  const [token, setToken] = useState(() => sessionStorage.getItem("token"));
-
-  useEffect(() => {
-    if (token) sessionStorage.setItem("token", token);
-    else sessionStorage.removeItem("token");
-  }, [token]);
-
-  useEffect(() => {
-    if (user) sessionStorage.setItem("user", JSON.stringify(user));
+  const signIn = (u) => {
+    setUser(u);
+    if (u) sessionStorage.setItem("user", JSON.stringify(u));
     else sessionStorage.removeItem("user");
-  }, [user]);
-
-  const signIn = ({ user, token }) => {
-    setUser(user);
-    setToken(token);
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    try { await logout(); } catch {}
     setUser(null);
-    setToken(null);
+    sessionStorage.removeItem("user");
   };
 
-  const value = { user, token, signIn, signOut, isAuthenticated: !!token };
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  useEffect(() => {
+    // može ostati tvoj postojeći me() poziv; ako vrati null → nije ulogiran
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, setUser, signIn, signOut, isAuthenticated: !!user }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-export const useAuthContext = () => useContext(AuthContext);

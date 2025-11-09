@@ -6,6 +6,8 @@ import { register } from "../api/auth.js";
 import useAuth from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
+
+
 export default function RegisterOrganizator() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
