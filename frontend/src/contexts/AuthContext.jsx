@@ -2,7 +2,7 @@ import { createContext, useEffect, useState } from "react";
 import { me, logout as apiLogout } from "../api/auth";
 
 export const AuthContext = createContext({
-  user: undefined,
+  user: undefined,        // undefined = loading, null = not logged, object = logged
   setUser: () => {},
   signIn: () => {},
   signOut: () => {},
@@ -10,7 +10,30 @@ export const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(undefined);
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem("user");
+      return raw ? JSON.parse(raw) : undefined; // start kao loading
+    } catch {
+      return undefined;
+    }
+  });
+
+  // učitaj stanje sa servera na mount (ako user nije već iz cachea)
+  useEffect(() => {
+    if (user !== undefined) return;
+    (async () => {
+      try {
+        const u = await me();
+        setUser(u ?? null);
+        if (u) sessionStorage.setItem("user", JSON.stringify(u));
+        else sessionStorage.removeItem("user");
+      } catch {
+        setUser(null);
+        sessionStorage.removeItem("user");
+      }
+    })();
+  }, [user]);
 
   const signIn = (u) => {
     setUser(u);
@@ -19,14 +42,10 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
-    try { await logout(); } catch {}
+    try { await apiLogout(); } catch {}
     setUser(null);
     sessionStorage.removeItem("user");
   };
-
-  useEffect(() => {
-    // može ostati tvoj postojeći me() poziv; ako vrati null → nije ulogiran
-  }, []);
 
   return (
     <AuthContext.Provider value={{ user, setUser, signIn, signOut, isAuthenticated: !!user }}>
@@ -34,4 +53,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
