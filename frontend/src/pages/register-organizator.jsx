@@ -13,16 +13,21 @@ export default function RegisterOrganizator() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (values) => {
-    setLoading(true);
+  const handleSubmit = async (data) => {
     try {
-      const data = await register(values);
-      signIn(data);
+      console.log("Registracija - uneseni podaci:", data);
+      await register(data);
+
+      // Nakon uspješne registracije, ručno popuni user u AuthContext-u:
+      signIn({
+        firstName: data.firstName,
+        email: data.email,
+        username: data.email,
+      });
+
       navigate("/");
-    } catch (error) {
-      console.error("Registration error:", error);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error("Registration error:", e);
     }
   };
 
