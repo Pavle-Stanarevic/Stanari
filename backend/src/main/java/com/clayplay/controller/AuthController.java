@@ -1,7 +1,7 @@
 package com.clayplay.controller;
 
 import com.clayplay.dto.RegistrationRequest;
-import com.clayplay.model.User;
+import com.clayplay.model.Korisnik;
 import com.clayplay.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,13 +23,13 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegistrationRequest req) {
         try {
-            User created = userService.register(req);
+            Korisnik created = userService.register(req);
             Map<String, Object> userMap = new HashMap<>();
-            userMap.put("id", created.getId());
+            userMap.put("id", created.getIdKorisnik());
             userMap.put("email", created.getEmail());
-            userMap.put("firstName", created.getFirstName());
-            userMap.put("lastName", created.getLastName());
-            userMap.put("userType", created.getUserType());
+            userMap.put("firstName", created.getIme());
+            userMap.put("lastName", created.getPrezime());
+            userMap.put("userType", userService.isOrganizator(created.getIdKorisnik()) ? "organizator" : "polaznik");
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("user", userMap);
@@ -48,15 +48,15 @@ public class AuthController {
             if (body == null) return ResponseEntity.badRequest().body("Missing credentials");
             String email = body.get("email");
             String password = body.get("password");
-            Optional<User> userOpt = userService.authenticate(email, password);
+            Optional<Korisnik> userOpt = userService.authenticate(email, password);
             if (userOpt.isPresent()) {
-                User u = userOpt.get();
+                Korisnik u = userOpt.get();
                 Map<String, Object> userMap = new HashMap<>();
-                userMap.put("id", u.getId());
+                userMap.put("id", u.getIdKorisnik());
                 userMap.put("email", u.getEmail());
-                userMap.put("firstName", u.getFirstName());
-                userMap.put("lastName", u.getLastName());
-                userMap.put("userType", u.getUserType());
+                userMap.put("firstName", u.getIme());
+                userMap.put("lastName", u.getPrezime());
+                userMap.put("userType", userService.isOrganizator(u.getIdKorisnik()) ? "organizator" : "polaznik");
 
                 Map<String, Object> resp = new HashMap<>();
                 resp.put("user", userMap);
