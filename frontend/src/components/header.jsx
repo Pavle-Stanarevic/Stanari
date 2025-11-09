@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 import "../styles/header.css";
 import logo from "../images/logo.png";
 
@@ -11,6 +12,8 @@ const NAV_ITEMS = [
 ];
 
 export default function Header() {
+  const auth = useAuth();
+
   return (
     <header className="header">
       {/* Logo */}
@@ -47,10 +50,16 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Sign in -> /login */}
-        <Link to="/login" className="sign-btn">
-          Sign in
-        </Link>
+        {/* Sign in -> /login or show user name when authenticated */}
+        {auth?.isAuthenticated && auth.user ? (
+          <Link to="/profile" className="sign-btn">
+            {auth.user.firstName || auth.user.email || "Profile"}
+          </Link>
+        ) : (
+          <Link to="/login" className="sign-btn">
+            Sign in
+          </Link>
+        )}
       </div>
     </header>
   );
