@@ -12,7 +12,6 @@ BEGIN
            RAISE EXCEPTION 'Rezervaciju nije moguće otkazati manje od 2 dana prije početka radionice.';
        END IF;
     END IF;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -74,14 +73,15 @@ EXECUTE FUNCTION broj_slobodnih_mjesta();
 CREATE OR REPLACE FUNCTION polaznik_obavezni_podaci()
 RETURNS TRIGGER AS $$
 DECLARE
-    ime VARCHAR(50);
-    prezime VARCHAR(50);
+    v_ime VARCHAR(50);
+    v_prezime VARCHAR(50);
 BEGIN
-    SELECT ime, prezime INTO ime, prezime
-    FROM KORISNIK
-    WHERE idKorisnik = NEW.idKorisnik;
+    SELECT k.ime, k.prezime
+    INTO v_ime, v_prezime
+    FROM KORISNIK k
+    WHERE k.idKorisnik = NEW.idKorisnik;
 
-    IF ime IS NULL OR prezime IS NULL THEN
+    IF v_ime IS NULL OR v_prezime IS NULL THEN
         RAISE EXCEPTION 'Polaznik mora imati unijeta ime i prezime prije rezervacije radionice.';
     END IF;
 
@@ -98,19 +98,20 @@ EXECUTE FUNCTION polaznik_obavezni_podaci();
 CREATE OR REPLACE FUNCTION organizator_obavezni_podaci()
 RETURNS TRIGGER AS $$
 DECLARE
-    ime VARCHAR(50);
-    prezime VARCHAR(50);
-    adresa VARCHAR(100);
-    brojTelefona VARCHAR(15);
-    fotoId BIGINT;
+    v_ime VARCHAR(50);
+    v_prezime VARCHAR(50);
+    v_adresa VARCHAR(100);
+    v_brojTelefona VARCHAR(15);
+    v_fotoId BIGINT;
 BEGIN
-    SELECT ime, prezime, adresa, brojTelefona, fotoId INTO ime, prezime, adresa, brojTelefona, fotoId
-    FROM KORISNIK
-    WHERE idKorisnik = NEW.idKorisnik;
+    SELECT k.ime, k.prezime, k.adresa, k.brojTelefona, k.fotoId
+    INTO v_ime, v_prezime, v_adresa, v_brojTelefona, v_fotoId
+    FROM KORISNIK k
+    WHERE k.idKorisnik = NEW.idKorisnik;
 
-    IF adresa IS NULL OR brojTelefona IS NULL OR fotoId IS NULL THEN
+    IF v_adresa IS NULL OR v_brojTelefona IS NULL OR v_fotoId IS NULL THEN
         RAISE EXCEPTION 'Organizator mora imati unijeta adresu, broj telefona i fotografiju prije kreiranja radionice.';
-    ELSIF NEW.imeStudija IS NULL AND (ime IS NULL OR prezime IS NULL) THEN
+    ELSIF NEW.imeStudija IS NULL AND (v_ime IS NULL OR v_prezime IS NULL) THEN
         RAISE EXCEPTION 'Organizator mora imati unijeta ime i prezime ili ime studija prije kreiranja radionice.';
     END IF;
 
@@ -127,30 +128,21 @@ EXECUTE FUNCTION organizator_obavezni_podaci();
 CREATE OR REPLACE FUNCTION korisnik_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.idKorisnik IN (
-        SELECT idKorisnik
-        FROM POLAZNIK
-    )
-    THEN
+    IF NEW.idKorisnik IN (SELECT idKorisnik FROM POLAZNIK) THEN
         IF NEW.ime IS NULL OR NEW.prezime IS NULL THEN
             RAISE EXCEPTION 'Polaznik mora imati unijeta ime i prezime prije rezervacije radionice.';
         END IF;
 
-    ELSIF NEW.idKorisnik IN (
-        SELECT idKorisnik
-        FROM ORGANIZATOR
-    )
-    THEN
+    ELSIF NEW.idKorisnik IN (SELECT idKorisnik FROM ORGANIZATOR) THEN
         IF NEW.adresa IS NULL OR NEW.brojTelefona IS NULL OR NEW.fotoId IS NULL THEN
             RAISE EXCEPTION 'Organizator mora imati unijeta adresu, broj telefona i fotografiju prije kreiranja radionice.';
         ELSIF (
-            SELECT imeStudija
-            FROM ORGANIZATOR
-            WHERE idKorisnik = NEW.idKorisnik
+            SELECT o.imeStudija FROM ORGANIZATOR o WHERE o.idKorisnik = NEW.idKorisnik
         ) IS NULL AND (NEW.ime IS NULL OR NEW.prezime IS NULL) THEN
             RAISE EXCEPTION 'Organizator mora imati unijeta ime i prezime ili ime studija prije kreiranja radionice.';
         END IF;
     END IF;
+
     RETURN NEW;    
 END;
 $$ LANGUAGE plpgsql;
@@ -159,5 +151,5 @@ CREATE TRIGGER trig_korisnik_update
 BEFORE UPDATE ON KORISNIK
 FOR EACH ROW
 EXECUTE FUNCTION korisnik_update();
+
 COMMIT;
-        
