@@ -1,0 +1,7 @@
+.container-profile{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-right: 100px;
+  margin-left: 100px;
+}

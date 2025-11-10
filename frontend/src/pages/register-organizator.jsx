@@ -20,9 +20,8 @@ export default function RegisterOrganizator() {
 
       // Nakon uspješne registracije, ručno popuni user u AuthContext-u:
       signIn({
-        firstName: data.firstName,
-        email: data.email,
-        username: data.email,
+        ...data,               // firstName, lastName, email, kontakt, studyName, ...
+        username: data.email,  // ako ti komponenta negdje očekuje username
       });
 
       navigate("/");
