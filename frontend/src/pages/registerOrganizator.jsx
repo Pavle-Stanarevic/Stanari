@@ -1,16 +1,18 @@
-// src/pages/register-polaznik.jsx
+// src/pages/registerOrganizator.jsx
 import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
 import { register } from "../api/auth.js";
-import useAuth from "../hooks/useAuth";
+import useAuth from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 
-export default function RegisterPolaznik() {
+
+
+export default function RegisterOrganizator() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
-  
+
   const handleSubmit = async (data) => {
     try {
       console.log("Registracija - uneseni podaci:", data);
@@ -18,9 +20,8 @@ export default function RegisterPolaznik() {
 
       // Nakon uspješne registracije, ručno popuni user u AuthContext-u:
       signIn({
-        firstName: data.firstName,
-        email: data.email,
-        username: data.email,
+        ...data,               // firstName, lastName, email, kontakt, studyName, ...
+        username: data.email,  // ako ti komponenta negdje očekuje username
       });
 
       navigate("/");
@@ -32,12 +33,24 @@ export default function RegisterPolaznik() {
   return (
     <div className="register-page">
       <div className="register-box">
-        <UserTypeSelect value="polaznik" onChange={() => {}} />
+        <UserTypeSelect value="organizator" onChange={() => {}} />
         <RegisterFormBase
-          title="Kreiraj račun"
-          defaultUserType="polaznik"
+          title="Kreiraj račun (Organizator)"
+          defaultUserType="organizator"
           loading={loading}
           onSubmit={handleSubmit}
+          renderExtra={({ values, handleChange }) => (
+            <div>
+              <input
+                placeholder="Naziv studija"
+                name="studyName"
+                type="text"
+                value={values.studyName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          )}
         />
       </div>
     </div>

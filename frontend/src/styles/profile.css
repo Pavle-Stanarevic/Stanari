@@ -1,0 +1,77 @@
+/* Glavni container */
+.container-profile {
+  display: grid;
+  grid-template-columns: 1fr 2fr 0.5fr; /* labela + vrijednost */
+  gap: 20px 20px;
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 24px 28px;
+  background-color: #f9f9f9;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  font-family: "Inter", sans-serif;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+/* Naslov stranice */
+.container-profile::before {
+  content: "📋 Podaci o korisniku";
+  grid-column: 1 / -1;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 12px;
+}
+
+/* Svaki red (labela + vrijednost) */
+.container-profile p {
+  margin: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd; /
+}
+
+.label {
+  color: #555;
+}
+
+
+
+/* Responsivnost — na malim ekranima sve ide ispod sebe */
+@media (max-width: 600px) {
+  .container-profile {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    font-size: 0.95rem;
+  }
+
+  .container-profile::before {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+}
+
+.naslov{
+  text-align: center;
+  margin-top: 100px;
+  margin-bottom: 30px;
+}
+
+.edit-icon{
+  margin-top: 25px;
+  size: 10;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.actions { display: flex; gap: 6px; align-items: center; }
+
+.icon, .edit-icon { cursor: pointer; }
+.icon.save { color: #2ecc71; }
+.icon.cancel { color: #e74c3c; }
+

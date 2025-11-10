@@ -1,18 +1,16 @@
-// src/pages/register-organizator.jsx
+// src/pages/register-polaznik.jsx
 import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
 import { register } from "../api/auth.js";
-import useAuth from "../hooks/useAuth";
+import useAuth from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 
-
-
-export default function RegisterOrganizator() {
+export default function RegisterPolaznik() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
-
+  
   const handleSubmit = async (data) => {
     try {
       console.log("Registracija - uneseni podaci:", data);
@@ -21,7 +19,7 @@ export default function RegisterOrganizator() {
       // Nakon uspješne registracije, ručno popuni user u AuthContext-u:
       signIn({
         ...data,               // firstName, lastName, email, kontakt, studyName, ...
-        username: data.email,  // ako ti komponenta negdje očekuje username
+        username: data.email
       });
 
       navigate("/");
@@ -33,24 +31,12 @@ export default function RegisterOrganizator() {
   return (
     <div className="register-page">
       <div className="register-box">
-        <UserTypeSelect value="organizator" onChange={() => {}} />
+        <UserTypeSelect value="polaznik" onChange={() => {}} />
         <RegisterFormBase
-          title="Kreiraj račun (Organizator)"
-          defaultUserType="organizator"
+          title="Kreiraj račun"
+          defaultUserType="polaznik"
           loading={loading}
           onSubmit={handleSubmit}
-          renderExtra={({ values, handleChange }) => (
-            <div>
-              <input
-                placeholder="Naziv studija"
-                name="studyName"
-                type="text"
-                value={values.studyName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          )}
         />
       </div>
     </div>
