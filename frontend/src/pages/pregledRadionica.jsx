@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../components/header";
 import { listWorkshops } from "../api/workshops";
 import "../styles/pregledRadionica.css";
 
