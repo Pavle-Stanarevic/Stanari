@@ -15,7 +15,7 @@ export default function Header() {
   const { isAuthenticated, user, signOut } = useAuth();
 
   const handleLogout = async () => {
-    await signOut();       // frontend-only call -> poziva /logout i čisti state
+    await signOut();     
     window.location.href = "/";
   };
 

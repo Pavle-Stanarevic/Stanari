@@ -4,10 +4,10 @@ import "../styles/profile.css";
 import { Edit, Check, X } from "lucide-react";
 
 export default function Profile() {
-  const { user, signIn } = useAuth();              // ❗ singIn -> signIn
+  const { user, signIn } = useAuth();              
 
-  // ❗ useState se destructura s uglatim zagradama, ne s vitičastim
-  const [editingField, setEditingField] = useState(null); // "firstName" | "lastName" | "email" | "contact"
+
+  const [editingField, setEditingField] = useState(null); 
   const [tempValue, setTempValue] = useState("");
 
   const startEditing = (field, value) => {
@@ -25,11 +25,10 @@ export default function Profile() {
 
     const updatedUser = {
       ...user,
-      [editingField]: tempValue, // promijeni baš to polje
+      [editingField]: tempValue, 
     };
 
-    signIn(updatedUser); // ažurira context + sessionStorage
-    setEditingField(null);
+    signIn(updatedUser); 
     setTempValue("");
   };
 
@@ -38,7 +37,6 @@ export default function Profile() {
       <h1 className="naslov">Vaš profil</h1>
 
       <div className="container-profile">
-        {/* Ime */}
         <p className="label">Ime:</p>
         {editingField === "firstName" ? (
           <>
@@ -64,7 +62,6 @@ export default function Profile() {
           </>
         )}
 
-        {/* Prezime */}
         <p className="label">Prezime:</p>
         {editingField === "lastName" ? (
           <>
@@ -89,8 +86,6 @@ export default function Profile() {
             />
           </>
         )}
-
-        {/* Email */}
         <p className="label">Email:</p>
         {editingField === "email" ? (
           <>
@@ -116,7 +111,6 @@ export default function Profile() {
           </>
         )}
 
-        {/* Kontakt */}
         <p className="label">Kontakt:</p>
         {editingField === "contact" ? (
           <>

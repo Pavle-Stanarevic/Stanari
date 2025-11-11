@@ -44,38 +44,37 @@
   transition: color 0.3s ease;
 }
 
-/* aktivira efekt */
+
 .nav-links a:hover span {
   animation: wave 1.5s ease forwards;
 }
 
-/* promjena boje svakog slova */
 @keyframes wave {
   0% {
     color: black;
   }
   30% {
-    color: #6fa8dc; /* plava prolazi */
+    color: #6fa8dc; 
   }
   100% {
     color: white;
   }
 }
 
-/* Ujednači izgled Link (<a>) i button s klasom .sign-btn */
+
 .sign-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  /* Dimenzije */
+
   height: 40px;
   min-width: 110px;
   padding: 8px 16px;
   border-radius: 8px;
   box-sizing: border-box;
 
-  /* Izgled i animacija */
+
   background: linear-gradient(to top, #6fa8dc 0%, #000000 100%);
   background-size: 100% 300%;
   background-position: center top;
@@ -89,17 +88,17 @@
   line-height: 1;
 }
 
-/* Hover efekt — animira gradijent */
+
 .sign-btn:hover {
   background-position: center bottom;
 }
 
-/* Aktivni klik efekt */
+
 .sign-btn:active {
   transform: translateY(1px);
 }
 
-/* Reset za button da izgleda kao Link */
+
 button.sign-btn {
   appearance: none;
   -webkit-appearance: none;
@@ -112,7 +111,7 @@ button.sign-btn {
   color: white;
 }
 
-/* Ujednači tekst i centriranje */
+
 .sign-btn {
   text-align: center;
 }

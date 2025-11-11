@@ -59,7 +59,47 @@ export default function LandingPage() {
           u svakom komadu.
         </SectionCard>
 
-         <MapOSM lat={45.802} lng={15.971} label="ClayPlay Studio – Savska 25, Zagreb" />
+        
+
+        <section className="location-wrap">
+          <div className="location-card-zadnja">
+            <h3>ClayPlay Studio</h3>
+            <p className="lead">Unska 3, Zagreb • FER kvart</p>
+
+            <div className="location-badges">
+              <span className="badge">Keramika</span>
+              <span className="badge">Radionice</span>
+              <span className="badge">Izložbe</span>
+            </div>
+
+            <ul className="info-list">
+              <li><strong>Radno vrijeme:</strong> pon–pet 08:00–20:00</li>
+              <li><strong>Kontakt:</strong> info@clayplay.hr • 091 111 222</li>
+              <li><strong>Pristup:</strong> Tram 5/7/14, stanica Vjesnik • parking u blizini</li>
+            </ul>
+
+            <div className="btn-row">
+              <a
+                className="btn"
+                href="https://www.google.com/maps/dir/?api=1&destination=45.8016,15.9710"
+                target="_blank"
+                rel="noreferrer"
+              >
+                🧭 Upute
+              </a>
+            </div>
+          </div>
+
+          <div className="map-shell">
+            <div className="map-frame">
+              <MapOSM
+                lat={45.8016}
+                lng={15.9710}
+              />
+            </div>
+          </div>
+        </section>
+
 
         <footer className="footer">
 

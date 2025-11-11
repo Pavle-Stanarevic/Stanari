@@ -20,7 +20,7 @@ export default function RegisterFormBase({
     password: "",
     confirmPassword: "",
     userType: defaultUserType, // "polaznik" ili "organizator"
-    studyName: "",             // koristi samo organizator
+    studyName: "",             
   });
 
   const handleChange = (e) => {

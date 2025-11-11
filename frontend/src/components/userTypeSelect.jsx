@@ -2,24 +2,14 @@ import React from "react";
 import "../styles/userTypeSelect.css";
 import { useNavigate } from "react-router-dom";
 
-/**
- * UserTypeSelect komponenta — omogućuje odabir vrste korisnika.
- *
- * Props:
- * - value: string — trenutno odabrani tip korisnika
- * - onChange: function — funkcija koja se poziva pri promjeni
- * - label: string (opcionalno) — tekst iznad dropdowna
- *
- * Primjer korištenja:
- * <UserTypeSelect value={values.userType} onChange={handleChange} />
- */
+
 
 export default function UserTypeSelect({ value, onChange}) {
   const navigate = useNavigate();
 
   const handleSelectChange = (event) => {
-    const selectedValue = event.target.value; //cita vrijednost iz selecta
-    onChange(event); //javlja da se vrijednost promjenila
+    const selectedValue = event.target.value; 
+    onChange(event); 
 
     if(selectedValue === "polaznik"){
       navigate("/register-polaznik");

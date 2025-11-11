@@ -2,7 +2,7 @@ import { createContext, useEffect, useState } from "react";
 import { me, logout as apiLogout } from "../api/auth";
 
 export const AuthContext = createContext({
-  user: undefined,        // undefined = loading, null = not logged, object = logged
+  user: undefined,        
   setUser: () => {},
   signIn: () => {},
   signOut: () => {},
@@ -13,13 +13,13 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
       const raw = sessionStorage.getItem("user");
-      return raw ? JSON.parse(raw) : undefined; // start kao loading
+      return raw ? JSON.parse(raw) : undefined; 
     } catch {
       return undefined;
     }
   });
 
-  // učitaj stanje sa servera na mount (ako user nije već iz cachea)
+
   useEffect(() => {
     if (user !== undefined) return;
     (async () => {
