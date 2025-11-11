@@ -2,6 +2,8 @@ import React from "react";
 import { ArrowRight } from "lucide-react";
 import Header from "../components/header";
 import "../styles/landingPage.css";
+import MapOSM from "../components/MapOSM";
+
 
 function SectionCard({ title, children, cta, href }) {
   return (
@@ -56,6 +58,8 @@ export default function LandingPage() {
           oni su vješti učitelji, osmijehom i ljubavlju za glinu koja se osjeti
           u svakom komadu.
         </SectionCard>
+
+         <MapOSM lat={45.802} lng={15.971} label="ClayPlay Studio – Savska 25, Zagreb" />
 
         <footer className="footer">
 
