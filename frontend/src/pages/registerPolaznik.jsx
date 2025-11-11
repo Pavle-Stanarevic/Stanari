@@ -1,9 +1,9 @@
-// src/pages/register-polaznik.jsx
+// src/pages/registerPolaznik.jsx
 import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
 import { register } from "../api/auth.js";
-import useAuth from "../hooks/useAuth";
+import useAuth from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 
 export default function RegisterPolaznik() {

@@ -92,10 +92,10 @@ export async function register(data) {
 // import { registerPolaznik as register } from "../api/auth";
 // import { registerOrganizator as register } from "../api/auth";
 export async function registerPolaznik(data) {
-  return postJsonWithCsrf(`/api/auth/register-polaznik`, data);
+  return postJsonWithCsrf(`/api/auth/registerPolaznik`, data);
 }
 export async function registerOrganizator(data) {
-  return postJsonWithCsrf(`/api/auth/register-organizator`, data);
+  return postJsonWithCsrf(`/api/auth/registerOrganizator`, data);
 }
 
 // (opcionalno) default export ako negdje postoji `import api from "../api/auth"`

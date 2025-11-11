@@ -1,0 +1,101 @@
+.list-page {
+  min-height: 100vh;
+  background: #f3f4f6;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.list-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  background: #fff;
+  margin-top: 20px;
+  border-radius: 10px;
+}
+
+.list-wrap h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  color: #6b7280;
+}
+.empty button {
+  background: #000;
+  color: #fff;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+}
+
+.workshop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.workshop-item {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.thumb {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+}
+.thumb-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #d1d5db, #9ca3af);
+}
+
+.content .title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin-top: 0.25rem;
+}
+.submeta {
+  display: flex;
+  gap: 1rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+.desc {
+  color: #4b5563;
+  margin-top: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.list-footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b7280;
+  padding: 1.5rem 0 2rem;
+}

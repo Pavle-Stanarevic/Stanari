@@ -22,10 +22,10 @@ export default function UserTypeSelect({ value, onChange}) {
     onChange(event); //javlja da se vrijednost promjenila
 
     if(selectedValue === "polaznik"){
-      navigate("/register-polaznik");
+      navigate("/registerPolaznik");
 
     }else if(selectedValue === "organizator"){
-      navigate("/register-organizator");
+      navigate("/registerOrganizator");
     }
   };
 
