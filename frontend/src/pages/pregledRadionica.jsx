@@ -36,21 +36,6 @@ export default function PregledRadionica() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // Trenutni korisnik (npr. spremljen u localStorage nakon logina)
-  const [user, setUser] = useState(null);
-
-  // Učitaj korisnika iz localStorage (očekujemo { uloga: "organizer" | "polaznik" | "admin", ... })
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        setUser(null);
-      }
-    }
-  }, []);
-
   // Dohvati radionice s API-ja
   useEffect(() => {
     let alive = true;
@@ -75,20 +60,17 @@ export default function PregledRadionica() {
 
   return (
     <div className="list-page">
-
       <main className="list-wrap">
         <div className="list-header">
           <h1>Pregled Naših Radionica</h1>
 
-          {/* Gumb se prikazuje samo ako je korisnik organizator */}
-          {user?.uloga === "organizer" && (
-            <button
-              className="new-workshop-btn"
-              onClick={() => navigate("/organizacijaRadionica")}
-            >
-              + Nova radionica
-            </button>
-          )}
+          {/* Gumb je uvijek vidljiv */}
+          <button
+            className="new-workshop-btn"
+            onClick={() => navigate("/organizacijaRadionica")}
+          >
+            + Nova radionica
+          </button>
         </div>
 
         {loading && <div className="info">Učitavanje…</div>}
@@ -97,12 +79,9 @@ export default function PregledRadionica() {
         {!loading && empty && !err && (
           <div className="empty">
             <p>Još nema organiziranih radionica.</p>
-            {/* Ako korisnik nije organizator, gumb se ni ovdje neće pojaviti (ostaje samo poruka) */}
-            {user?.uloga === "organizer" && (
-              <button onClick={() => navigate("/organizacijaRadionica")}>
-                Organiziraj radionicu
-              </button>
-            )}
+            <button onClick={() => navigate("/organizacijaRadionica")}>
+              Organiziraj radionicu
+            </button>
           </div>
         )}
 
