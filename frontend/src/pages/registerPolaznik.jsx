@@ -1,4 +1,4 @@
-// src/pages/register-polaznik.jsx
+// src/pages/registerPolaznik.jsx
 import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
