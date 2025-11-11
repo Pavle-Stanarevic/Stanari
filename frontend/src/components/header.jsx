@@ -5,7 +5,7 @@ import "../styles/header.css";
 import logo from "../images/logo.png";
 
 const NAV_ITEMS = [
-  { label: "Rezervacije Termina", to: "/rezervacije" },
+  { label: "Rezervacije Termina", to: "/pregledRadionica" },
   { label: "Shop", to: "/shop" },
   { label: "Izložbe", to: "/izlozbe" },
   { label: "Naš Tim", to: "/tim" },
@@ -15,7 +15,7 @@ export default function Header() {
   const { isAuthenticated, user, signOut } = useAuth();
 
   const handleLogout = async () => {
-    await signOut();     
+    await signOut();
     window.location.href = "/";
   };
 

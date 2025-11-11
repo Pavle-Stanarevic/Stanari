@@ -85,10 +85,10 @@ export async function register(data) {
 
 
 export async function registerPolaznik(data) {
-  return postJsonWithCsrf(`/api/auth/register-polaznik`, data);
+  return postJsonWithCsrf(`/api/auth/registerPolaznik`, data);
 }
 export async function registerOrganizator(data) {
-  return postJsonWithCsrf(`/api/auth/register-organizator`, data);
+  return postJsonWithCsrf(`/api/auth/registerOrganizator`, data);
 }
 
 

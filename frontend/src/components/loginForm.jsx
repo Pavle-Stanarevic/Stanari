@@ -36,7 +36,7 @@ export default function LoginForm({ onSubmit, loading = false }) {
       </button>
       <p>
         Nemaš račun?{" "}
-        <Link to="/register-polaznik" className = "register-link">
+        <Link to="/registerPolaznik" className = "register-link">
           Registriraj se
         </Link>
       </p>
