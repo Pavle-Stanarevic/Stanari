@@ -1,4 +1,4 @@
-// src/pages/registerPolaznik.jsx
+
 import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
@@ -16,9 +16,9 @@ export default function RegisterPolaznik() {
       console.log("Registracija - uneseni podaci:", data);
       await register(data);
 
-      // Nakon uspješne registracije, ručno popuni user u AuthContext-u:
+
       signIn({
-        ...data,               // firstName, lastName, email, kontakt, studyName, ...
+        ...data,              
         username: data.email
       });
 

@@ -1,8 +1,8 @@
-// frontend/src/api/auth.js
 
-const API = import.meta.env.VITE_API_URL; // npr. http://localhost:8080
 
-// --- helperi ---
+const API = import.meta.env.VITE_API_URL; 
+
+
 function getCookie(name = "XSRF-TOKEN") {
   return document.cookie
     .split("; ")
@@ -29,9 +29,8 @@ async function postJsonWithCsrf(path, data) {
   try { return await res.json(); } catch { return {}; }
 }
 
-// --- LOGIN: najprije pokušaj JSON /api/auth/login (JWT), ako je 404 probaj /login (session) ---
+
 export async function login(email, password) {
-  // 1) JSON/JWT pokušaj
   try {
     const r = await fetch(`${API}/api/auth/login`, {
       method: "POST",
@@ -41,15 +40,13 @@ export async function login(email, password) {
     });
     if (r.ok) {
       const data = await r.json().catch(() => ({}));
-      return { mode: "jwt", data }; // npr. { token, user }
+      return { mode: "jwt", data }; 
     }
     if (r.status !== 404) throw new Error("Invalid credentials");
-    // 404 -> probaj form-login ispod
+
   } catch {
-    // padni na form login
   }
 
-  // 2) Spring form-login (session cookie)
   const body = new URLSearchParams({ username: email, password });
   const s = await fetch(`${API}/login`, {
     method: "POST",
@@ -62,7 +59,6 @@ export async function login(email, password) {
   throw new Error("Invalid credentials");
 }
 
-// --- ME: toleriraj 404 (ako endpoint ne postoji na ovoj grani) ---
 export async function me() {
   try {
     const res = await fetch(`${API}/api/auth/me`, { credentials: "include" });
@@ -72,7 +68,7 @@ export async function me() {
   } catch { return null; }
 }
 
-// --- LOGOUT ---
+
 export async function logout() {
   const csrf = getCookie();
   return fetch(`${API}/logout`, {
@@ -82,15 +78,12 @@ export async function logout() {
   });
 }
 
-// --- REGISTER ---
-// Ako backend ima 1 endpoint:
+
 export async function register(data) {
   return postJsonWithCsrf(`/api/auth/register`, data);
 }
 
-// Ako backend ima 2 endpointa, koristi ove iz svojih stranica:
-// import { registerPolaznik as register } from "../api/auth";
-// import { registerOrganizator as register } from "../api/auth";
+
 export async function registerPolaznik(data) {
   return postJsonWithCsrf(`/api/auth/registerPolaznik`, data);
 }
@@ -98,6 +91,6 @@ export async function registerOrganizator(data) {
   return postJsonWithCsrf(`/api/auth/registerOrganizator`, data);
 }
 
-// (opcionalno) default export ako negdje postoji `import api from "../api/auth"`
+
 const api = { login, me, logout, register, registerPolaznik, registerOrganizator };
 export default api;
