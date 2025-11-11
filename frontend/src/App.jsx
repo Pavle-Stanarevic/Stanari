@@ -3,8 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/header";
 import LoginPage from "./pages/loginPage";
 import LandingPage from "./pages/landingPage";
-import RegisterOrganizator from "./pages/register-organizator.jsx";
-import RegisterPolaznik from "./pages/register-polaznik.jsx";
+import RegisterOrganizator from "./pages/registerOrganizator.jsx";
+import RegisterPolaznik from "./pages/registerPolaznik.jsx";
+import Profile from "./pages/profile.jsx";
 
 
 export default function App() {
@@ -16,8 +17,9 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<LandingPage />} />
-        <Route path="/register-organizator" element={<RegisterOrganizator />} />
+        <Route path="/registerOrganizator" element={<RegisterOrganizator />} />
         <Route path="/register-polaznik" element={<RegisterPolaznik />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );

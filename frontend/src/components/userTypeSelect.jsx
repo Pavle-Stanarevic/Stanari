@@ -25,7 +25,7 @@ export default function UserTypeSelect({ value, onChange}) {
       navigate("/register-polaznik");
 
     }else if(selectedValue === "organizator"){
-      navigate("/register-organizator");
+      navigate("/registerOrganizator");
     }
   };
 

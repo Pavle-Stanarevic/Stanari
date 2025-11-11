@@ -56,7 +56,7 @@ export default function Header() {
         {isAuthenticated && user ? (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <Link to="/profile" className="sign-btn">
-              {user.firstName || user.username || user.email || "Profile"}
+              {user.firstName}
             </Link>
             <button className="sign-btn" onClick={handleLogout}>
               Logout
