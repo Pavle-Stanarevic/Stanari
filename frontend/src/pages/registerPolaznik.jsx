@@ -11,17 +11,14 @@ export default function RegisterPolaznik() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   
-  const handleSubmit = async (data) => {
+  const handleSubmit = async (values, { image }) => {
     try {
-      console.log("Registracija - uneseni podaci:", data);
-      await register(data);
-
-
+      const payload = { ...values, userType: "polaznik" };
+      await register(payload, image || null);
       signIn({
-        ...data,              
-        username: data.email
+        ...payload,
+        username: payload.email
       });
-
       navigate("/");
     } catch (e) {
       console.error("Registration error:", e);

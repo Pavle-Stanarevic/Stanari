@@ -29,6 +29,12 @@ public class Korisnik {
     @Column(name = "password", nullable = false)
     private String password;
 
+    @Column(name = "fotoId")
+    private Long fotoId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fotoId", referencedColumnName = "fotoId", insertable = false, updatable = false)
+    private Fotografija fotografija;
 
     public Long getIdKorisnik() { return idKorisnik; }
     public void setIdKorisnik(Long idKorisnik) { this.idKorisnik = idKorisnik; }
@@ -50,4 +56,10 @@ public class Korisnik {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public Long getFotoId() { return fotoId; }
+    public void setFotoId(Long fotoId) { this.fotoId = fotoId; }
+
+    public Fotografija getFotografija() { return fotografija; }
+    public void setFotografija(Fotografija fotografija) { this.fotografija = fotografija; }
 }

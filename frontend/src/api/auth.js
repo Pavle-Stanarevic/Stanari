@@ -29,6 +29,24 @@ async function postJsonWithCsrf(path, data) {
   try { return await res.json(); } catch { return {}; }
 }
 
+async function postMultipartWithCsrf(path, formData) {
+  const csrf = getCookie();
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    let msg = "";
+    try { msg = (await res.text()) || res.statusText; } catch {}
+    throw new Error(msg || "Request failed");
+  }
+  try { return await res.json(); } catch { return {}; }
+}
+
 
 export async function login(email, password) {
   try {
@@ -79,7 +97,15 @@ export async function logout() {
 }
 
 
-export async function register(data) {
+export async function register(data, imageFile) {
+  if (imageFile) {
+    const fd = new FormData();
+    Object.entries(data || {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) fd.append(k, String(v));
+    });
+    fd.append("image", imageFile);
+    return postMultipartWithCsrf(`/api/auth/register`, fd);
+  }
   return postJsonWithCsrf(`/api/auth/register`, data);
 }
 
