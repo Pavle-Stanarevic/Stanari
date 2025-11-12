@@ -62,7 +62,7 @@ export default function PregledRadionica() {
     <div className="list-page">
       <main className="list-wrap">
         <div className="list-header">
-          <h1>Pregled Naših Radionica</h1>
+          <h1>Pregled naših radionica</h1>
 
           {/* Gumb je uvijek vidljiv */}
           <button

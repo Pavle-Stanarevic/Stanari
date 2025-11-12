@@ -5,10 +5,10 @@ import "../styles/header.css";
 import logo from "../images/logo.png";
 
 const NAV_ITEMS = [
-  { label: "Rezervacije Termina", to: "/pregledRadionica" },
+  { label: "Rezervacije termina", to: "/pregledRadionica" },
   { label: "Shop", to: "/shop" },
   { label: "Izložbe", to: "/izlozbe" },
-  { label: "Naš Tim", to: "/tim" },
+  { label: "Naš tim", to: "/tim" },
 ];
 
 export default function Header() {
@@ -64,7 +64,7 @@ export default function Header() {
           </div>
         ) : (
           <Link to="/login" className="sign-btn">
-            Sign in
+            Prijavi se
           </Link>
         )}
       </div>

@@ -89,10 +89,10 @@ export default function OrganizacijaRadionica() {
     capacity: "",
     price: "",
     description: "",
-    duration: "60",      // minute
+    duration: "60",
     startTime: "18:30",
     date: new Date(),
-    location: "",        // ⬅️ POTREBNO za bazu
+    location: "",
     images: [],
   });
 
@@ -104,15 +104,12 @@ export default function OrganizacijaRadionica() {
     setErr("");
     setSubmitting(true);
     try {
-      // spoji datum i vrijeme u ISO (TIMESTAMPTZ)
       const [h, m] = String(form.startTime || "00:00").split(":").map(Number);
       const when = new Date(form.date || new Date());
       when.setHours(h || 0, m || 0, 0, 0);
 
-      // TODO: organizerId uzmi iz auth/sessiona; za test stavi 1
       const organizerId = 1;
 
-      // minimalna validacija
       if (!form.title?.trim()) throw new Error("Unesi naziv radionice.");
       if (!form.location?.trim()) throw new Error("Unesi lokaciju radionice.");
       if (!form.capacity) throw new Error("Unesi broj slobodnih mjesta.");
@@ -129,7 +126,6 @@ export default function OrganizacijaRadionica() {
         organizerId,
       });
 
-      // nakon uspjeha prebacujemo na listu
       navigate("/pregledRadionica");
     } catch (e) {
       setErr(e.message || "Greška prilikom spremanja radionice.");

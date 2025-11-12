@@ -1,15 +1,16 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../styles/login.css";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
+
+const MAX_SIZE_MB = 5;
 
 export default function RegisterFormBase({
   title = "Kreiraj račun",
   loading = false,
   defaultUserType = "",
   onSubmit,
-  renderExtra = null, // npr. dodatni input za organizatora
+  renderExtra = null,
 }) {
   const [values, setValues] = useState({
     firstName: "",
@@ -19,9 +20,48 @@ export default function RegisterFormBase({
     email: "",
     password: "",
     confirmPassword: "",
-    userType: defaultUserType, // "polaznik" ili "organizator"
-    studyName: "",             
+    userType: defaultUserType,
+    studyName: "",
   });
+
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [imgError, setImgError] = useState("");
+
+  const handleImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImgError("");
+    if (!file.type.startsWith("image/")) {
+      setImgError("Dozvoljene su samo slike (JPG, PNG, WEBP...).");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setImgError(`Maksimalna veličina slike je ${MAX_SIZE_MB} MB.`);
+      e.target.value = "";
+      return;
+    }
+
+    if (preview) URL.revokeObjectURL(preview);
+    setImage(file);
+    setPreview(URL.createObjectURL(file));
+    e.target.value = "";
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+    setImgError("");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,8 +70,7 @@ export default function RegisterFormBase({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Registracija - uneseni podaci:", values);
-    onSubmit?.(values);
+    onSubmit?.(values, { image });
   };
 
   return (
@@ -105,9 +144,41 @@ export default function RegisterFormBase({
         />
       </div>
 
-      <div className="upload">
-        <p>**Priložite fotografiju ili logo</p>
-        <Upload className="upload-icon" size={18} />
+      <div className="form-right">
+        <label>Priložite fotografiju ili logo</label>
+
+        <input
+          id="singleImageInput"
+          type="file"
+          accept="image/*"
+          onChange={handleImage}
+          style={{ display: "none" }}
+        />
+
+        <label htmlFor="singleImageInput" className="file-upload">
+          <div className="file-upload-area">
+            <Upload size={20} />
+            {!image ? (
+              <>
+                <span>Povuci i ispusti ili klikni za odabir</span>
+                <small>Podržano: JPG, PNG, WEBP (max {MAX_SIZE_MB} MB)</small>
+              </>
+            ) : (
+              <span>{image.name}</span>
+            )}
+          </div>
+        </label>
+
+        {imgError && <div className="upload-error">{imgError}</div>}
+
+        {preview && (
+          <div className="image-preview">
+            <img src={preview} alt="Pregled slike" />
+            <button type="button" onClick={removeImage}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       <button type="submit" disabled={loading}>

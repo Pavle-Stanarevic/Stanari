@@ -36,14 +36,14 @@ export default function LandingPage() {
         </SectionCard>
 
         <div className="grid">
-          <SectionCard title="Online Shop" cta="Odi u shop" href="#">
+          <SectionCard title="Online shop" cta="Odi u shop" href="#">
             Za sve one koji vole keramiku, ali više uživaju u ispijanju kave
             nego u miješanju gline, otvorili smo naš online shop! Tamo možeš
             pronaći unikatne keramičke komade koje su izradili naši instruktori
             i talentirani umjetnici.
           </SectionCard>
 
-          <SectionCard title="Izložbe Radova" cta="Termini izložbi" href="#">
+          <SectionCard title="Izložbe radova" cta="Termini izložbi" href="#">
             Naše izložbe radova polaznika dokaz su da se glina ne radi samo
             žlicama i žlicama - nego i ponosom, strpljenjem i čistom radošću
             stvaranja. Svaki izloženi komad priča svoju malu priču o prvim
@@ -52,7 +52,7 @@ export default function LandingPage() {
           </SectionCard>
         </div>
 
-        <SectionCard title="Naš Tim" cta="Pogledaj organizatore" href="#">
+        <SectionCard title="Naš tim" cta="Pogledaj organizatore" href="#">
           Upoznaj ekipu koja vjeruje da je glina najbolja terapija (i da nikad
           nije kasno zaprljati ruke!). Naši instruktori su majstori keramike —
           oni su vješti učitelji, osmijehom i ljubavlju za glinu koja se osjeti
