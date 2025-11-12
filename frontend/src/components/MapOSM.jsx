@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "../styles/MapOSM.css";
+import "../styles/mapOSM.css";
 
 /* === Fix: default marker ikone (često ne rade u bundlerima) === */
 const defaultIcon = new L.Icon({
