@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "../styles/login.css";
 import { Upload, X } from "lucide-react";
+import GoogleAuthButton from "./GoogleAuthButton.jsx";
 
 const MAX_SIZE_MB = 5;
 
@@ -76,6 +77,22 @@ export default function RegisterFormBase({
   return (
     <form className="login-form" onSubmit={handleSubmit} noValidate>
       <h2>{title}</h2>
+
+      <div style={{ marginBottom: 12 }}>
+        <GoogleAuthButton
+          mode="prefill"
+          text="Popuni iz Google računa"
+          size="large"
+          onPrefill={({ firstName, lastName, email }) => {
+            setValues(v => ({
+              ...v,
+              firstName: firstName || v.firstName,
+              lastName: lastName || v.lastName,
+              email: email || v.email,
+            }));
+          }}
+        />
+      </div>
 
       <div className="register-form">
         <input

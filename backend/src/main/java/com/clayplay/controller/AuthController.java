@@ -2,13 +2,22 @@ package com.clayplay.controller;
 
 import com.clayplay.dto.RegistrationRequest;
 import com.clayplay.model.Korisnik;
+import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.service.UserService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -18,9 +27,15 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserService userService;
+    private final KorisnikRepository korisnikRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AuthController(UserService userService) {
+    @Value("${google.clientId:}")
+    private String googleClientId;
+
+    public AuthController(UserService userService, KorisnikRepository korisnikRepository) {
         this.userService = userService;
+        this.korisnikRepository = korisnikRepository;
     }
 
     @PostMapping(path = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -121,6 +136,64 @@ public class AuthController {
             }
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> body) {
+        try {
+            String idToken = body.get("idToken");
+            if (idToken == null || idToken.isBlank()) {
+                return ResponseEntity.badRequest().body("Missing idToken");
+            }
+            JsonNode tokenInfo = verifyGoogleIdToken(idToken);
+            if (tokenInfo == null) {
+                return ResponseEntity.badRequest().body("Invalid Google token");
+            }
+            String aud = tokenInfo.path("aud").asText("");
+            boolean emailVerified = tokenInfo.path("email_verified").asText("false").equals("true") || tokenInfo.path("email_verified").asBoolean(false);
+            String email = tokenInfo.path("email").asText("");
+            if (googleClientId != null && !googleClientId.isBlank() && !googleClientId.equals(aud)) {
+                return ResponseEntity.status(401).body("Token audience mismatch");
+            }
+            if (!emailVerified || email.isBlank()) {
+                return ResponseEntity.status(401).body("Email not verified");
+            }
+            Optional<Korisnik> userOpt = korisnikRepository.findByEmail(email);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("User with this Google account is not registered");
+            }
+            Korisnik u = userOpt.get();
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", u.getIdKorisnik());
+            userMap.put("email", u.getEmail());
+            userMap.put("firstName", u.getIme());
+            userMap.put("lastName", u.getPrezime());
+            userMap.put("userType", userService.isOrganizator(u.getIdKorisnik()) ? "organizator" : "polaznik");
+
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("user", userMap);
+            resp.put("token", "dev-token");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    private JsonNode verifyGoogleIdToken(String idToken) {
+        try {
+            String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .GET()
+                    .header("Accept", "application/json")
+                    .build();
+            HttpClient client = HttpClient.newHttpClient();
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (res.statusCode() != 200) return null;
+            return objectMapper.readTree(res.body());
+        } catch (Exception e) {
+            return null;
         }
     }
 }

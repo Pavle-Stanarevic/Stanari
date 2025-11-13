@@ -3,6 +3,7 @@ import LoginForm from "../components/loginForm.jsx";
 import { login, me } from "../api/auth";
 import useAuth from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -37,8 +38,20 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-wrapper">
+      <div className="login-wrapper" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <LoginForm onSubmit={handleLogin} loading={loading} />
+        <div style={{ alignSelf: "center" }}>
+          <GoogleAuthButton
+            mode="login"
+            text="Prijavi se Google računom"
+            onSuccess={(user) => {
+              if (user) {
+                signIn(user);
+                navigate("/");
+              }
+            }}
+          />
+        </div>
         <div className="error-space">{err && <p className="error">{err}</p>}</div>
       </div>
     </div>
