@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listWorkshops } from "../api/workshops";
+import useAuth from "../hooks/useAuth";
 import "../styles/pregledRadionica.css";
 
 function formatPrice(price) {
@@ -31,6 +32,7 @@ function formatDateTime(iso) {
 
 export default function PregledRadionica() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,13 +66,14 @@ export default function PregledRadionica() {
         <div className="list-header">
           <h1>Pregled naših radionica</h1>
 
-          {/* Gumb je uvijek vidljiv */}
-          <button
-            className="new-workshop-btn"
-            onClick={() => navigate("/organizacijaRadionica")}
-          >
-            + Nova radionica
-          </button>
+          {user?.userType === "organizator" && (
+            <button
+              className="new-workshop-btn"
+              onClick={() => navigate("/organizacijaRadionica")}
+            >
+              + Nova radionica
+            </button>
+          )}
         </div>
 
         {loading && <div className="info">Učitavanje…</div>}
@@ -79,9 +82,6 @@ export default function PregledRadionica() {
         {!loading && empty && !err && (
           <div className="empty">
             <p>Još nema organiziranih radionica.</p>
-            <button onClick={() => navigate("/organizacijaRadionica")}>
-              Organiziraj radionicu
-            </button>
           </div>
         )}
 

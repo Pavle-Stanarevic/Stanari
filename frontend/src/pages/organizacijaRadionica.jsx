@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import { createWorkshop } from "../api/workshops"; // ⬅️ API poziv
+import useAuth from "../hooks/useAuth";
 import "../styles/organizacijaRadionica.css";
 
 function classNames(...xs) {
@@ -47,8 +48,8 @@ function Calendar({ value, onChange }) {
       </div>
 
       <div className="calendar-days">
-        {["P", "U", "S", "Č", "P", "S", "N"].map((d) => (
-          <div key={d}>{d}</div>
+        {["P", "U", "S", "Č", "P", "S", "N"].map((d, i) => (
+          <div key={`${d}-${i}`}>{d}</div>
         ))}
       </div>
 
@@ -81,6 +82,7 @@ function Calendar({ value, onChange }) {
 
 export default function OrganizacijaRadionica() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
 
@@ -107,8 +109,8 @@ export default function OrganizacijaRadionica() {
       const [h, m] = String(form.startTime || "00:00").split(":").map(Number);
       const when = new Date(form.date || new Date());
       when.setHours(h || 0, m || 0, 0, 0);
-
-      const organizerId = 1;
+      const organizerId = user?.id ?? user?.idKorisnik ?? null;
+      if (!organizerId) throw new Error("Niste prijavljeni kao organizator.");
 
       if (!form.title?.trim()) throw new Error("Unesi naziv radionice.");
       if (!form.location?.trim()) throw new Error("Unesi lokaciju radionice.");
