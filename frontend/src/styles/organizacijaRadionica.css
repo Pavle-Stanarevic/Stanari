@@ -191,3 +191,12 @@
   font-size: 0.75rem;
   color: #6b7280;
 }
+
+.calendar-day:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  color: #9ca3af;
+}
+.calendar-day:disabled:hover {
+  background: transparent;
+}

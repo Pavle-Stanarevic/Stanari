@@ -59,16 +59,23 @@ function Calendar({ value, onChange }) {
           const key = formatDateKey(d);
           const isToday = key === todayKey;
           const isSelected = key === selectedKey;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const isPast = d < today;
           return (
             <button
               key={key}
               type="button"
-              onClick={() => onChange?.(d)}
+              onClick={() => {
+                if (!isPast) onChange?.(d);
+              }}
+              disabled={isPast}
               className={classNames(
                 "calendar-day",
                 inMonth ? "in-month" : "out-month",
                 isSelected ? "selected" : "",
-                isToday && !isSelected ? "today" : ""
+                isToday && !isSelected ? "today" : "",
+                isPast ? "disabled" : ""
               )}
             >
               {d.getDate()}
