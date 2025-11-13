@@ -19,3 +19,16 @@ export function createWorkshop(payload) {
 export function listWorkshops() {
   return http("/api/workshops");
 }
+
+export function applyToWorkshop(id, userId) {
+  return http(`/api/workshops/${id}/apply`, { method: "POST", body: { userId } });
+}
+
+export function cancelWorkshop(id, userId) {
+  return http(`/api/workshops/${id}/cancel`, { method: "POST", body: { userId } });
+}
+
+export function getReservedWorkshopIds(userId) {
+  const url = `/api/workshops/reserved?userId=${encodeURIComponent(userId)}`;
+  return http(url);
+}

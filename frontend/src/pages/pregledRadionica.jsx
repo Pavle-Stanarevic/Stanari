@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listWorkshops } from "../api/workshops";
+import { listWorkshops, applyToWorkshop, cancelWorkshop, getReservedWorkshopIds } from "../api/workshops";
 import useAuth from "../hooks/useAuth";
 import "../styles/pregledRadionica.css";
 
@@ -37,6 +37,7 @@ export default function PregledRadionica() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [reservedIds, setReservedIds] = useState(() => new Set());
 
   // Dohvati radionice s API-ja
   useEffect(() => {
@@ -58,7 +59,57 @@ export default function PregledRadionica() {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    if (!user || user?.userType !== "polaznik") {
+      setReservedIds(new Set());
+      return () => { alive = false; };
+    }
+    const userId = user.id ?? user.idKorisnik;
+    getReservedWorkshopIds(userId)
+      .then((ids) => {
+        if (!alive) return;
+        const set = new Set(Array.isArray(ids) ? ids : []);
+        setReservedIds(set);
+      })
+      .catch(() => {
+      });
+    return () => { alive = false; };
+  }, [user]);
+
   const empty = useMemo(() => !items || items.length === 0, [items]);
+
+  const organizer = user?.userType === "organizator";
+  const polaznik = user?.userType === "polaznik";
+
+  const onApply = async (w) => {
+    try {
+      if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
+      if (!polaznik) throw new Error("Samo polaznici se mogu prijaviti.");
+      const userId = user.id ?? user.idKorisnik;
+      await applyToWorkshop(w.id, userId);
+      setReservedIds((prev) => new Set(prev).add(w.id));
+      setItems((xs) => xs.map((it) => (it.id === w.id ? { ...it, capacity: Math.max(0, (it.capacity || 0) - 1) } : it)));
+    } catch (e) {
+      alert(e.message || "Nije moguće prijaviti se.");
+    }
+  };
+
+  const onCancel = async (w) => {
+    try {
+      if (!user) throw new Error("Prijavite se da biste otkazali prijavu.");
+      const userId = user.id ?? user.idKorisnik;
+      await cancelWorkshop(w.id, userId);
+      setReservedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(w.id);
+        return next;
+      });
+      setItems((xs) => xs.map((it) => (it.id === w.id ? { ...it, capacity: (it.capacity || 0) + 1 } : it)));
+    } catch (e) {
+      alert(e.message || "Nije moguće otkazati prijavu.");
+    }
+  };
 
   return (
     <div className="list-page">
@@ -66,7 +117,7 @@ export default function PregledRadionica() {
         <div className="list-header">
           <h1>Pregled naših radionica</h1>
 
-          {user?.userType === "organizator" && (
+          {organizer && (
             <button
               className="new-workshop-btn"
               onClick={() => navigate("/organizacijaRadionica")}
@@ -95,7 +146,14 @@ export default function PregledRadionica() {
                 </div>
 
                 <div className="content">
-                  <h3 className="title">{w.title || "Bez naziva"}</h3>
+                  <h3 className="title">
+                    {w.title || "Bez naziva"}
+                    {reservedIds.has(w.id) ? (
+                      <span className="reserved-badge">[Prijavljen]</span>
+                    ) : Number(w.capacity) <= 0 ? (
+                      <span className="full-badge">[Popunjeno]</span>
+                    ) : null}
+                  </h3>
 
                   <div className="meta">
                     <span>{formatPrice(w.price)} po osobi</span>
@@ -112,6 +170,24 @@ export default function PregledRadionica() {
                   {w.description ? (
                     <p className="desc">{w.description}</p>
                   ) : null}
+
+                  {polaznik && (
+                    <div className="actions-row">
+                      {!reservedIds.has(w.id) ? (
+                        <button
+                          className="primary"
+                          disabled={(w.capacity || 0) <= 0}
+                          onClick={() => onApply(w)}
+                        >
+                          Prijavi se
+                        </button>
+                      ) : (
+                        <button className="secondary" onClick={() => onCancel(w)}>
+                          Otkaži prijavu
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
