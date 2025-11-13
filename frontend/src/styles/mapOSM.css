@@ -4,13 +4,11 @@
   height: 420px;         
 }
 
-
 .map-osm--ratio {
   height: auto;
   aspect-ratio: 16 / 9;
   max-height: 70vh;
 }
-
 
 .map-shell {
   position: relative;
@@ -23,7 +21,6 @@
   isolation: isolate;
 }
 
-
 .map-shell::before {
   content: "";
   position: absolute;
@@ -33,14 +30,12 @@
   pointer-events: none;
 }
 
-
 .map-osm__container {
   position: relative;
   z-index: 1; 
   width: 100%;
   height: 100%;
 }
-
 
 .map-overlay {
   position: absolute;

@@ -32,7 +32,7 @@ export default function Header() {
           {NAV_ITEMS.map(({ label, to }, i) => {
             const chars = label.split("");
             const totalDuration = 0.5;
-            const perLetterDelay = totalDuration / chars.length;
+            const perLetterDelay = 0.015;
 
             return (
               <Link to={to} key={i} className="nav-link">

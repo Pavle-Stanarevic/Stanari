@@ -6,7 +6,6 @@ import { Edit, Check, X } from "lucide-react";
 export default function Profile() {
   const { user, signIn } = useAuth();              
 
-
   const [editingField, setEditingField] = useState(null); 
   const [tempValue, setTempValue] = useState("");
 
