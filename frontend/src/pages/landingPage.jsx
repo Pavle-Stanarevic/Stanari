@@ -26,7 +26,7 @@ export default function LandingPage() {
         <SectionCard
           title="Radionice izrade keramike"
           cta="Pregled radionica"
-          href="#"
+          href="/pregledRadionica"
         >
           U svijetu koji juri, glina nas uči strpljenju. Na radionicama keramike
           zastajemo, dišemo i dopuštamo rukama da prate svoju priču. Svaki
@@ -99,7 +99,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
 
         <footer className="footer">
 

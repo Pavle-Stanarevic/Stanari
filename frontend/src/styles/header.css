@@ -18,6 +18,7 @@
   width: auto;
   height: 100px;
   object-fit: contain;
+  padding-top: 7px;
 }
 
 .nav-container {
@@ -41,12 +42,11 @@
 
 .nav-links a span {
   display: inline-block;
-  transition: color 0.3s ease;
+  transition: color 0.1s ease;
 }
 
-
 .nav-links a:hover span {
-  animation: wave 1.5s ease forwards;
+  animation: wave 0.5s ease forwards;
 }
 
 @keyframes wave {
@@ -61,19 +61,16 @@
   }
 }
 
-
 .sign-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
 
   height: 40px;
   min-width: 110px;
   padding: 8px 16px;
   border-radius: 8px;
   box-sizing: border-box;
-
 
   background: linear-gradient(to top, #6fa8dc 0%, #000000 100%);
   background-size: 100% 300%;
@@ -88,16 +85,13 @@
   line-height: 1;
 }
 
-
 .sign-btn:hover {
   background-position: center bottom;
 }
 
-
 .sign-btn:active {
   transform: translateY(1px);
 }
-
 
 button.sign-btn {
   appearance: none;
@@ -110,7 +104,6 @@ button.sign-btn {
   padding: 8px 16px;
   color: white;
 }
-
 
 .sign-btn {
   text-align: center;

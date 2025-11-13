@@ -2,8 +2,6 @@ import React from "react";
 import "../styles/userTypeSelect.css";
 import { useNavigate } from "react-router-dom";
 
-
-
 export default function UserTypeSelect({ value, onChange}) {
   const navigate = useNavigate();
 
@@ -18,7 +16,6 @@ export default function UserTypeSelect({ value, onChange}) {
       navigate("/registerOrganizator");
     }
   };
-
 
   return (
     <div className = "user-type-select">

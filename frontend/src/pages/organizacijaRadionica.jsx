@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
-import { createWorkshop } from "../api/workshops"; // ⬅️ API poziv
+import { createWorkshop } from "../api/workshops";
 import useAuth from "../hooks/useAuth";
 import "../styles/organizacijaRadionica.css";
 
@@ -11,7 +11,7 @@ function classNames(...xs) {
 
 function buildMonthMatrix(year, month) {
   const first = new Date(year, month, 1);
-  const startDay = (first.getDay() + 6) % 7; // pon=0
+  const startDay = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const prevMonthDays = startDay;
   const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;

@@ -21,13 +21,14 @@ function formatDuration(mins) {
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
-  const date = d.toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
   const time = d.toTimeString().slice(0, 5);
-  return `${date} u ${time}`;
+
+  return `${day}/${month}/${year} - ${time}h`;
 }
 
 export default function PregledRadionica() {
@@ -39,7 +40,7 @@ export default function PregledRadionica() {
   const [err, setErr] = useState("");
   const [reservedIds, setReservedIds] = useState(() => new Set());
 
-  // Dohvati radionice s API-ja
+  // dohvacanje radionica s API
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -141,7 +142,6 @@ export default function PregledRadionica() {
             {items.map((w) => (
               <li key={w.id} className="workshop-item">
                 <div className="thumb" aria-hidden>
-                  {/* Placeholder slika – zamijeni kad dodaš slike iz baze */}
                   <div className="thumb-circle" />
                 </div>
 
@@ -175,14 +175,14 @@ export default function PregledRadionica() {
                     <div className="actions-row">
                       {!reservedIds.has(w.id) ? (
                         <button
-                          className="primary"
+                          className="new-workshop-btn"
                           disabled={(w.capacity || 0) <= 0}
                           onClick={() => onApply(w)}
                         >
                           Prijavi se
                         </button>
                       ) : (
-                        <button className="secondary" onClick={() => onCancel(w)}>
+                        <button className="new-workshop-btn" onClick={() => onCancel(w)}>
                           Otkaži prijavu
                         </button>
                       )}

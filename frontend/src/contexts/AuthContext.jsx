@@ -19,7 +19,6 @@ export function AuthProvider({ children }) {
     }
   });
 
-
   useEffect(() => {
     if (user !== undefined) return;
     (async () => {

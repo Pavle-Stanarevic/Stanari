@@ -1,7 +1,7 @@
-
 import React, { useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
+import "../styles/login.css";
 import { register, me } from "../api/auth.js";
 import useAuth from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";

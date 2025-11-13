@@ -4,7 +4,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/mapOSM.css";
 
-/* === Fix: default marker ikone (često ne rade u bundlerima) === */
 const defaultIcon = new L.Icon({
   iconUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -19,7 +18,6 @@ const defaultIcon = new L.Icon({
 });
 L.Marker.prototype.options.icon = defaultIcon;
 
-/* === Recenter helper: kad promijeniš lat/lng, karta se centrira === */
 function Recenter({ lat, lng, zoom }) {
   const map = useMap();
   useEffect(() => {
@@ -29,14 +27,6 @@ function Recenter({ lat, lng, zoom }) {
   return null;
 }
 
-/**
- * Props:
- * - lat, lng (brojevi) — obavezno
- * - label (string) — tekst u popupu
- * - zoom (broj) — default 14
- * - ratio (bool) — ako je true, koristi aspect-ratio umjesto fiksne visine
- * - className (string) — dodatne klase po želji
- */
 export default function MapOSM({
   lat,
   lng,
