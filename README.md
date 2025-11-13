@@ -8,8 +8,6 @@ Cilj projekta je omogućiti polaznicima jednostavan pregled i rezervaciju radion
 
 Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem fragmentiranih objava, kompliciranog procesa prijava i nedostatka jedinstvenog sustava za upravljanje kreativnim sadržajem.
 
----
-
 # Funkcijski zahtjevi
 
 - Registracija i prijava korisnika (email + Google OAuth)
@@ -22,8 +20,6 @@ Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem 
 - Prikaz lokacija putem interaktivne karte (Leaflet)
 - Upload i prikaz fotografija (radovi, profili, galerije)
 
----
-
 # Tehnologije
 
 - **Frontend:** React (Vite, React Router, Axios, Leaflet)  
@@ -33,17 +29,13 @@ Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem 
 - **Orkestracija:** Docker & Docker Compose  
 - **Dizajn i dokumentacija:** draw.io, PlantUML, GitHub Wiki
 
----
-
 # Članovi tima
 - Pavle Stanarević - Vođa tima, Frontend, Dizajn
 - Filip Mihalj - Frontend, Dizajn
 - Bruno Komočar - Backend
 - Toni Brajko - Backend
 - Marko Malenica - Baza podataka, Dokumentacija
-- Ivan Josip Kardu - Baza podataka, Dokumentacija
-
----
+- Ivan Josip Kardum - Baza podataka, Dokumentacija
 
 # 📝 Kodeks ponašanja [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 Kao studenti sigurno ste upoznati s minimumom prihvatljivog ponašanja definiran u [KODEKS PONAŠANJA STUDENATA FAKULTETA ELEKTROTEHNIKE I RAČUNARSTVA SVEUČILIŠTA U ZAGREBU](https://www.fer.hr/_download/repository/Kodeks_ponasanja_studenata_FER-a_procisceni_tekst_2016%5B1%5D.pdf), te dodatnim naputcima za timski rad na predmetu [Programsko inženjerstvo](https://wwww.fer.hr).
