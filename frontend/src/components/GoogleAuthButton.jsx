@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill, text, size = "large" }) {
+export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill, text, size = "large", fixedText }) {
   const containerRef = useRef(null);
   const [ready, setReady] = useState(false);
 
@@ -23,6 +23,14 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
     });
   };
 
+  const onSuccessRef = useRef(onSuccess);
+  const onPrefillRef = useRef(onPrefill);
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  useEffect(() => { onPrefillRef.current = onPrefill; }, [onPrefill]);
+
+  const initializedRef = useRef(false);
+  const renderedRef = useRef(false);
+
   useEffect(() => {
     if (!clientId) return;
     ensureScript().then(() => setReady(true));
@@ -43,7 +51,7 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
           const firstName = info?.given_name || info?.name?.split(" ")?.[0] || "";
           const lastName = info?.family_name || (info?.name?.split(" ")?.slice(1)?.join(" ") ?? "");
           const email = info?.email || "";
-          onPrefill?.({ firstName, lastName, email });
+          onPrefillRef.current?.({ firstName, lastName, email });
         } else {
           const API = import.meta.env.VITE_API_URL;
           const res = await fetch(`${API}/api/auth/google`, {
@@ -57,7 +65,7 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
             throw new Error(msg || "Google login failed");
           }
           const data = await res.json();
-          onSuccess?.(data?.user || data?.data?.user || null);
+          onSuccessRef.current?.(data?.user || data?.data?.user || null);
         }
       } catch (e) {
         console.error(e);
@@ -66,21 +74,27 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
     };
 
     try {
-      google.accounts.id.initialize({ client_id: clientId, callback: handleCredential, auto_select: false });
-      containerRef.current.innerHTML = ""; // clear existing
-      google.accounts.id.renderButton(containerRef.current, {
-        theme: "outline",
-        size,
-        text: mode === "login" ? "signin_with" : "continue_with",
-        type: "standard",
-        shape: "rectangular",
-        logo_alignment: "left",
-      });
-      try { google.accounts.id.prompt(); } catch {}
+      if (!initializedRef.current) {
+        google.accounts.id.initialize({ client_id: clientId, callback: handleCredential, auto_select: false });
+        initializedRef.current = true;
+      }
+      if (!renderedRef.current) {
+        const textMode = fixedText || "signin_with"; // default to stable label to avoid flicker
+        google.accounts.id.renderButton(containerRef.current, {
+          theme: "outline",
+          size,
+          text: textMode,
+          type: "standard",
+          shape: "rectangular",
+          logo_alignment: "left",
+        });
+        renderedRef.current = true;
+      }
+      // Do not call prompt() automatically to prevent relayout/flicker
     } catch (e) {
       console.warn("Google button render failed:", e);
     }
-  }, [ready, clientId, mode, onSuccess, onPrefill, size]);
+  }, [ready, clientId, mode, size, fixedText]);
 
   const fallbackLabel = text || (mode === "login" ? "Prijavi se Google računom" : "Popuni iz Google računa");
 
@@ -92,7 +106,7 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
     }
     await ensureScript();
     setReady(true);
-    try { window.google?.accounts?.id?.prompt(); } catch {}
+    // no prompt() here to keep label stable; the user will click the official button
   };
 
   const canShowOfficial = !!clientId && ready && !!window.google?.accounts?.id;
