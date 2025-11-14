@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill, text, size = "large", fixedText }) {
+function GoogleAuthButton({ mode = "login", onSuccess, onPrefill, text, size = "large", fixedText }) {
   const containerRef = useRef(null);
   const [ready, setReady] = useState(false);
 
@@ -79,7 +79,7 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
         initializedRef.current = true;
       }
       if (!renderedRef.current) {
-        const textMode = fixedText || "signin_with"; // default to stable label to avoid flicker
+        const textMode = fixedText || "signin_with";
         google.accounts.id.renderButton(containerRef.current, {
           theme: "outline",
           size,
@@ -90,7 +90,6 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
         });
         renderedRef.current = true;
       }
-      // Do not call prompt() automatically to prevent relayout/flicker
     } catch (e) {
       console.warn("Google button render failed:", e);
     }
@@ -106,7 +105,6 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
     }
     await ensureScript();
     setReady(true);
-    // no prompt() here to keep label stable; the user will click the official button
   };
 
   const canShowOfficial = !!clientId && ready && !!window.google?.accounts?.id;
@@ -145,6 +143,8 @@ export default function GoogleAuthButton({ mode = "login", onSuccess, onPrefill,
     </div>
   );
 }
+
+export default React.memo(GoogleAuthButton);
 
 function decodeJwt(token) {
   try {
