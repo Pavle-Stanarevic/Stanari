@@ -4,7 +4,8 @@ import "../styles/profile.css";
 import { Edit, Check, X } from "lucide-react";
 
 export default function Profile() {
-  const { user, signIn } = useAuth();              
+  const { user, signIn } = useAuth();
+        
 
   const [editingField, setEditingField] = useState(null); 
   const [tempValue, setTempValue] = useState("");
@@ -28,7 +29,7 @@ export default function Profile() {
     };
 
     signIn(updatedUser); 
-    setTempValue("");
+    setEditingField(null); 
   };
 
   return (
@@ -138,12 +139,30 @@ export default function Profile() {
         {user.userType === "organizator" && (
           <>
             <p className="label">Naziv studija:</p>
-            <p className="value">{user.studyName}</p>
-            <Edit
-              className="edit-icon"
-              onClick={() => startEditing("studyName", user.studyName)}
-            />
-          </>
+            {editingField === "studyName" ? (
+              <>
+                <p className="value">
+                  <input
+                    className="edit-input"
+                    value={tempValue}
+                    onChange={(e) => setTempValue(e.target.value)}
+                  />
+                </p>
+                <div className="actions">
+                  <Check className="icon save" onClick={handleSave} />
+                  <X className="icon cancel" onClick={cancelEditing} />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="value">{user.studyName}</p>
+                <Edit
+                  className="edit-icon"
+                  onClick={() => startEditing("studyName", user.studyName)}
+                />
+              </>
+            )}
+            </>
         )}
       </div>
     </div>
