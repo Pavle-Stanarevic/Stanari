@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import "../styles/login.css";
 import { Upload, X } from "lucide-react";
@@ -83,14 +83,15 @@ export default function RegisterFormBase({
           mode="prefill"
           text="Popuni iz Google računa"
           size="large"
-          onPrefill={({ firstName, lastName, email }) => {
+          fixedText="signin_with"
+          onPrefill={useCallback(({ firstName, lastName, email }) => {
             setValues(v => ({
               ...v,
               firstName: firstName || v.firstName,
               lastName: lastName || v.lastName,
               email: email || v.email,
             }));
-          }}
+          }, [])}
         />
       </div>
 
