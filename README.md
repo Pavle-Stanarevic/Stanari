@@ -10,15 +10,15 @@ Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem 
 
 # Funkcijski zahtjevi
 
-- Registracija i prijava korisnika (email + Google OAuth)
+- Registracija i prijava korisnika
 - Uloge korisnika: polaznik, organizator, administrator
 - Pregled i filtriranje radionica, izložbi i proizvoda
 - Rezervacije radionica i prijave na izložbe
 - Online trgovina keramičkih radova
 - Ostavljanje komentara i recenzija
 - Administracijsko sučelje za upravljanje sadržajem
-- Prikaz lokacija putem interaktivne karte (Leaflet)
-- Upload i prikaz fotografija (radovi, profili, galerije)
+- Prikaz lokacija putem interaktivne karte
+- Upload i prikaz fotografija
 
 # Tehnologije
 
