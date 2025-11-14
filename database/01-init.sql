@@ -1,0 +1,195 @@
+CREATE EXTENSION IF NOT EXISTS citext;
+
+CREATE TABLE FOTOGRAFIJA
+(
+  fotoURL TEXT NOT NULL,
+  fotoId BIGINT GENERATED ALWAYS AS IDENTITY,
+  PRIMARY KEY (fotoId),
+  UNIQUE (fotoURL)
+);
+
+CREATE TABLE CLANARINA
+(
+  iznosEUR NUMERIC(10, 2) NOT NULL,
+  tipClanarine VARCHAR(50) NOT NULL,
+  idClanarina BIGINT GENERATED ALWAYS AS IDENTITY,
+  PRIMARY KEY (idClanarina)
+);
+
+CREATE TABLE KORISNIK
+(
+  password VARCHAR(100) NOT NULL,
+  email CITEXT NOT NULL,
+  idKorisnik BIGINT GENERATED ALWAYS AS IDENTITY,
+  ime VARCHAR(50),
+  prezime VARCHAR(50),
+  adresa VARCHAR(100),
+  brojTelefona VARCHAR(15),
+  fotoId BIGINT,
+  PRIMARY KEY (idKorisnik),
+  FOREIGN KEY (fotoId) REFERENCES FOTOGRAFIJA(fotoId) ON DELETE SET NULL,
+  UNIQUE (email),
+  UNIQUE (brojTelefona)
+);
+
+CREATE TABLE ORGANIZATOR
+(
+  imeStudija VARCHAR(50),
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (idKorisnik),
+  FOREIGN KEY (idKorisnik) REFERENCES KORISNIK(idKorisnik) ON DELETE CASCADE
+);
+
+CREATE TABLE POLAZNIK
+(
+  zeliObavijesti BOOLEAN NOT NULL DEFAULT FALSE,
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (idKorisnik),
+  FOREIGN KEY (idKorisnik) REFERENCES KORISNIK(idKorisnik) ON DELETE CASCADE
+);
+
+CREATE TABLE ADMINISTRATOR
+(
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (idKorisnik),
+  FOREIGN KEY (idKorisnik) REFERENCES KORISNIK(idKorisnik) ON DELETE CASCADE
+);
+
+CREATE TABLE RADIONICA
+(
+  nazivRadionica VARCHAR(50) NOT NULL,
+  opisRadionica VARCHAR(1000) NOT NULL,
+  trajanje INTERVAL NOT NULL,
+  datVrRadionica TIMESTAMPTZ NOT NULL,
+  lokacijaRadionica VARCHAR(100) NOT NULL,
+  brSlobMjesta INT NOT NULL,
+  cijenaRadionica NUMERIC(10, 2) NOT NULL,
+  idRadionica BIGINT GENERATED ALWAYS AS IDENTITY,
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (idRadionica),
+  FOREIGN KEY (idKorisnik) REFERENCES ORGANIZATOR(idKorisnik) ON DELETE CASCADE,
+  CONSTRAINT chk_brSlobMjesta CHECK (brSlobMjesta >= 0)
+);
+
+CREATE TABLE PROIZVOD
+(
+  opisProizvod VARCHAR(1000),
+  cijenaProizvod NUMERIC(10, 2) NOT NULL,
+  kategorijaProizvod VARCHAR(50) NOT NULL,
+  proizvodId BIGINT GENERATED ALWAYS AS IDENTITY,
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (proizvodId),
+  FOREIGN KEY (idKorisnik) REFERENCES ORGANIZATOR(idKorisnik) ON DELETE CASCADE
+);
+
+CREATE TABLE RECENZIJA
+(
+  ocjena INT NOT NULL,
+  textRecenzija VARCHAR(1000),
+  idRecenzija BIGINT GENERATED ALWAYS AS IDENTITY,
+  proizvodId BIGINT NOT NULL,
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (idRecenzija),
+  FOREIGN KEY (proizvodId) REFERENCES PROIZVOD(proizvodId) ON DELETE CASCADE,
+  FOREIGN KEY (idKorisnik) REFERENCES POLAZNIK(idKorisnik) ON DELETE CASCADE,
+  UNIQUE (proizvodId, idKorisnik),
+  CONSTRAINT chk_ocjena CHECK (ocjena BETWEEN 1 AND 5)
+);
+
+CREATE TABLE IZLOZBA
+(
+  nazivIzlozba VARCHAR(50) NOT NULL,
+  lokacijaIzlozba VARCHAR(100) NOT NULL,
+  datVrIzlozba TIMESTAMPTZ NOT NULL,
+  idIzlozba BIGINT GENERATED ALWAYS AS IDENTITY,
+  idKorisnik BIGINT NOT NULL,
+  PRIMARY KEY (idIzlozba),
+  FOREIGN KEY (idKorisnik) REFERENCES ORGANIZATOR(idKorisnik) ON DELETE CASCADE
+);
+
+CREATE TABLE PRIJAVA
+(
+  idPrijava BIGINT GENERATED ALWAYS AS IDENTITY,
+  statusIzlozba TEXT NOT NULL DEFAULT 'pending',
+  idKorisnik BIGINT NOT NULL,
+  idIzlozba BIGINT NOT NULL,
+  PRIMARY KEY (idPrijava),
+  FOREIGN KEY (idKorisnik) REFERENCES POLAZNIK(idKorisnik) ON DELETE CASCADE,
+  FOREIGN KEY (idIzlozba) REFERENCES IZLOZBA(idIzlozba) ON DELETE CASCADE,
+  UNIQUE (idKorisnik, idIzlozba),
+  CONSTRAINT chk_statusIzlozba CHECK (statusIzlozba IN ('accepted', 'rejected', 'pending'))
+);
+
+CREATE TABLE REZERVACIJA
+(
+  idRezervacija BIGINT GENERATED ALWAYS AS IDENTITY,
+  idKorisnik BIGINT NOT NULL,
+  idRadionica BIGINT NOT NULL,
+  statusRez TEXT NOT NULL DEFAULT 'reserved',
+  PRIMARY KEY (idRezervacija),
+  UNIQUE (idKorisnik, idRadionica),
+  FOREIGN KEY (idKorisnik) REFERENCES POLAZNIK(idKorisnik) ON DELETE CASCADE,
+  FOREIGN KEY (idRadionica) REFERENCES RADIONICA(idRadionica) ON DELETE CASCADE,
+  CONSTRAINT chk_statusRez CHECK (statusRez IN ('canceled', 'reserved'))
+);
+
+CREATE TABLE fotoRad
+(
+  fotoId BIGINT NOT NULL,
+  idRadionica BIGINT NOT NULL,
+  PRIMARY KEY (fotoId, idRadionica),
+  FOREIGN KEY (fotoId) REFERENCES FOTOGRAFIJA(fotoId) ON DELETE CASCADE,
+  FOREIGN KEY (idRadionica) REFERENCES RADIONICA(idRadionica) ON DELETE CASCADE
+);
+
+CREATE TABLE izlozeni
+(
+  fotoId BIGINT NOT NULL,
+  idIzlozba BIGINT NOT NULL,
+  PRIMARY KEY (fotoId, idIzlozba),
+  FOREIGN KEY (fotoId) REFERENCES FOTOGRAFIJA(fotoId) ON DELETE CASCADE,
+  FOREIGN KEY (idIzlozba) REFERENCES IZLOZBA(idIzlozba) ON DELETE CASCADE
+);
+
+CREATE TABLE placa
+(
+  idPlacanje BIGINT GENERATED ALWAYS AS IDENTITY,
+  datVrPocetakClanarine TIMESTAMPTZ NOT NULL,
+  datVrKrajClanarine TIMESTAMPTZ,
+  idKorisnik BIGINT NOT NULL,
+  idClanarina BIGINT NOT NULL,
+  PRIMARY KEY (idPlacanje),
+  FOREIGN KEY (idKorisnik) REFERENCES ORGANIZATOR(idKorisnik) ON DELETE CASCADE,
+  FOREIGN KEY (idClanarina) REFERENCES CLANARINA(idClanarina) ON DELETE CASCADE
+);
+
+CREATE TABLE fotoProizvod
+(
+  proizvodId BIGINT NOT NULL,
+  fotoId BIGINT NOT NULL,
+  PRIMARY KEY (proizvodId, fotoId),
+  FOREIGN KEY (proizvodId) REFERENCES PROIZVOD(proizvodId) ON DELETE CASCADE,
+  FOREIGN KEY (fotoId) REFERENCES FOTOGRAFIJA(fotoId) ON DELETE CASCADE
+);
+
+CREATE TABLE KOMENTAR
+(
+  textKomentar VARCHAR(1000) NOT NULL,
+  idKomentar BIGINT GENERATED ALWAYS AS IDENTITY,
+  idIzlozba BIGINT NOT NULL,
+  idKorisnik BIGINT NOT NULL,
+  odgovara_idKomentar BIGINT,
+  PRIMARY KEY (idKomentar),
+  FOREIGN KEY (idIzlozba) REFERENCES IZLOZBA(idIzlozba) ON DELETE CASCADE,
+  FOREIGN KEY (idKorisnik) REFERENCES KORISNIK(idKorisnik) ON DELETE CASCADE,
+  FOREIGN KEY (odgovara_idKomentar) REFERENCES KOMENTAR(idKomentar) ON DELETE SET NULL
+);
+
+CREATE TABLE fotoKomentar
+(
+  idKomentar BIGINT NOT NULL,
+  fotoId BIGINT NOT NULL,
+  PRIMARY KEY (idKomentar, fotoId),
+  FOREIGN KEY (idKomentar) REFERENCES KOMENTAR(idKomentar) ON DELETE CASCADE,
+  FOREIGN KEY (fotoId) REFERENCES FOTOGRAFIJA(fotoId) ON DELETE CASCADE
+);

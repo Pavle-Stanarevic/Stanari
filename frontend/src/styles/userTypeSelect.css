@@ -1,0 +1,16 @@
+
+.user-type-select select {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #ffffff;
+  padding-left: 10px;
+  width: 420px;
+}
+
+.user-type-select select:hover {
+  border-color: #007bff;
+}
+
+.user-type-select select option:disabled {
+  color: #999;
+}
