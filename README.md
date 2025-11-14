@@ -1,4 +1,5 @@
 # Programsko-inzenjerstvo
+https://stanari-frontend.onrender.com
 # Opis projekta
 
 Ovaj projekt razvijen je u sklopu projektnog zadatka kolegija **Programsko inženjerstvo** na Fakultetu elektrotehnike i računarstva Sveučilišta u Zagrebu.
@@ -24,7 +25,7 @@ Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem 
 
 - **Frontend:** React (Vite, React Router, Axios, Leaflet)  
 - **Backend:** Spring Boot (Java), Spring Security, Spring Data JPA  
-- **Baza podataka:** PostgreSQL (Docker Compose / NeonDB cloud)  
+- **Baza podataka:** PostgreSQL (Docker Compose / Render)  
 - **Autentifikacija:** Google OAuth 2.0  
 - **Orkestracija:** Docker & Docker Compose  
 - **Dizajn i dokumentacija:** draw.io, PlantUML, GitHub Wiki
