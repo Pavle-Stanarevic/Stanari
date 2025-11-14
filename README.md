@@ -1,4 +1,5 @@
 # Programsko-inzenjerstvo
+https://stanari-frontend.onrender.com
 # Opis projekta
 
 Ovaj projekt razvijen je u sklopu projektnog zadatka kolegija **Programsko inženjerstvo** na Fakultetu elektrotehnike i računarstva Sveučilišta u Zagrebu.
@@ -10,21 +11,21 @@ Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem 
 
 # Funkcijski zahtjevi
 
-- Registracija i prijava korisnika (email + Google OAuth)
+- Registracija i prijava korisnika
 - Uloge korisnika: polaznik, organizator, administrator
 - Pregled i filtriranje radionica, izložbi i proizvoda
 - Rezervacije radionica i prijave na izložbe
 - Online trgovina keramičkih radova
 - Ostavljanje komentara i recenzija
 - Administracijsko sučelje za upravljanje sadržajem
-- Prikaz lokacija putem interaktivne karte (Leaflet)
-- Upload i prikaz fotografija (radovi, profili, galerije)
+- Prikaz lokacija putem interaktivne karte
+- Upload i prikaz fotografija
 
 # Tehnologije
 
 - **Frontend:** React (Vite, React Router, Axios, Leaflet)  
 - **Backend:** Spring Boot (Java), Spring Security, Spring Data JPA  
-- **Baza podataka:** PostgreSQL (Docker Compose / NeonDB cloud)  
+- **Baza podataka:** PostgreSQL (Docker Compose / Render)  
 - **Autentifikacija:** Google OAuth 2.0  
 - **Orkestracija:** Docker & Docker Compose  
 - **Dizajn i dokumentacija:** draw.io, PlantUML, GitHub Wiki
