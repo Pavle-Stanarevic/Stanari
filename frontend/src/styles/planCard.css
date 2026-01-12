@@ -1,0 +1,57 @@
+.plan-card {
+  font-family: 'Poppins', sans-serif;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 2rem 2rem  4rem;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  paddi
+}
+
+
+.plan-card.selected {
+  border-color: #000;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.plan-header {
+  margin-bottom: 16px;
+}
+
+.plan-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #111;
+}
+
+.plan-price {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.plan-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
+.plan-check {
+  color: rgb(16, 52, 110);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}

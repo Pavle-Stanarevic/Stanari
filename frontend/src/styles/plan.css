@@ -1,0 +1,24 @@
+.features {
+  list-style: none;
+}
+
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 2rem;
+  padding-left: 20rem;
+  padding-right: 20rem;
+  padding-top: 2rem;
+  padding-bottom: 30rem;
+}
+
+.h1-plan{
+  padding-left: 20rem;
+  padding-top: 7rem;
+}
