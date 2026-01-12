@@ -1,0 +1,8 @@
+.nacin-placanja p{
+  display: flex;
+  justify-content: center;
+  font-size: large;
+  color: rgb(59, 57, 57);
+  margin-top: 0;
+  margin-bottom: 5rem;
+}
