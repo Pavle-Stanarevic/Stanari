@@ -1,35 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import "../styles/ProductPage.css";
-
-const PLACEHOLDER_PRODUCT = {
-  proizvodId: "placeholder-1",
-  nazivProizvod: "Ručno rađena keramička vaza",
-  cijenaProizvod: 29.99,
-  opisProizvod:
-    "Ovo je placeholder proizvod koji služi isključivo za provjeru izgleda stranice. Svaki proizvod je ručno rađen, unikatan i može se minimalno razlikovati od prikaza.",
-  imageUrl: "/images/placeholder.jpg",
-  idKorisnik: 999,
-};
-
-const PLACEHOLDER_REVIEWS = [
-  {
-    id: 1,
-    rating: 5,
-    title: "Prekrasna izrada",
-    body: "Proizvod je još ljepši uživo. Brza dostava i odlična komunikacija.",
-    reviewerName: "Ana",
-    createdAt: "2025-01-10",
-  },
-  {
-    id: 2,
-    rating: 4,
-    title: "Jako zadovoljna",
-    body: "Malo manja nego što sam očekivala, ali kvaliteta je vrhunska.",
-    reviewerName: "Ivana",
-    createdAt: "2025-01-08",
-  },
-];
+import "../styles/productPage.css";
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -46,10 +17,7 @@ async function fetchJson(url, options) {
 export default function ProductPage() {
   const { proizvodId } = useParams();
 
-  const isPlaceholder = proizvodId?.startsWith("placeholder");
-
   const [product, setProduct] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -58,21 +26,10 @@ export default function ProductPage() {
       setLoading(true);
       setError("");
 
-      // placeholder mode
-      if (isPlaceholder) {
-        setProduct(PLACEHOLDER_PRODUCT);
-        setReviews(PLACEHOLDER_REVIEWS);
-        setLoading(false);
-        return;
-      }
-
-      // pravi backend mode
+      // Dohvat iz backenda
       try {
         const p = await fetchJson(`/api/products/${proizvodId}`);
         setProduct(p);
-
-        const r = await fetchJson(`/api/sellers/${p.idKorisnik}/reviews`);
-        setReviews(Array.isArray(r) ? r : r.items ?? []);
       } catch (e) {
         setError(e.message || "Greška.");
       } finally {
@@ -81,19 +38,15 @@ export default function ProductPage() {
     }
 
     load();
-  }, [proizvodId, isPlaceholder]);
+  }, [proizvodId]);
 
-  const displayName =
-    product?.nazivProizvod ||
-    product?.title ||
-    product?.kategorijaProizvod ||
-    "Proizvod";
+  const displayName = product?.nazivProizvod || product?.kategorijaProizvod || "Proizvod";
 
   return (
     <main className="product-page">
       <div className="crumbs">
         <Link className="crumb" to="/shop">
-          ← Nazad na Shop
+          ← Natrag
         </Link>
       </div>
 
@@ -131,32 +84,7 @@ export default function ProductPage() {
           </section>
 
 
-          <section className="reviews">
-            <h2>Recenzije prodavača</h2>
-
-            <div className="reviews-grid">
-              {reviews.map((r) => (
-                <div key={r.id} className="review-card">
-                  <div className="review-stars">
-                    {"★★★★★".slice(0, r.rating)}
-                    <span className="review-stars--muted">
-                      {"★★★★★".slice(r.rating)}
-                    </span>
-                  </div>
-
-                  <div className="review-title">{r.title}</div>
-                  <div className="review-body">{r.body}</div>
-
-                  <div className="review-footer">
-                    <span>{r.reviewerName}</span>
-                    <span>
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* Recenzije prodavača će doći kasnije kad API bude spreman */}
         </>
       )}
     </main>

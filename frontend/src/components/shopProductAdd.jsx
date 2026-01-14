@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import useAuth from "../hooks/useAuth";
 import "../styles/shopProductAdd.css";
 
 export default function ShopProductAdd({ open, onClose, onCreated }) {
+  const { user } = useAuth();
   const [opisProizvod, setOpisProizvod] = useState("");
   const [cijenaProizvod, setCijenaProizvod] = useState("");
   const [kategorijaProizvod, setKategorijaProizvod] = useState("");
@@ -25,6 +27,8 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
     try {
       // multipart/form-data (za file upload)
       const fd = new FormData();
+      if (!user?.id) throw new Error("Niste prijavljeni kao organizator.");
+      fd.append("userId", String(user.id));
       fd.append("opisProizvod", opisProizvod);
       fd.append("cijenaProizvod", String(Number(cijenaProizvod)));
       fd.append("kategorijaProizvod", kategorijaProizvod);

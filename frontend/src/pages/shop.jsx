@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import ShopProductAdd from "../components/shopProductAdd.jsx";
+import useAuth from "../hooks/useAuth";
 import "../styles/shop.css";
 
-// Samo za frontend test dok nemam seller role:
-const DEV_FORCE_SELLER = true;
+// Prava pristupa temeljem prijavljenog korisnika
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -43,6 +43,7 @@ function SkeletonCard({ i }) {
 export default function Shop() {
   const [products, setProducts] = useState([]);
   const [me, setMe] = useState(null);
+  const { user } = useAuth();
 
   const [category, setCategory] = useState("");
   const [maxPrice, setMaxPrice] = useState(500);
@@ -51,7 +52,7 @@ export default function Shop() {
   const [error, setError] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const canAddProducts = DEV_FORCE_SELLER ? true : me?.role === "seller";
+  const canAddProducts = (user?.userType === "organizator");
 
   async function loadMe() {
     try {
@@ -96,7 +97,7 @@ export default function Shop() {
     });
   }, [products, category, maxPrice]);
 
-  const showPlaceholders = !loading && (error || filtered.length === 0);
+  const showEmpty = !loading && !error && filtered.length === 0;
 
   return (
     <>
@@ -197,25 +198,9 @@ export default function Shop() {
               </Link>
             ))}
 
-          {showPlaceholders &&
-                Array.from({ length: 6 }).map((_, i) => (
-                    <Link
-                    key={`ph-${i}`}
-                    to={`/shop/placeholder-${i + 1}`}
-                    className="product-card"
-                    >
-                    <img src="/images/placeholder.jpg" alt="Placeholder" />
-                    <div className="product-body">
-                        <div className="product-top">
-                        <h3 className="product-title">Placeholder proizvod</h3>
-                        <span className="product-price">€ 19.99</span>
-                        </div>
-                        <p className="product-desc">
-                        Ovaj je samo da vidiš kako izgleda ProductPage CSS.
-                        </p>
-                    </div>
-                    </Link>
-            ))}
+          {showEmpty && (
+            <div className="status">Trenutno nema proizvoda.</div>
+          )}
 
         </section>
 
