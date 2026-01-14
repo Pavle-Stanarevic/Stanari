@@ -116,3 +116,10 @@
 .billing-tab.active {
   color: #fff;
 }
+
+.auth-guard{
+  display: grid;
+  justify-content: center;
+  gap: 3rem;
+  padding-bottom: 20rem;
+}
