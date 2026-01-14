@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { label: "Rezervacije termina", to: "/pregledRadionica" },
   { label: "Shop", to: "/shop" },
   { label: "Izložbe", to: "/izlozbe" },
-  { label: "Naš tim", to: "/tim" },
+  { label: "Naš tim", to: "/tim" }
 ];
 
 export default function Header() {
@@ -18,6 +18,14 @@ export default function Header() {
     await signOut();
     window.location.href = "/";
   };
+
+const isOrganizer =
+  isAuthenticated && user?.userType === "organizator";
+
+
+  const navItems = isOrganizer
+    ? [...NAV_ITEMS, { label: "Pretplata", to: "/plan" }]
+    : NAV_ITEMS;
 
   return (
     <header className="header">
@@ -29,7 +37,7 @@ export default function Header() {
 
       <div className="nav-container">
         <nav className="nav-links" aria-label="Main">
-          {NAV_ITEMS.map(({ label, to }, i) => {
+          {navItems.map(({ label, to }, i) => {
             const chars = label.split("");
             const totalDuration = 0.5;
             const perLetterDelay = 0.015;

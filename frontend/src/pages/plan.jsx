@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react"; // ✅ DODANO: maknut useMemo iz importa
+import { useLocation, useNavigate } from "react-router-dom";
 import PlanCard from "../components/planCard";
 import "../styles/plan.css";
 import plans from "../data/plans";
@@ -13,20 +13,74 @@ export default function Plan() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+
+  const isOrganizer = user?.userType === "organizator";
 
   const getPrice = (plan) =>
     billing === "monthly" ? plan.priceMonthly : plan.priceYearly;
 
   const priceSuffix = billing === "monthly" ? "mjesečno" : "godišnje";
 
+
+  if (!user) {
+    return (
+      <div className="plan-container">
+        <h1 className="h1-plan">Odaberi plan</h1>
+
+        <div className="auth-guard">
+          <p>Za odabir pretplate morate biti prijavljeni.</p>
+
+          <div className="button-container">
+            <button
+              className="continue-btn"
+              onClick={() =>
+                navigate("/login", {
+                  state: { from: location.pathname },
+                })
+              }
+            >
+              Prijavi se
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ 3) Ako NIJE organizator → blokiraj stranicu + CTA
+  if (!isOrganizer) {
+    return (
+      <div className="plan-container">
+        <h1 className="h1-plan">Pretplate su dostupne samo organizatorima</h1>
+
+        <div className="auth-guard">
+          <p>
+            Trenutno nemate organizatorski račun. Ako želite organizirati radionice,
+            zatražite ulogu organizatora.
+          </p>
+          <div className="button-container" style={{ paddingBottom: "2rem" }}>
+            <button className="continue-btn" onClick={() => navigate("/")}>
+              Nazad
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ 4) Backend flow: kreiraj pretplatu i idi na /placanje sa subscriptionId
   const handleContinue = async () => {
     try {
       setLoading(true);
       setError("");
 
       const userId = user?.id ?? user?.idKorisnik;
-      if (!userId) throw new Error("Korisnik nije prijavljen.");
+      if (!userId) throw new Error("Ne mogu pronaći ID korisnika.");
+
+      // ✅ MAKNUTO: dupli check za isOrganizer u handleContinue
+      // (jer već gore vraćamo return ako nije organizator)
 
       const data = await createSubscription({
         userId,
@@ -38,7 +92,7 @@ export default function Plan() {
         state: { subscriptionId: data.subscriptionId },
       });
     } catch (e) {
-      setError(e.message);
+      setError(e?.message || "Greška kod spremanja pretplate.");
     } finally {
       setLoading(false);
     }
@@ -50,7 +104,6 @@ export default function Plan() {
 
       {error && <p className="error">{error}</p>}
 
-      {/* ✅ BILLING TOGGLE – ISPRAVNO */}
       <div className="billing-toggle" role="tablist" aria-label="Billing period">
         <button
           type="button"
@@ -68,7 +121,6 @@ export default function Plan() {
           Godišnji
         </button>
 
-        {/* 🔥 OVO JE KLJUČNO – CRNI SLIDER */}
         <div className={`billing-indicator ${billing}`} />
       </div>
 
@@ -90,11 +142,7 @@ export default function Plan() {
       </div>
 
       <div className="button-container">
-        <button
-          className="continue-btn"
-          onClick={handleContinue}
-          disabled={loading}
-        >
+        <button className="continue-btn" onClick={handleContinue} disabled={loading}>
           {loading ? "Spremam..." : "Nastavi s plaćanjem"}
         </button>
       </div>
