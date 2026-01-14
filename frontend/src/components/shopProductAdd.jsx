@@ -48,7 +48,7 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
       setImageFile(null);
 
       onClose?.();
-      onCreated?.(); // ✅ refresha iz baze
+      onCreated?.(); // refresha iz baze
     } catch (e2) {
       setError(e2?.message || "Greška kod spremanja");
     } finally {
