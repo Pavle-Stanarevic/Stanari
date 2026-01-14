@@ -1,4 +1,4 @@
-.nacin-placanja p{
+.placanje-header p{
   display: flex;
   justify-content: center;
   font-size: large;
@@ -6,3 +6,79 @@
   margin-top: 0;
   margin-bottom: 5rem;
 }
+
+.placanje-h2{
+  padding-left: 40rem;
+}
+
+.vas-plan-container{
+  border: 1px solid rgba(0,0,0,0.15);   /* tamniji da se vidi na svijetlom */
+  background-color: rgba(0,0,0,0.03);   /* blago sivo */
+  padding: 1.25rem;
+  border-radius: 12px;
+  max-width: 600px;
+  margin-left: 40rem; /* ako već guraš s h2 (ali bolji je drugi način dolje) */
+}
+
+/* RESET ZA GUMB */
+.button-container-payment button {
+  all: unset;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+/* CONTAINER ZA GUMBE */
+.button-container-payment {
+  width: 100%;
+  max-width: 420px;   /* da ne idu preko cijelog ekrana */
+  margin: 0 auto;     /* centrirano */
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* OSNOVNI STIL GUMBA */
+.button-container-payment button {
+  padding: 1.25rem;
+  width: 100%;
+  text-align: left;
+
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* PRVI GUMB – zaobljen gore */
+.button-container-payment button:first-child {
+  border-radius: 12px 12px 0 0;
+}
+
+/* SREDNJI + DONJI – nema duplog bordera */
+.button-container-payment button:not(:first-child) {
+  border-top: none;
+}
+
+/* ZADNJI GUMB – zaobljen dolje */
+.button-container-payment button:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+/* HOVER */
+.button-container-payment button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+
+/*
+.h1-plan
+
+.placanje-container
+
+
+
+
+
+.placanje-h2
+*/
+
