@@ -2,63 +2,55 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlanCard from "../components/planCard";
 import "../styles/plan.css";
+import plans from "../data/plans";
+import { createSubscription } from "../api/subscriptions";
+import useAuth from "../hooks/useAuth";
 
 export default function Plan() {
   const [selectedPlan, setSelectedPlan] = useState("basic");
-  const [billing, setBilling] = useState("monthly"); // ✅ NEW
-  const navigate = useNavigate();
+  const [billing, setBilling] = useState("monthly");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const plans = [
-    {
-      id: "basic",
-      title: "Basic",
-      priceMonthly: 5,
-      priceYearly: 50,
-      features: [
-        "Javni profil organizatora radionica",
-        "Objava do 3 aktivne radionice",
-        "Pregled prijava polaznika",
-        "Rezervacije termina putem kalendara",
-        "Email podrška",
-      ],
-    },
-    {
-      id: "standard",
-      title: "Standard",
-      priceMonthly: 10,
-      priceYearly: 100,
-      features: [
-        "Sve iz Basic paketa",
-        "Neograničen broj radionica",
-        "Online plaćanje radionica (PayPal i kartice)",
-        "Dodavanje galerije slika s radionica",
-        "Prioritetna email podrška",
-      ],
-    },
-    {
-      id: "premium",
-      title: "Premium",
-      priceMonthly: 20,
-      priceYearly: 200,
-      features: [
-        "Sve iz Standard paketa",
-        "Prodaja keramičkih proizvoda u webshopu",
-        "Sudjelovanje i organizacija izložbi",
-        "Recenzije i ocjene kupaca i polaznika",
-        "Istaknuti profil i prioritetna podrška",
-      ],
-    },
-  ];
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const getPrice = (plan) =>
     billing === "monthly" ? plan.priceMonthly : plan.priceYearly;
 
   const priceSuffix = billing === "monthly" ? "mjesečno" : "godišnje";
 
+  const handleContinue = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const userId = user?.id ?? user?.idKorisnik;
+      if (!userId) throw new Error("Korisnik nije prijavljen.");
+
+      const data = await createSubscription({
+        userId,
+        planId: selectedPlan,
+        billing,
+      });
+
+      navigate("/placanje", {
+        state: { subscriptionId: data.subscriptionId },
+      });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="plan-container">
       <h1 className="h1-plan">Odaberi plan</h1>
 
+      {error && <p className="error">{error}</p>}
+
+      {/* ✅ BILLING TOGGLE – ISPRAVNO */}
       <div className="billing-toggle" role="tablist" aria-label="Billing period">
         <button
           type="button"
@@ -76,14 +68,15 @@ export default function Plan() {
           Godišnji
         </button>
 
+        {/* 🔥 OVO JE KLJUČNO – CRNI SLIDER */}
         <div className={`billing-indicator ${billing}`} />
       </div>
 
       <div className="plans">
         {plans.map((plan) => (
           <div
-            className={`planItem ${selectedPlan === plan.id ? "selected" : ""}`}
             key={plan.id}
+            className={`planItem ${selectedPlan === plan.id ? "selected" : ""}`}
             onClick={() => setSelectedPlan(plan.id)}
           >
             <PlanCard
@@ -99,11 +92,10 @@ export default function Plan() {
       <div className="button-container">
         <button
           className="continue-btn"
-          onClick={() =>
-            navigate("/placanje", { state: { planId: selectedPlan, billing } })
-          }
+          onClick={handleContinue}
+          disabled={loading}
         >
-          Nastavi s plaćanjem
+          {loading ? "Spremam..." : "Nastavi s plaćanjem"}
         </button>
       </div>
     </div>
