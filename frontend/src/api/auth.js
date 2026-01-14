@@ -29,6 +29,25 @@ async function postJsonWithCsrf(path, data) {
   try { return await res.json(); } catch { return {}; }
 }
 
+async function putJsonWithCsrf(path, data) {
+  const csrf = getCookie();
+  const res = await fetch(`${API}${path}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    let msg = "";
+    try { msg = (await res.text()) || res.statusText; } catch {}
+    throw new Error(msg || "Request failed");
+  }
+  try { return await res.json(); } catch { return {}; }
+}
+
 async function postMultipartWithCsrf(path, formData) {
   const csrf = getCookie();
   const res = await fetch(`${API}${path}`, {
@@ -117,6 +136,10 @@ export async function registerOrganizator(data) {
   return postJsonWithCsrf(`/api/auth/registerOrganizator`, data);
 }
 
+export async function updateProfile(id, data) {
+  return putJsonWithCsrf(`/api/users/${id}`, data);
+}
 
-const api = { login, me, logout, register, registerPolaznik, registerOrganizator };
+
+const api = { login, me, logout, register, registerPolaznik, registerOrganizator, updateProfile };
 export default api;
