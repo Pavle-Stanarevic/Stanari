@@ -1,5 +1,6 @@
 package com.clayplay.service;
 
+import com.clayplay.dto.ProfileUpdateRequest;
 import com.clayplay.dto.RegistrationRequest;
 import com.clayplay.model.Fotografija;
 import com.clayplay.model.Korisnik;
@@ -98,5 +99,38 @@ public class UserService {
 
     public boolean isOrganizator(Long idKorisnik) {
         return organizatorRepository.existsByIdKorisnik(idKorisnik);
+    }
+
+    @Transactional
+    public Korisnik updateProfile(Long idKorisnik, ProfileUpdateRequest req) {
+        if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");
+        if (req == null) throw new IllegalArgumentException("Invalid profile data");
+
+        Korisnik u = korisnikRepository.findById(idKorisnik)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (req.firstName != null) u.setIme(req.firstName);
+        if (req.lastName != null) u.setPrezime(req.lastName);
+        if (req.address != null) u.setAdresa(req.address);
+        if (req.contact != null) u.setBrojTelefona(req.contact);
+
+        if (req.email != null && !req.email.equals(u.getEmail())) {
+            Optional<Korisnik> exists = korisnikRepository.findByEmail(req.email);
+            if (exists.isPresent()) {
+                throw new IllegalArgumentException("Email already registered");
+            }
+            u.setEmail(req.email);
+        }
+
+        Korisnik saved = korisnikRepository.save(u);
+
+        if (req.studyName != null && isOrganizator(idKorisnik)) {
+            organizatorRepository.findById(idKorisnik).ifPresent(org -> {
+                org.setImeStudija(req.studyName);
+                organizatorRepository.save(org);
+            });
+        }
+
+        return saved;
     }
 }

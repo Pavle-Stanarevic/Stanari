@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import useAuth from "../hooks/useAuth.js";
 import "../styles/profile.css";
 import { Edit, Check, X } from "lucide-react";
+import { updateProfile } from "../api/auth.js";
 
 export default function Profile() {
   const { user, signIn } = useAuth();
@@ -9,6 +10,7 @@ export default function Profile() {
 
   const [editingField, setEditingField] = useState(null); 
   const [tempValue, setTempValue] = useState("");
+  const [error, setError] = useState("");
 
   const startEditing = (field, value) => {
     setEditingField(field);
@@ -20,16 +22,21 @@ export default function Profile() {
     setTempValue("");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingField) return;
+    setError("");
 
     const updatedUser = {
       ...user,
       [editingField]: tempValue, 
     };
-
-    signIn(updatedUser); 
-    setEditingField(null); 
+    try {
+      const saved = await updateProfile(user.id, { [editingField]: tempValue });
+      signIn(saved);
+      setEditingField(null);
+    } catch (e) {
+      setError(e?.message || "Neuspješno spremanje profila.");
+    }
   };
 
   return (
@@ -37,6 +44,7 @@ export default function Profile() {
       <h1 className="naslov">Vaš profil</h1>
 
       <div className="container-profile">
+        {error && <p className="error" style={{ marginBottom: 12 }}>{error}</p>}
         <p className="label">Ime:</p>
         {editingField === "firstName" ? (
           <>
