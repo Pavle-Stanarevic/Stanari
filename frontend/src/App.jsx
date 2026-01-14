@@ -12,6 +12,8 @@ import PregledRadionica from "./pages/pregledRadionica.jsx";
 import Footer from "./components/footer.jsx";
 import Plan from "./pages/plan.jsx";
 import Placanje from "./pages/placanje.jsx";
+import Shop from "./pages/shop.jsx";
+import ProductPage from "./pages/productPage.jsx";
 
 export default function App() {
   return (
@@ -27,6 +29,10 @@ export default function App() {
         <Route path="/organizacijaRadionica" element={<OrganizacijaRadionica />} />
         <Route path="/pregledRadionica" element={<PregledRadionica />} />
         <Route path="/plan" element={<Plan />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/shop/:proizvodId" element={<ProductPage />} />
+        
+
         <Route path="*" element={<LandingPage />} />
         <Route path="/placanje" element={<Placanje />} />
       </Routes>
