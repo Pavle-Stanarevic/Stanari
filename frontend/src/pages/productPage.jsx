@@ -58,7 +58,7 @@ export default function ProductPage() {
       setLoading(true);
       setError("");
 
-      // ✅ PLACEHOLDER MODE
+      // placeholder mode
       if (isPlaceholder) {
         setProduct(PLACEHOLDER_PRODUCT);
         setReviews(PLACEHOLDER_REVIEWS);
@@ -66,7 +66,7 @@ export default function ProductPage() {
         return;
       }
 
-      // ✅ REAL BACKEND MODE
+      // pravi backend mode
       try {
         const p = await fetchJson(`/api/products/${proizvodId}`);
         setProduct(p);
@@ -102,7 +102,6 @@ export default function ProductPage() {
 
       {!loading && !error && product && (
         <>
-          {/* HERO */}
           <section className="product-hero">
             <div className="product-media">
               <img
@@ -131,7 +130,7 @@ export default function ProductPage() {
             </div>
           </section>
 
-          {/* REVIEWS */}
+
           <section className="reviews">
             <h2>Recenzije prodavača</h2>
 

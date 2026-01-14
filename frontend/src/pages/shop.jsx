@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ShopProductAdd from "../components/shopProductAdd.jsx";
 import "../styles/shop.css";
 
-// Samo za frontend test dok nemaš seller role:
+// Samo za frontend test dok nemam seller role:
 const DEV_FORCE_SELLER = true;
 
 async function fetchJson(url, options) {
