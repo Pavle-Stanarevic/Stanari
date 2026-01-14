@@ -109,8 +109,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-        <footer className="footer"></footer>
       </div>
     </main>
   );

@@ -1,0 +1,225 @@
+/* =========================
+   PAGE
+========================= */
+.placanje-page{
+  min-height: 100vh;
+  padding: 56px 16px 80px;
+  background: #f6f7fb;
+  color: #111;
+}
+
+.placanje-wrap{
+  width: min(980px, 100%);
+  margin: 0 auto;
+}
+
+/* =========================
+   LOADING / ERROR
+========================= */
+.placanje-state{
+  padding: 60px 16px;
+  text-align: center;
+  color: rgba(0,0,0,0.7);
+}
+
+.placanje-state.error{
+  color: #b00020;
+}
+
+/* =========================
+   HEADER
+========================= */
+.placanje-header{
+  text-align: center;
+  margin-bottom: 34px;
+}
+
+.placanje-title{
+  margin: 0;
+  font-size: clamp(34px, 3.6vw, 52px);
+  letter-spacing: -0.5px;
+  color: #111;
+}
+
+.placanje-subtitle{
+  margin-top: 10px;
+  font-size: 18px;
+  color: rgba(0,0,0,0.6);
+}
+
+/* =========================
+   SECTIONS
+========================= */
+.placanje-section{
+  margin-top: 34px;
+}
+
+.placanje-h2{
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* =========================
+   SUBSCRIPTION CARD
+========================= */
+.subscription-card{
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  padding-bottom: 3rem;
+}
+
+.subscription-top{
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.subscription-title{
+  margin: 0;
+  font-size: 26px;
+  font-weight: 750;
+}
+
+.subscription-kicker,
+.price-cycle,
+.subscription-footnote{
+  color: rgba(0,0,0,0.6);
+}
+
+.subscription-right{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.subscription-price{
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.price-amount{
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* linkovi */
+.link-btn,
+.linkish{
+  all: unset;
+  cursor: pointer;
+  color: rgb(16, 52, 110);
+  font-weight: 650;
+}
+
+.link-btn:hover,
+.linkish:hover{
+  text-decoration: underline;
+}
+
+/* =========================
+   PAYMENT LIST
+========================= */
+.payment-list{
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+}
+
+.payment-row{
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.payment-row + .payment-row{
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+.payment-row:hover{
+  background: rgba(0,0,0,0.04);
+}
+
+.payment-label{
+  font-size: 18px;
+  font-weight: 650;
+}
+
+
+.payment-right{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.payment-icon{
+  height: 35px;
+  width: auto;
+}
+
+.payment-icon.apple{
+  height: 35px;
+}
+
+.payment-chevron{
+  font-size: 22px;
+  color: rgba(0,0,0,0.45);
+}
+
+/* =========================
+   ACTION BUTTONS
+========================= */
+.placanje-actions{
+  margin-top: 3.5rem;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* PRIMARY – PLAVI */
+.primary-btn{
+  border: none;
+  cursor: pointer;
+  padding: 12px 26px;
+  border-radius: 12px;
+  background: rgb(16, 52, 110);
+  color: #fff;
+  font-weight: 800;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primary-btn:hover{
+  background: rgb(24, 74, 150);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(16, 52, 110, 0.25);
+}
+
+/* SECONDARY */
+.ghost-btn{
+  border: 1px solid rgba(0,0,0,0.14);
+  cursor: pointer;
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+}
+
+
+
+.payment-row.selected {
+  background-color: rgba(4, 32, 187, 0.05);
+}
+

@@ -2,6 +2,8 @@
   background-color: #0f172a; 
   color: #0f172a;
   min-height: 100vh;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
 
 .container {
@@ -92,12 +94,6 @@
   gap: 1.5rem;
 }
 
-.footer {
-  color: #94a3b8;
-  text-align: center;
-  font-size: 0.8rem;
-  padding-top: 2rem;
-}
 
 .grid-karte {
   display: grid;
