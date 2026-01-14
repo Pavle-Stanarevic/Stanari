@@ -9,6 +9,8 @@ import RegisterPolaznik from "./pages/registerPolaznik.jsx";
 import Profile from "./pages/profile.jsx";
 import OrganizacijaRadionica from "./pages/organizacijaRadionica.jsx";
 import PregledRadionica from "./pages/pregledRadionica.jsx";
+import Shop from "./pages/shop.jsx";
+import ProductPage from "./pages/productPage.jsx";
 
 export default function App() {
   return (
@@ -23,6 +25,9 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/organizacijaRadionica" element={<OrganizacijaRadionica />} />
         <Route path="/pregledRadionica" element={<PregledRadionica />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/shop/:proizvodId" element={<ProductPage />} />
+        
 
         <Route path="*" element={<LandingPage />} />
       </Routes>
