@@ -44,7 +44,7 @@ export default function LandingPage() {
         </SectionCard>
 
         <div className="grid">
-          <SectionCard title="Online shop" cta="Odi u shop" href="#">
+          <SectionCard title="Online shop" cta="Odi u shop" href="/shop">
             Za sve one koji vole keramiku, ali više uživaju u ispijanju kave
             nego u miješanju gline, otvorili smo naš online shop! Tamo možeš
             pronaći unikatne keramičke komade koje su izradili naši instruktori
