@@ -78,7 +78,17 @@ export default function PregledRadionica() {
     return () => { alive = false; };
   }, [user]);
 
-  const empty = useMemo(() => !items || items.length === 0, [items]);
+  const upcomingItems = useMemo(() => {
+    const now = new Date();
+    return (items || []).filter((w) => {
+      const iso = w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
+      if (!iso) return false;
+      const d = new Date(iso);
+      return !Number.isNaN(d.getTime()) && d >= now;
+    });
+  }, [items]);
+
+  const empty = useMemo(() => !upcomingItems || upcomingItems.length === 0, [upcomingItems]);
 
   const organizer = user?.userType === "organizator";
   const polaznik = user?.userType === "polaznik";
@@ -139,7 +149,7 @@ export default function PregledRadionica() {
 
         {!loading && !empty && (
           <ul className="workshop-list">
-            {items.map((w) => (
+            {upcomingItems.map((w) => (
               <li key={w.id} className="workshop-item">
                 <div className="thumb" aria-hidden>
                   <div className="thumb-circle" />

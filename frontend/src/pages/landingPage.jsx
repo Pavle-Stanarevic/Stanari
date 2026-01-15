@@ -1,19 +1,28 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
-import Header from "../components/header";
+import { Link } from "react-router-dom";
 import "../styles/landingPage.css";
 import MapOSM from "../components/MapOSM";
 
-
 function SectionCard({ title, children, cta, href }) {
+  const isInternal = href && href.startsWith("/");
+
   return (
     <div className="card">
       <h3 className="card-title">{title}</h3>
       <p className="card-text">{children}</p>
-      <a href={href} className="card-btn">
-        {cta}
-        <ArrowRight className="icon" />
-      </a>
+
+      {isInternal ? (
+        <Link to={href} className="card-btn">
+          {cta}
+          <ArrowRight className="icon" />
+        </Link>
+      ) : (
+        <a href={href} className="card-btn">
+          {cta}
+          <ArrowRight className="icon" />
+        </a>
+      )}
     </div>
   );
 }
@@ -22,7 +31,6 @@ export default function LandingPage() {
   return (
     <main className="page-bg">
       <div className="container">
-
         <SectionCard
           title="Radionice izrade keramike"
           cta="Pregled radionica"
@@ -36,7 +44,7 @@ export default function LandingPage() {
         </SectionCard>
 
         <div className="grid">
-          <SectionCard title="Online shop" cta="Odi u shop" href="#">
+          <SectionCard title="Online shop" cta="Odi u shop" href="/shop">
             Za sve one koji vole keramiku, ali više uživaju u ispijanju kave
             nego u miješanju gline, otvorili smo naš online shop! Tamo možeš
             pronaći unikatne keramičke komade koje su izradili naši instruktori
@@ -59,8 +67,6 @@ export default function LandingPage() {
           u svakom komadu.
         </SectionCard>
 
-        
-
         <section className="location-wrap">
           <div className="location-card-zadnja">
             <h3>ClayPlay Studio</h3>
@@ -73,9 +79,16 @@ export default function LandingPage() {
             </div>
 
             <ul className="info-list">
-              <li><strong>Radno vrijeme:</strong> pon–pet 08:00–20:00</li>
-              <li><strong>Kontakt:</strong> info@clayplay.hr • 091 111 222</li>
-              <li><strong>Pristup:</strong> Tram 5/7/14, stanica Vjesnik • parking u blizini</li>
+              <li>
+                <strong>Radno vrijeme:</strong> pon–pet 08:00–20:00
+              </li>
+              <li>
+                <strong>Kontakt:</strong> info@clayplay.hr • 091 111 222
+              </li>
+              <li>
+                <strong>Pristup:</strong> Tram 5/7/14, stanica Vjesnik • parking
+                u blizini
+              </li>
             </ul>
 
             <div className="btn-row">
@@ -92,17 +105,10 @@ export default function LandingPage() {
 
           <div className="map-shell">
             <div className="map-frame">
-              <MapOSM
-                lat={45.8016}
-                lng={15.9710}
-              />
+              <MapOSM lat={45.8016} lng={15.971} />
             </div>
           </div>
         </section>
-
-        <footer className="footer">
-
-        </footer>
       </div>
     </main>
   );

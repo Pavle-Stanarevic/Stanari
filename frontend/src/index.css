@@ -7,10 +7,10 @@
 html, body, #root {
     height: 100%;
     margin: 0;
-    min-width: 801px;
+    min-width: 918px;
 }
 
 #root {
-    background-color: #f3f4f6;
+    /*background-color: #f3f4f6;*/
 }
 

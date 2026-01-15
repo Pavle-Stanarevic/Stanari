@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import useAuth from "../hooks/useAuth.js";
 import "../styles/profile.css";
 import { Edit, Check, X } from "lucide-react";
+import { updateProfile } from "../api/auth.js";
 
 export default function Profile() {
-  const { user, signIn } = useAuth();              
+  const { user, signIn } = useAuth();
+        
 
   const [editingField, setEditingField] = useState(null); 
   const [tempValue, setTempValue] = useState("");
+  const [error, setError] = useState("");
 
   const startEditing = (field, value) => {
     setEditingField(field);
@@ -19,16 +22,21 @@ export default function Profile() {
     setTempValue("");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingField) return;
+    setError("");
 
     const updatedUser = {
       ...user,
       [editingField]: tempValue, 
     };
-
-    signIn(updatedUser); 
-    setTempValue("");
+    try {
+      const saved = await updateProfile(user.id, { [editingField]: tempValue });
+      signIn(saved);
+      setEditingField(null);
+    } catch (e) {
+      setError(e?.message || "Neuspješno spremanje profila.");
+    }
   };
 
   return (
@@ -36,6 +44,7 @@ export default function Profile() {
       <h1 className="naslov">Vaš profil</h1>
 
       <div className="container-profile">
+        {error && <p className="error" style={{ marginBottom: 12 }}>{error}</p>}
         <p className="label">Ime:</p>
         {editingField === "firstName" ? (
           <>
@@ -138,12 +147,30 @@ export default function Profile() {
         {user.userType === "organizator" && (
           <>
             <p className="label">Naziv studija:</p>
-            <p className="value">{user.studyName}</p>
-            <Edit
-              className="edit-icon"
-              onClick={() => startEditing("studyName", user.studyName)}
-            />
-          </>
+            {editingField === "studyName" ? (
+              <>
+                <p className="value">
+                  <input
+                    className="edit-input"
+                    value={tempValue}
+                    onChange={(e) => setTempValue(e.target.value)}
+                  />
+                </p>
+                <div className="actions">
+                  <Check className="icon save" onClick={handleSave} />
+                  <X className="icon cancel" onClick={cancelEditing} />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="value">{user.studyName}</p>
+                <Edit
+                  className="edit-icon"
+                  onClick={() => startEditing("studyName", user.studyName)}
+                />
+              </>
+            )}
+            </>
         )}
       </div>
     </div>
