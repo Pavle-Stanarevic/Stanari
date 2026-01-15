@@ -30,17 +30,14 @@ body {
   padding: 18px 0 70px 0;
 }
 
+/* HERO */
 .hero {
   height: 320px;
   border-radius: 22px;
   overflow: hidden;
   position: relative;
 
-  background:
-    linear-gradient(
-      rgba(15, 23, 42, 0.55),
-      rgba(15, 23, 42, 0.55)
-    ),
+  background: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.55)),
     url("../images/shop.jpg") center / cover no-repeat;
 
   box-shadow: var(--shadow);
@@ -109,12 +106,19 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow-soft);
   padding: 14px;
+
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   gap: 14px;
   align-items: end;
 }
 
+.filter {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Label izgleda kao na slici */
 .filter label {
   display: block;
   font-size: 13px;
@@ -123,6 +127,7 @@ body {
   font-weight: 800;
 }
 
+/* SELECT */
 .filter select {
   width: 100%;
   padding: 12px;
@@ -138,8 +143,30 @@ body {
   box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.08);
 }
 
+/* ✅ PRICE LABEL ROW: Raspon cijena (lijevo) + Max cijena (desno) */
+.filter-labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.filter-labelRow .filter-label {
+  margin: 0;
+}
+
+.filter-meta {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* PRICE FILTER — slider ispod naslova */
 .price-filter {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
@@ -153,11 +180,44 @@ body {
 
 .price-filter input[type="range"] {
   width: 100%;
+  margin: 0;
 }
 
-.price-filter small {
-  color: var(--muted);
-  font-weight: 700;
+/* RESET ISPOD FILTERA (ne full width) */
+.filter-reset {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center; /* ako želiš lijevo: flex-start */
+  margin-top: 6px;
+}
+
+.reset-btn {
+  width: fit-content;
+  min-width: 180px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.reset-btn:not(:disabled):hover {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.22);
+}
+
+.reset-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.reset-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  background: #f8fafc;
 }
 
 /* STATUS */
@@ -252,8 +312,13 @@ body {
   .filters-inner {
     grid-template-columns: 1fr;
   }
+
   .products {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-reset {
+    justify-content: flex-start;
   }
 }
 
@@ -262,7 +327,13 @@ body {
     height: 280px;
     border-radius: 18px;
   }
+
   .products {
     grid-template-columns: 1fr;
+  }
+
+  .reset-btn {
+    width: 100%;
+    min-width: 0;
   }
 }

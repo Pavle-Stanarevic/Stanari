@@ -204,8 +204,6 @@ export default function PregledRadionica() {
           </ul>
         )}
       </main>
-
-      <footer className="list-footer">© {new Date().getFullYear()} ClayPlay</footer>
     </div>
   );
 }

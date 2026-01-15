@@ -1,9 +1,19 @@
 import { useMemo, useState } from "react";
 import useAuth from "../hooks/useAuth";
 import "../styles/shopProductAdd.css";
+import { PRODUCT_CATEGORIES } from "../data/productCategories";
+const DEV_FORCE_USER = true; // frontend test
+
 
 export default function ShopProductAdd({ open, onClose, onCreated }) {
-  const { user } = useAuth();
+  // const { user } = useAuth();
+  const { user: realUser } = useAuth();
+
+  const user = DEV_FORCE_USER
+    ? { id: 1, role: "ORGANIZER" }
+    : realUser;
+
+
   const [opisProizvod, setOpisProizvod] = useState("");
   const [cijenaProizvod, setCijenaProizvod] = useState("");
   const [kategorijaProizvod, setKategorijaProizvod] = useState("");
@@ -25,14 +35,16 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
     setError("");
 
     try {
-      // multipart/form-data (za file upload)
       const fd = new FormData();
+
       if (!user?.id) throw new Error("Niste prijavljeni kao organizator.");
+
       fd.append("userId", String(user.id));
       fd.append("opisProizvod", opisProizvod);
       fd.append("cijenaProizvod", String(Number(cijenaProizvod)));
       fd.append("kategorijaProizvod", kategorijaProizvod);
-      if (imageFile) fd.append("image", imageFile); // "image" uskladi s backendom
+
+      if (imageFile) fd.append("image", imageFile); // "image" uskladit s backendom
 
       const res = await fetch("/api/products", {
         method: "POST",
@@ -52,7 +64,7 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
       setImageFile(null);
 
       onClose?.();
-      onCreated?.(); // refresha iz baze
+      onCreated?.();
     } catch (e2) {
       setError(e2?.message || "Greška kod spremanja");
     } finally {
@@ -65,7 +77,12 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
       <div className="modal">
         <div className="modal-header">
           <h2>Dodaj proizvod</h2>
-          <button className="icon-btn" type="button" onClick={onClose} aria-label="Zatvori">
+          <button
+            className="icon-btn"
+            type="button"
+            onClick={onClose}
+            aria-label="Zatvori"
+          >
             ✕
           </button>
         </div>
@@ -96,12 +113,20 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
 
             <div className="field">
               <label>Kategorija</label>
-              <input
-                placeholder="Npr. Vaze"
+              <select
                 value={kategorijaProizvod}
                 onChange={(e) => setKategorijaProizvod(e.target.value)}
                 required
-              />
+              >
+                <option value="" disabled>
+                  Odaberi kategoriju
+                </option>
+                {PRODUCT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
