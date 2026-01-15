@@ -116,6 +116,8 @@ export default function OrganizacijaRadionica() {
       const [h, m] = String(form.startTime || "00:00").split(":").map(Number);
       const when = new Date(form.date || new Date());
       when.setHours(h || 0, m || 0, 0, 0);
+      const now = new Date();
+      if (when < now) throw new Error("Nije moguće organizirati radionicu u prošlosti.");
       const organizerId = user?.id ?? user?.idKorisnik ?? null;
       if (!organizerId) throw new Error("Niste prijavljeni kao organizator.");
 
@@ -206,16 +208,25 @@ export default function OrganizacijaRadionica() {
 
               <label>Vrijeme početka</label>
               <select value={form.startTime} onChange={(e) => set("startTime", e.target.value)}>
-                {Array.from({ length: 48 }).map((_, i) => {
-                  const h = String(Math.floor(i / 2)).padStart(2, "0");
-                  const m = i % 2 === 0 ? "00" : "30";
-                  const label = `${h}:${m}`;
-                  return (
+                {Array.from({ length: 48 })
+                  .map((_, i) => {
+                    const h = String(Math.floor(i / 2)).padStart(2, "0");
+                    const m = i % 2 === 0 ? "00" : "30";
+                    const label = `${h}:${m}`;
+                    const optionTime = new Date(form.date || new Date());
+                    optionTime.setHours(Number(h), Number(m), 0, 0);
+                    return { label, optionTime };
+                  })
+                  .filter(({ optionTime }) => {
+                    const now = new Date();
+                    const isSameDay = optionTime.toDateString() === now.toDateString();
+                    return !isSameDay || optionTime >= now;
+                  })
+                  .map(({ label }) => (
                     <option key={label} value={label}>
                       {label}
                     </option>
-                  );
-                })}
+                  ))}
               </select>
             </div>
 
