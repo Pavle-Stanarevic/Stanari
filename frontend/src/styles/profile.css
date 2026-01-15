@@ -11,6 +11,7 @@
   font-family: "Inter", sans-serif;
   font-size: 1.25rem;
   color: #333;
+  margin-bottom: 8rem;
 }
 
 .container-profile::before {
