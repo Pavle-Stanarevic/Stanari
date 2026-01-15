@@ -17,6 +17,8 @@ import ProductPage from "./pages/productPage.jsx";
 import TimOrganizatora from "./pages/timOrganizatora.jsx";
 import PlacanjeKartica from "./pages/placanjeKartica.jsx";
 import PlacanjeNedostupno from "./pages/placanjeNedostupno.jsx";
+import PlacanjeUspjeh from "./pages/placanjeUspjeh.jsx";
+
 
 export default function App() {
   return (
@@ -43,6 +45,8 @@ export default function App() {
         <Route path="/placanje/kartica" element={<PlacanjeKartica />} />
         <Route path="/placanje/paypal" element={<PlacanjeNedostupno />} />
         <Route path="/placanje/applepay" element={<PlacanjeNedostupno />} />
+        <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
+
       </Routes>
 
       <Footer/>
