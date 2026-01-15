@@ -9,6 +9,7 @@ import applePayIcon from "../assets/images/apple-pay.png";
 const DEV_FALLBACK = true;
 
 const DEV_SUBSCRIPTION = {
+  id: "dev-subscription",
   title: "Basic (placeholder)",
   amount: 9.99,
   billing: "monthly",
@@ -16,11 +17,7 @@ const DEV_SUBSCRIPTION = {
 
 function formatBilling(billing) {
   if (!billing) return "";
-  return billing === "monthly"
-    ? "mjesečno"
-    : billing === "yearly"
-    ? "godišnje"
-    : billing;
+  return billing === "monthly" ? "mjesečno" : billing === "yearly" ? "godišnje" : billing;
 }
 
 export default function Placanje() {
@@ -47,13 +44,15 @@ export default function Placanje() {
 
     async function loadSubscription() {
       try {
-        const res = await fetch(`/api/subscriptions/${subscriptionId}`);
+        const res = await fetch(`/api/subscriptions/${subscriptionId}`, {
+          credentials: "include",
+        });
         if (!res.ok) throw new Error("Ne mogu dohvatiti pretplatu.");
         const data = await res.json();
         setSubscription(data);
       } catch (e) {
         if (DEV_FALLBACK) {
-          setSubscription(DEV_SUBSCRIPTION);
+          setSubscription({ ...DEV_SUBSCRIPTION, id: subscriptionId });
         } else {
           setError(e.message || "Greška pri dohvaćanju.");
         }
@@ -65,19 +64,34 @@ export default function Placanje() {
     loadSubscription();
   }, [subscriptionId, navigate]);
 
+  function handleContinue() {
+    if (!paymentMethod) return;
+
+    const routeMap = {
+      card: "/placanje/kartica",
+      paypal: "/placanje/paypal",
+      applepay: "/placanje/applepay",
+    };
+
+    navigate(routeMap[paymentMethod], {
+      state: {
+        subscriptionId: subscription?.id || subscriptionId,
+        subscription,
+        paymentMethod,
+      },
+    });
+  }
+
   if (loading) return <p className="placanje-state">Učitavanje...</p>;
   if (error) return <p className="placanje-state error">{error}</p>;
-  if (!subscription)
-    return <p className="placanje-state error">Nema podataka o pretplati.</p>;
+  if (!subscription) return <p className="placanje-state error">Nema podataka o pretplati.</p>;
 
   return (
     <div className="placanje-page">
       <div className="placanje-wrap">
         <header className="placanje-header">
           <h1 className="placanje-title">Odaberite način plaćanja</h1>
-          <p className="placanje-subtitle">
-            Pretplatom možete upravljati u bilo kojem trenutku.
-          </p>
+          <p className="placanje-subtitle">Pretplatom možete upravljati u bilo kojem trenutku.</p>
         </header>
 
         <section className="placanje-section">
@@ -91,21 +105,13 @@ export default function Placanje() {
               </div>
 
               <div className="subscription-right">
-                <button
-                  className="link-btn"
-                  type="button"
-                  onClick={() => navigate("/plan")}
-                >
+                <button className="link-btn" type="button" onClick={() => navigate("/plan")}>
                   Uredi
                 </button>
 
                 <div className="subscription-price">
-                  <span className="price-amount">
-                    €{Number(subscription.amount).toFixed(2)}
-                  </span>
-                  <span className="price-cycle">
-                    /{formatBilling(subscription.billing)}
-                  </span>
+                  <span className="price-amount">€{Number(subscription.amount).toFixed(2)}</span>
+                  <span className="price-cycle">/{formatBilling(subscription.billing)}</span>
                 </div>
               </div>
             </div>
@@ -116,26 +122,19 @@ export default function Placanje() {
           <h2 className="placanje-h2">Odaberite način plaćanja</h2>
 
           <div className="payment-list">
-              <button
-                className={`payment-row ${
-                  paymentMethod === "card" ? "selected" : ""
-                }`}
-                type="button"
-                onClick={() => setPaymentMethod("card")}
-              >
-              <span className="payment-label">
-                Kreditna ili debitna kartica
-              </span>
+            <button
+              className={`payment-row ${paymentMethod === "card" ? "selected" : ""}`}
+              type="button"
+              onClick={() => setPaymentMethod("card")}
+            >
+              <span className="payment-label">Kreditna ili debitna kartica</span>
               <span className="payment-right">
                 <img className="payment-icon" src={cardIcon} alt="" />
-
               </span>
             </button>
 
             <button
-              className={`payment-row ${
-                paymentMethod === "paypal" ? "selected" : ""
-              }`}
+              className={`payment-row ${paymentMethod === "paypal" ? "selected" : ""}`}
               type="button"
               onClick={() => setPaymentMethod("paypal")}
             >
@@ -146,33 +145,30 @@ export default function Placanje() {
             </button>
 
             <button
-              className={`payment-row ${
-                paymentMethod === "applepay" ? "selected" : ""
-              }`}
+              className={`payment-row ${paymentMethod === "applepay" ? "selected" : ""}`}
               type="button"
               onClick={() => setPaymentMethod("applepay")}
             >
               <span className="payment-label">Apple Pay</span>
               <span className="payment-right">
-                <img
-                  className="payment-icon apple"
-                  src={applePayIcon}
-                  alt="Apple Pay"
-                />
+                <img className="payment-icon apple" src={applePayIcon} alt="Apple Pay" />
               </span>
             </button>
           </div>
         </section>
 
         <div className="placanje-actions">
-          <button className="primary-btn" type="button">
+          <button
+            className="primary-btn"
+            type="button"
+            onClick={handleContinue}
+            disabled={!paymentMethod}
+            title={!paymentMethod ? "Odaberite način plaćanja" : ""}
+          >
             Nastavi
           </button>
-          <button
-            className="ghost-btn"
-            type="button"
-            onClick={() => navigate("/plan")}
-          >
+
+          <button className="ghost-btn" type="button" onClick={() => navigate("/plan")}>
             Povratak na planove
           </button>
         </div>
