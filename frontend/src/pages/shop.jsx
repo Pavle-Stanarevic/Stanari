@@ -3,23 +3,19 @@ import { Link } from "react-router-dom";
 import ShopProductAdd from "../components/shopProductAdd.jsx";
 import useAuth from "../hooks/useAuth";
 import "../styles/shop.css";
+import { PRODUCT_CATEGORIES } from "../data/productCategories";
 
-// Prava pristupa temeljem prijavljenog korisnika
+
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
   const contentType = res.headers.get("content-type") || "";
-
   const text = await res.text();
 
-  if (!res.ok) {
-    throw new Error(text || `HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
   if (!contentType.includes("application/json")) {
     throw new Error(`API nije vratio JSON. Dobio sam: ${text.slice(0, 80)}...`);
   }
-
   return JSON.parse(text);
 }
 
@@ -52,7 +48,7 @@ export default function Shop() {
   const [error, setError] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const canAddProducts = (user?.userType === "organizator");
+  const canAddProducts = user?.userType === "organizator";
 
   async function loadMe() {
     try {
@@ -83,10 +79,7 @@ export default function Shop() {
     loadProducts();
   }, []);
 
-  const categories = useMemo(() => {
-    const set = new Set(products.map((p) => p.kategorijaProizvod).filter(Boolean));
-    return ["", ...Array.from(set)];
-  }, [products]);
+  const categories = useMemo(() => ["", ...PRODUCT_CATEGORIES], []);
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -99,118 +92,138 @@ export default function Shop() {
 
   const showEmpty = !loading && !error && filtered.length === 0;
 
+  function resetFilters() {
+    setCategory("");
+    setMaxPrice(500);
+  }
+
+  const filtersActive = category !== "" || maxPrice !== 500;
+
   return (
-    <>
-      <main className="shop-page">
-        <section className="hero">
-          <div className="hero-overlay">
-            <div className="hero-content">
-              <h1>Clay Play Shop</h1>
-              <p>Kupite keramičke proizvode naših stručnjaka i instruktora</p>
+    <main className="shop-page">
+      <section className="hero">
+        <div className="hero-overlay">
+          <div className="hero-content">
+            <h1>Clay Play Shop</h1>
+            <p>Kupite keramičke proizvode naših stručnjaka i instruktora</p>
 
-              <div className="hero-actions">
-                {canAddProducts && (
-                  <button
-                    className="hero-btn hero-btn--secondary"
-                    onClick={() => setIsAddOpen(true)}
-                    type="button"
-                  >
-                    + Dodaj proizvod
-                  </button>
-                )}
-              </div>
+            <div className="hero-actions">
+              {canAddProducts && (
+                <button
+                  className="hero-btn hero-btn--secondary"
+                  onClick={() => setIsAddOpen(true)}
+                  type="button"
+                >
+                  + Dodaj proizvod
+                </button>
+              )}
+
+              
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* FILTERI */}
-        <section className="filters">
-          <div className="filters-inner">
-            <div className="filter">
-              <label htmlFor="category">Kategorija</label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c || "all"} value={c}>
-                    {c || "Sve kategorije"}
-                  </option>
-                ))}
-              </select>
+      {/* FILTERI */}
+      <section className="filters">
+        <div className="filters-inner">
+          <div className="filter">
+            <label htmlFor="category">Kategorija</label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {categories.map((c) => (
+                <option key={c || "all"} value={c}>
+                  {c || "Sve kategorije"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* CIJENA */}
+          <div className="filter">
+            <div className="filter-labelRow">
+              <label htmlFor="price" className="filter-label">
+                Raspon cijena
+              </label>
             </div>
 
-            <div className="filter">
-              <label htmlFor="price">Max cijena: € {maxPrice}</label>
-              <div className="price-filter">
-                <div className="price-values">
-                  <span>€ 0</span>
-                  <span>€ 500</span>
-                </div>
-                <input
-                  id="price"
-                  type="range"
-                  min="0"
-                  max="500"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                />
-                <small>Raspon cijena</small>
+            <div className="price-filter">
+              <div className="price-values">
+                <span>€ 0</span>
+                <span>€ 500</span>
               </div>
+
+              <input
+                id="price"
+                type="range"
+                min="0"
+                max="500"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+              />
             </div>
           </div>
-        </section>
 
-        {/* STATUS */}
-        {loading && <div className="status">Učitavanje...</div>}
-        {!loading && error && <div className="status status--error">{error}</div>}
+          <div className="filter filter-reset">
+            <button
+              type="button"
+              className="reset-btn"
+              onClick={resetFilters}
+              disabled={!filtersActive}
+            >
+              Reset filtera
+            </button>
+          </div>
+        </div>
+      </section>
 
-        {/* PROIZVODI */}
-        <section className="products">
-          {loading &&
-            Array.from({ length: 6 }).map((_, i) => <SkeletonCard i={i} />)}
+      {/* STATUS */}
+      {loading && <div className="status">Učitavanje...</div>}
+      {!loading && error && <div className="status status--error">{error}</div>}
 
-          {!loading &&
-            !error &&
-            filtered.map((p) => (
-              <Link
-                key={p.proizvodId}
-                to={`/shop/${p.proizvodId}`}
-                className="product-card"
-              >
-                <img
-                  src={p.imageUrl || "/images/placeholder.jpg"}
-                  alt="Proizvod"
-                  loading="lazy"
-                />
-                <div className="product-body">
-                  <div className="product-top">
-                    <h3 className="product-title">
-                      {p.nazivProizvod || p.title || p.kategorijaProizvod || "Proizvod"}
-                    </h3>
-                    <span className="product-price">
-                      € {Number(p.cijenaProizvod).toFixed(2)}
-                    </span>
-                  </div>
-                  <p className="product-desc">{p.opisProizvod}</p>
+      {/* PROIZVODI */}
+      <section className="products">
+        {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard i={i} />)}
+
+        {!loading &&
+          !error &&
+          filtered.map((p) => (
+            <Link
+              key={p.proizvodId}
+              to={`/shop/${p.proizvodId}`}
+              className="product-card"
+            >
+              <img
+                src={p.imageUrl || "/images/placeholder.jpg"}
+                alt="Proizvod"
+                loading="lazy"
+              />
+              <div className="product-body">
+                <div className="product-top">
+                  <h3 className="product-title">
+                    {p.nazivProizvod || p.title || p.kategorijaProizvod || "Proizvod"}
+                  </h3>
+                  <span className="product-price">
+                    € {Number(p.cijenaProizvod).toFixed(2)}
+                  </span>
                 </div>
-              </Link>
-            ))}
+                <p className="product-desc">{p.opisProizvod}</p>
+              </div>
+            </Link>
+          ))}
 
-          {showEmpty && (
-            <div className="status">Trenutno nema proizvoda.</div>
-          )}
+        {showEmpty && <div className="status">Trenutno nema proizvoda.</div>}
+      </section>
 
-        </section>
-
-        {/* MODAL */}
-        <ShopProductAdd
-          open={isAddOpen}
-          onClose={() => setIsAddOpen(false)}
-          onCreated={loadProducts}
-        />
-      </main>
-    </>
+      {/* MODAL */}
+      <ShopProductAdd
+        open={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onCreated={loadProducts}
+      />
+    </main>
   );
 }
