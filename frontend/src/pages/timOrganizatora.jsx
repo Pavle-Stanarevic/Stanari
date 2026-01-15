@@ -48,6 +48,14 @@ function getDisplayName(o) {
   return `${o?.firstName || ""} ${o?.lastName || ""}`.trim() || "Organizator";
 }
 
+function resolvePhotoUrl(o) {
+  const raw = o?.photoUrl || o?.fotoUrl || o?.avatarUrl || "";
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("/")) return `${API}${raw}`;
+  return raw;
+}
+
 export default function TimOrganizatora() {
   const [organizatori, setOrganizatori] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,12 +117,7 @@ export default function TimOrganizatora() {
                 <li key={o.id ?? o.idKorisnik} className="team-item">
                   <div className="team-avatarWrap">
                     <img
-                      src={
-                        o.photoUrl ||
-                        o.fotoUrl ||
-                        o.avatarUrl ||
-                        PLACEHOLDER[0].photoUrl
-                      }
+                      src={resolvePhotoUrl(o) || PLACEHOLDER[0].photoUrl}
                       alt={getDisplayName(o)}
                       className="team-avatar"
                     />
