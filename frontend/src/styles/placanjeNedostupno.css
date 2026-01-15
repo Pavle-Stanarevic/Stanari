@@ -1,0 +1,62 @@
+.na-page {
+  min-height: 100vh;
+  background: #f6f7fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #111;
+}
+
+.na-card {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 30px 26px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.na-title {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+
+.na-text {
+  margin: 0 0 22px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* ===== BUTTONS ===== */
+.na-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.na-btn {
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.na-btn:hover {
+  opacity: 0.9;
+}
+
+.na-btn.ghost {
+  background: transparent;
+  border: 1px solid #ccc;
+  color: #111;
+}
+
+.na-btn.ghost:hover {
+  background: #f1f3f7;
+}
