@@ -5,12 +5,13 @@
   padding: 40px 16px;
 }
 
-/* ✅ topbar izvan card-a */
 .wd-topbar {
   width: min(900px, 100%);
   margin: 0 auto 12px;
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .wd-back {
@@ -27,7 +28,27 @@
   background: rgba(17, 24, 39, 0.06);
 }
 
-/* ✅ bijeli card wrap (samo sadržaj) */
+.wd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 900;
+  font-size: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.wd-badge.is-finished {
+  background: rgba(185, 28, 28, 0.08);
+  color: #991b1b;
+}
+
+.wd-badge.is-upcoming {
+  background: rgba(17, 24, 39, 0.06);
+  color: #111827;
+}
+
 .wd-wrap {
   width: min(900px, 100%);
   margin: 0 auto;
@@ -46,7 +67,19 @@
 .wd-error {
   padding: 14px 0;
   color: #b91c1c;
-  font-weight: 800;
+  font-weight: 900;
+}
+
+.wd-errorSmall {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-weight: 850;
+}
+
+.wd-muted {
+  margin-top: 8px;
+  color: #6b7280;
+  font-weight: 650;
 }
 
 .wd-header {
@@ -80,6 +113,16 @@
 .wd-actions {
   display: flex;
   gap: 10px;
+  align-items: center;
+}
+
+.wd-finishedNote {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(185, 28, 28, 0.08);
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  color: #991b1b;
+  font-weight: 900;
 }
 
 .wd-primary {
@@ -104,6 +147,26 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.wd-secondary {
+  background: #fff;
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wd-secondary:hover {
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.wd-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .wd-stats {
@@ -139,14 +202,40 @@
 }
 
 .wd-section h2 {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 16px;
   font-weight: 900;
   color: #111827;
 }
 
+.wd-sectionTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.wd-galleryTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wd-chip {
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(17, 24, 39, 0.04);
+  color: #111827;
+}
+
 .wd-desc {
-  margin: 0;
+  margin: 10px 0 0;
   color: #374151;
   line-height: 1.6;
   font-weight: 550;
@@ -165,6 +254,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  margin-top: 10px;
 }
 
 .wd-photo {
@@ -180,6 +270,23 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.wd-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wd-file {
+  max-width: 260px;
+}
+
+.wd-hint {
+  margin-top: 10px;
+  color: #6b7280;
+  font-weight: 650;
 }
 
 @media (max-width: 900px) {
@@ -203,5 +310,9 @@
 
   .wd-gallery {
     grid-template-columns: 1fr;
+  }
+
+  .wd-file {
+    max-width: 100%;
   }
 }

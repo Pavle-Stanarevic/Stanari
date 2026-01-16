@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -25,6 +23,8 @@ import PlacanjeStripeRedirect from "./pages/placanjeStripeRedirect.jsx";
 import PlacanjeUspjeh from "./pages/placanjeUspjeh.jsx";
 import DetaljiRadionice from "./pages/detaljiRadionice";
 import Kosarica from "./pages/kosarica";
+import Izlozbe from "./pages/izlozbe.jsx";
+import DetaljiIzlozbe from "./pages/detaljiIzlozbe.jsx";
 
 export default function App() {
   return (
@@ -48,6 +48,9 @@ export default function App() {
 
         <Route path="/tim" element={<TimOrganizatora />} />
         <Route path="/tim/:organizatorId" element={<ProfilOrganizator />} />
+
+        <Route path="/izlozbe" element={<Izlozbe />} />
+        <Route path="/izlozbe/:id" element={<DetaljiIzlozbe />} />
         
         <Route path="*" element={<LandingPage />} />
 
