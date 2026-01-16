@@ -25,12 +25,17 @@ function buildMonthMatrix(year, month) {
 }
 
 function formatDateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
 }
 
 function Calendar({ value, onChange }) {
   const [cursor, setCursor] = useState(() => (value ? new Date(value) : new Date()));
-  const matrix = useMemo(() => buildMonthMatrix(cursor.getFullYear(), cursor.getMonth()), [cursor]);
+  const matrix = useMemo(
+    () => buildMonthMatrix(cursor.getFullYear(), cursor.getMonth()),
+    [cursor]
+  );
   const monthLabel = cursor.toLocaleString(undefined, { month: "long", year: "numeric" });
   const todayKey = formatDateKey(new Date());
   const selectedKey = value ? formatDateKey(value) : null;
@@ -38,11 +43,17 @@ function Calendar({ value, onChange }) {
   return (
     <div className="calendar">
       <div className="calendar-header">
-        <button type="button" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+        <button
+          type="button"
+          onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+        >
           <ChevronLeft size={18} />
         </button>
         <div className="month-label">{monthLabel}</div>
-        <button type="button" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+        <button
+          type="button"
+          onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+        >
           <ChevronRight size={18} />
         </button>
       </div>
@@ -102,22 +113,37 @@ export default function OrganizacijaRadionica() {
     startTime: "18:30",
     date: new Date(),
     location: "",
-    images: [],
+    images: [], // ✅ array File
   });
 
   const set = (k, v) => setForm((s) => ({ ...s, [k]: v }));
-  const handleFiles = (e) => set("images", Array.from(e.target.files || []));
+
+  // ✅ dodavanje vise slika + ak user dodaje vise puta, nadodaj umjesto overwrite
+  const handleFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setForm((s) => ({ ...s, images: [...(s.images || []), ...files] }));
+    e.target.value = ""; // ✅ omoguci ponovni odabir istih fileova
+  };
+
+  // ✅ opcionalno: makni pojedinu sliku
+  const removeImageAt = (index) => {
+    setForm((s) => ({ ...s, images: (s.images || []).filter((_, i) => i !== index) }));
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
     setSubmitting(true);
+
     try {
       const [h, m] = String(form.startTime || "00:00").split(":").map(Number);
       const when = new Date(form.date || new Date());
       when.setHours(h || 0, m || 0, 0, 0);
+
       const now = new Date();
       if (when < now) throw new Error("Nije moguće organizirati radionicu u prošlosti.");
+
       const organizerId = user?.id ?? user?.idKorisnik ?? null;
       if (!organizerId) throw new Error("Niste prijavljeni kao organizator.");
 
@@ -126,16 +152,24 @@ export default function OrganizacijaRadionica() {
       if (!form.capacity) throw new Error("Unesi broj slobodnih mjesta.");
       if (!form.price) throw new Error("Unesi cijenu.");
 
-      await createWorkshop({
-        title: form.title,
-        description: form.description,
-        durationMinutes: Number(form.duration),
-        dateISO: when.toISOString(),
-        location: form.location,
-        capacity: Number(form.capacity),
-        price: Number(form.price),
-        organizerId,
+      // ✅ multipart payload: radionica + vise slika
+      const fd = new FormData();
+      fd.append("title", form.title);
+      fd.append("description", form.description);
+      fd.append("durationMinutes", String(Number(form.duration)));
+      fd.append("dateISO", when.toISOString());
+      fd.append("location", form.location);
+      fd.append("capacity", String(Number(form.capacity)));
+      fd.append("price", String(Number(form.price)));
+      fd.append("organizerId", String(organizerId));
+
+      // ✅ vise slika (backend najcesce ocekuje "images" ponovljeno)
+      (form.images || []).forEach((file) => {
+        fd.append("images", file);
       });
+
+      // ✅ API treba prihvatiti FormData (multipart)
+      await createWorkshop(fd);
 
       navigate("/pregledRadionica");
     } catch (e) {
@@ -158,11 +192,7 @@ export default function OrganizacijaRadionica() {
           <form onSubmit={onSubmit} className="form-grid">
             <div className="form-left">
               <label>Naziv radionice</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => set("title", e.target.value)}
-              />
+              <input type="text" value={form.title} onChange={(e) => set("title", e.target.value)} />
 
               <label>Lokacija</label>
               <input
@@ -237,12 +267,27 @@ export default function OrganizacijaRadionica() {
 
             <div className="form-right">
               <label>Dodajte fotografije</label>
+
               <label className="file-upload">
                 <input type="file" accept="image/*" multiple onChange={handleFiles} />
                 <Upload />
                 <span>Povuci i ispusti ili klikni za odabir</span>
                 {form.images?.length ? <span>{form.images.length} datoteka odabrano</span> : null}
               </label>
+
+              {/* ✅ lista odabranih slika + remove */}
+              {form.images?.length ? (
+                <div className="selected-files">
+                  {form.images.map((f, i) => (
+                    <div className="selected-file" key={`${f.name}-${i}`}>
+                      <span className="file-name">{f.name}</span>
+                      <button type="button" className="remove-file" onClick={() => removeImageAt(i)}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="form-submit">

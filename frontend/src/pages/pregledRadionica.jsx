@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   listWorkshops,
-  applyToWorkshop,
-  cancelWorkshop,
   getReservedWorkshopIds,
 } from "../api/workshops";
 import useAuth from "../hooks/useAuth";
@@ -36,6 +34,10 @@ function formatDateTime(iso) {
   return `${day}/${month}/${year} - ${time}h`;
 }
 
+function getWorkshopISO(w) {
+  return w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
+}
+
 export default function PregledRadionica() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -44,6 +46,13 @@ export default function PregledRadionica() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [reservedIds, setReservedIds] = useState(() => new Set());
+
+  // FILTER STATE
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   // dohvacanje radionica s API
   useEffect(() => {
@@ -77,8 +86,7 @@ export default function PregledRadionica() {
     getReservedWorkshopIds(userId)
       .then((ids) => {
         if (!alive) return;
-        const set = new Set(Array.isArray(ids) ? ids : []);
-        setReservedIds(set);
+        setReservedIds(new Set(Array.isArray(ids) ? ids : []));
       })
       .catch(() => {});
     return () => {
@@ -89,59 +97,70 @@ export default function PregledRadionica() {
   const upcomingItems = useMemo(() => {
     const now = new Date();
     return (items || []).filter((w) => {
-      const iso = w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
+      const iso = getWorkshopISO(w);
       if (!iso) return false;
       const d = new Date(iso);
       return !Number.isNaN(d.getTime()) && d >= now;
     });
   }, [items]);
 
-  const empty = useMemo(
-    () => !upcomingItems || upcomingItems.length === 0,
-    [upcomingItems]
-  );
-
   const organizer = user?.userType === "organizator";
   const polaznik = user?.userType === "polaznik";
 
-  const onApply = async (w) => {
-    try {
-      if (!user)
-        throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
-      if (!polaznik) throw new Error("Samo polaznici se mogu prijaviti.");
-      const userId = user.id ?? user.idKorisnik;
-      await applyToWorkshop(w.id, userId);
-      setReservedIds((prev) => new Set(prev).add(w.id));
-      setItems((xs) =>
-        xs.map((it) =>
-          it.id === w.id
-            ? { ...it, capacity: Math.max(0, (it.capacity || 0) - 1) }
-            : it
-        )
-      );
-    } catch (e) {
-      alert(e.message || "Nije moguće prijaviti se.");
-    }
+  const filteredUpcomingItems = useMemo(() => {
+    const locQ = (filterLocation || "").trim().toLowerCase();
+
+    const start = filterStartDate ? new Date(`${filterStartDate}T00:00:00`) : null;
+    const end = filterEndDate ? new Date(`${filterEndDate}T23:59:59`) : null;
+
+    const maxP = maxPrice === "" ? null : Number(maxPrice);
+
+    return (upcomingItems || []).filter((w) => {
+      const iso = getWorkshopISO(w);
+      const d = iso ? new Date(iso) : null;
+      if (!d || Number.isNaN(d.getTime())) return false;
+
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+
+      if (locQ) {
+        const loc = (w?.location || "").toLowerCase();
+        if (!loc.includes(locQ)) return false;
+      }
+
+      if (maxP != null && !Number.isNaN(maxP)) {
+        const priceNum =
+          w?.price === "" || w?.price == null ? null : Number(w.price);
+        if (priceNum == null || Number.isNaN(priceNum) || priceNum > maxP) return false;
+      }
+
+      return true;
+    });
+  }, [upcomingItems, filterLocation, filterStartDate, filterEndDate, maxPrice]);
+
+  const empty = useMemo(
+    () => !filteredUpcomingItems || filteredUpcomingItems.length === 0,
+    [filteredUpcomingItems]
+  );
+
+  const clearFilters = () => {
+    setFilterStartDate("");
+    setFilterEndDate("");
+    setFilterLocation("");
+    setMaxPrice("");
   };
 
-  const onCancel = async (w) => {
-    try {
-      if (!user) throw new Error("Prijavite se da biste otkazali prijavu.");
-      const userId = user.id ?? user.idKorisnik;
-      await cancelWorkshop(w.id, userId);
-      setReservedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(w.id);
-        return next;
-      });
-      setItems((xs) =>
-        xs.map((it) =>
-          it.id === w.id ? { ...it, capacity: (it.capacity || 0) + 1 } : it
-        )
-      );
-    } catch (e) {
-      alert(e.message || "Nije moguće otkazati prijavu.");
-    }
+  const activeFiltersCount = useMemo(() => {
+    let c = 0;
+    if (filterStartDate) c++;
+    if (filterEndDate) c++;
+    if ((filterLocation || "").trim()) c++;
+    if (maxPrice !== "") c++;
+    return c;
+  }, [filterStartDate, filterEndDate, filterLocation, maxPrice]);
+
+  const goToDetails = (w) => {
+    navigate(`/radionica/${w.id}`);
   };
 
   return (
@@ -150,28 +169,110 @@ export default function PregledRadionica() {
         <div className="list-header">
           <h1>Pregled naših radionica</h1>
 
-          {organizer && (
+          <div className="header-actions">
             <button
-              className="new-workshop-btn"
-              onClick={() => navigate("/organizacijaRadionica")}
+              type="button"
+              className="filters-toggle-btn"
+              onClick={() => setFiltersOpen((p) => !p)}
             >
-              + Nova radionica
+              Filteri
+              {activeFiltersCount > 0 ? (
+                <span className="filters-pill">{activeFiltersCount}</span>
+              ) : null}
+              <span className={`chev ${filtersOpen ? "open" : ""}`} aria-hidden>
+                ▾
+              </span>
             </button>
-          )}
+
+            {organizer && (
+              <button
+                className="new-workshop-btn"
+                onClick={() => navigate("/organizacijaRadionica")}
+              >
+                + Nova radionica
+              </button>
+            )}
+          </div>
         </div>
+
+        {!loading && !err && (
+          <section className={`filters-dropdown ${filtersOpen ? "open" : ""}`}>
+            <div className="filters-inner">
+              <div className="filters-top">
+                <span className="filters-caption">
+                  Prikaz: <strong>{filteredUpcomingItems.length}</strong> /{" "}
+                  {upcomingItems.length}
+                </span>
+
+                <button
+                  type="button"
+                  className="filters-clear-btn"
+                  onClick={clearFilters}
+                  disabled={activeFiltersCount === 0}
+                >
+                  Očisti
+                </button>
+              </div>
+
+              <div className="filters-grid">
+                <div className="field">
+                  <label>Datum od</label>
+                  <input
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Datum do</label>
+                  <input
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="field field-wide">
+                  <label>Lokacija</label>
+                  <input
+                    type="text"
+                    placeholder="npr. Zagreb, Split..."
+                    value={filterLocation}
+                    onChange={(e) => setFilterLocation(e.target.value)}
+                  />
+                </div>
+
+                <div className="field field-wide">
+                  <label>Cijena do (€)</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    placeholder="npr. 30"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {loading && <div className="info">Učitavanje…</div>}
         {!!err && <div className="error">{err}</div>}
 
         {!loading && empty && !err && (
           <div className="empty">
-            <p>Još nema organiziranih radionica.</p>
+            <p>Nema radionica koje odgovaraju odabranim filterima.</p>
+            <button onClick={clearFilters}>Očisti filtere</button>
           </div>
         )}
 
         {!loading && !empty && (
           <ul className="workshop-list">
-            {upcomingItems.map((w) => (
+            {filteredUpcomingItems.map((w) => (
               <li key={w.id} className="workshop-item">
                 <div className="thumb" aria-hidden>
                   <div className="thumb-circle" />
@@ -199,24 +300,15 @@ export default function PregledRadionica() {
                     <span>Kapacitet: {w.capacity ?? "—"}</span>
                   </div>
 
-                  {polaznik && (
+                  {/* ✅ promjena: klik vodi na detalje */}
+                  {(polaznik || organizer) && (
                     <div className="actions-row">
-                      {!reservedIds.has(w.id) ? (
-                        <button
-                          className="new-workshop-btn"
-                          disabled={(w.capacity || 0) <= 0}
-                          onClick={() => onApply(w)}
-                        >
-                          Prijavi se
-                        </button>
-                      ) : (
-                        <button
-                          className="new-workshop-btn"
-                          onClick={() => onCancel(w)}
-                        >
-                          Otkaži prijavu
-                        </button>
-                      )}
+                      <button
+                        className="new-workshop-btn"
+                        onClick={() => goToDetails(w)}
+                      >
+                        {polaznik ? "Prijavi se" : "Detalji"}
+                      </button>
                     </div>
                   )}
                 </div>
