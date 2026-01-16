@@ -1,5 +1,4 @@
-// ✅ App.jsx (popravljeno: maknuta dupla /placanje/paypal ruta + složen redoslijed)
-// Samo zamijeni cijeli file
+
 
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -43,7 +42,7 @@ export default function App() {
 
         <Route path="/placanje" element={<Placanje />} />
         <Route path="/placanje/kartica" element={<PlacanjeKartica />} />
-        <Route path="/placanje/paypal" element={<PlacanjePayPal />} /> />
+        <Route path="/placanje/paypal" element={<PlacanjePayPal />} /> 
         <Route path="/placanje/stripe-redirect" element={<PlacanjeStripeRedirect />} />
         <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
 
