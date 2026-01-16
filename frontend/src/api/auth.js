@@ -100,7 +100,10 @@ export async function me() {
   try {
     const res = await fetch(`${API}/api/auth/me`, { credentials: "include" });
     if (res.status === 404) return null;
-    if (res.ok) return res.json();
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      return data?.user ?? data; // ✅ ako backend vrati {user, token}, uzmi user
+  }
     return null;
   } catch { return null; }
 }

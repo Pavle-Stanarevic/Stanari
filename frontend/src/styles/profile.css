@@ -1,15 +1,15 @@
 .container-profile {
   display: grid;
-  grid-template-columns: 1.5fr 2fr 0.3fr; 
+  grid-template-columns: 1.5fr 2fr 0.9fr;
   gap: 20px 20px;
-  max-width: 500px;
+  max-width: 700px;
   margin: 40px auto;
   padding: 24px 28px;
   background-color: #f9f9f9;
   border-radius: 16px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
   font-family: "Inter", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   color: #333;
   margin-bottom: 8rem;
 }
@@ -26,37 +26,23 @@
 .container-profile p {
   margin: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid #ddd; /
+  border-bottom: 1px solid #ddd;
 }
 
 .label {
   color: #555;
   display: flex;
-  align-items: flex-end;  
+  align-items: flex-end;
 }
 
-@media (max-width: 600px) {
-  .container-profile {
-    grid-template-columns: 1fr;
-    padding: 20px;
-    font-size: 0.95rem;
-  }
-
-  .container-profile::before {
-    font-size: 3rem;
-    margin-bottom: 16px;
-  }
-}
-
-.naslov{
+.naslov {
   text-align: center;
   margin-top: 100px;
   margin-bottom: 30px;
 }
 
-.edit-icon{
+.edit-icon {
   margin-top: 25px;
-  size: 10;
 }
 
 .edit-input {
@@ -64,7 +50,7 @@
   padding: 8px 8px;
   border: 1px solid #ccc;
   border-radius: 8px;
-  font-size: large;
+  font-size: 1rem;
 }
 
 .actions {
@@ -75,11 +61,173 @@
 
 p.value {
   display: flex;
-  align-items: flex-end;   
+  align-items: flex-end;
 }
 
+.icon,
+.edit-icon {
+  cursor: pointer;
+}
 
-.icon, .edit-icon { cursor: pointer; }
-.icon.save { color: #2ecc71; }
-.icon.cancel { color: #e74c3c; }
+.icon.save {
+  color: #2ecc71;
+}
 
+.icon.cancel {
+  color: #e74c3c;
+}
+
+.error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.success {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.muted {
+  color: #64748b;
+  font-size: 0.95rem;
+  align-self: end;
+  padding-bottom: 10px;
+}
+
+.divider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: #e5e7eb;
+  margin: 10px 0;
+}
+
+/* ===== Profilna slika ===== */
+.profile-avatar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 8px 0 2px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.avatar-img img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-title {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.btn-primary {
+  width: fit-content;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #111827;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+/* ===== Promjena lozinke ===== */
+.password-box {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pw-label {
+  font-size: 0.95rem;
+  color: #374151;
+  margin-top: 6px;
+}
+
+/* ===== Radionice ===== */
+.workshops-box {
+  grid-column: 1 / -1;
+}
+
+.workshops-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+}
+
+.workshop-item {
+  padding: 12px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+.workshop-title {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.workshop-meta {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 600px) {
+  .container-profile {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    font-size: 0.95rem;
+    max-width: 92%;
+  }
+
+  .container-profile::before {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
+
+  .profile-avatar {
+    grid-template-columns: 1fr;
+  }
+
+  .avatar-img {
+    display: flex;
+    justify-content: center;
+  }
+
+  .avatar-actions {
+    align-items: center;
+  }
+}
