@@ -20,10 +20,26 @@ export default function PlacanjeUspjeh() {
   const location = useLocation();
 
   const subscription = location.state?.subscription;
+
+  // kartica (stari flow) ili stripe/paypal (novi flow)
   const last4 = location.state?.last4;
+
+  const method = location.state?.method; // "card" | "paypal"
+  const provider = location.state?.provider; // "stripe" (za kartice preko Stripe)
+  const transactionId = location.state?.transactionId; // paypal capture id / orderID
+
   const startAt = location.state?.startAt;
   const endAt = location.state?.endAt;
   const demo = location.state?.demo;
+
+  const methodLabel =
+    method === "paypal"
+      ? "PayPal"
+      : method === "card"
+      ? provider === "stripe"
+        ? "Kartica (Stripe)"
+        : "Kartica"
+      : "";
 
   return (
     <div className="ps-page">
@@ -33,6 +49,12 @@ export default function PlacanjeUspjeh() {
 
         <p className="ps-text">
           Pretplata je aktivirana{demo ? " (demo)" : ""}.
+          {methodLabel ? (
+            <>
+              <br />
+              Način plaćanja: <strong>{methodLabel}</strong>
+            </>
+          ) : null}
           {subscription ? (
             <>
               <br />
@@ -44,6 +66,12 @@ export default function PlacanjeUspjeh() {
             <>
               <br />
               Kartica: **** {last4}
+            </>
+          ) : null}
+          {transactionId ? (
+            <>
+              <br />
+              Transakcija: <strong>{transactionId}</strong>
             </>
           ) : null}
           {startAt ? (
