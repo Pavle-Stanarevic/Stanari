@@ -15,9 +15,11 @@ export default function Plan() {
   const location = useLocation();
   const { user } = useAuth();
 
-  const isOrganizer = user?.userType === "organizator";
+  const isOrganizer =
+    user?.userType === "organizator" ||
+    user?.role === "ORGANIZER" ||
+    user?.type === "organizator";
 
-  // ✅ samo jedan plan (uzmi prvi iz plans.js)
   const plan = useMemo(() => plans?.[0], []);
 
   const getPrice = (p) => (billing === "monthly" ? p.priceMonthly : p.priceYearly);
@@ -79,17 +81,21 @@ export default function Plan() {
       setLoading(true);
       setError("");
 
-      const userId = user?.id ?? user?.idKorisnik;
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
       if (!userId) throw new Error("Ne mogu pronaći ID korisnika.");
 
       const data = await createSubscription({
         userId,
-        planId: plan.id, // ✅ uvijek isti plan
+        planId: plan.id,
         billing,
       });
 
+      // data može biti { subscriptionId, ... } ili { id, ... } ovisno o backendu
+      const subscriptionId = data?.subscriptionId ?? data?.id;
+      if (!subscriptionId) throw new Error("Backend nije vratio subscriptionId.");
+
       navigate("/placanje", {
-        state: { subscriptionId: data.subscriptionId, subscription: data },
+        state: { subscriptionId, subscription: data },
       });
     } catch (e) {
       setError(e?.message || "Greška kod spremanja pretplate.");
@@ -124,12 +130,11 @@ export default function Plan() {
         <div className={`billing-indicator ${billing}`} />
       </div>
 
-      {/* ✅ jedna kartica */}
       <div className="plans single-plan">
         <div className="planItem selected">
           <PlanCard
             title={plan.title}
-            price={`${getPrice(plan)} ${priceSuffix}`}
+            price={`${getPrice(plan)} € / ${priceSuffix}`}
             features={plan.features}
             selected={true}
           />
