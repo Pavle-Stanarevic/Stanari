@@ -204,13 +204,16 @@ export default function Shop() {
               <div className="product-body">
                 <div className="product-top">
                   <h3 className="product-title">
-                    {p.nazivProizvod || p.title || p.kategorijaProizvod || "Proizvod"}
+                    <p className="product-desc">{p.opisProizvod}</p>
                   </h3>
                   <span className="product-price">
                     € {Number(p.cijenaProizvod).toFixed(2)}
                   </span>
                 </div>
-                <p className="product-desc">{p.opisProizvod}</p>
+                <div className="product-category">
+                  {p.nazivProizvod || p.title || p.kategorijaProizvod || "Proizvod"}
+                </div>
+                
               </div>
             </Link>
           ))}

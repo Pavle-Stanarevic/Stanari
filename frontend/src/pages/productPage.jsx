@@ -64,14 +64,15 @@ export default function ProductPage() {
             </div>
 
             <div className="product-info">
-              <h1 className="product-title">{displayName}</h1>
+              <h1 className="product-title">{product.opisProizvod}</h1>
+              <p className="product-desc-full">
+                {displayName}
+              </p>
               <div className="product-price">
                 € {Number(product.cijenaProizvod).toFixed(2)}
               </div>
 
-              <p className="product-desc-full">
-                {product.opisProizvod}
-              </p>
+              
 
               <button className="btn btn-primary" disabled>
                 Add to cart

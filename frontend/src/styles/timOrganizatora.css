@@ -64,6 +64,27 @@
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+/* klikabilna kartica */
+.team-itemClickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.team-itemClickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
+.team-itemClickable:focus {
+  outline: none;
+}
+
+.team-itemClickable:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+}
+
 /* ===== AVATAR ===== */
 .team-avatarWrap {
   width: 42px;
