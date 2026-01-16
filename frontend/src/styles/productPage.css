@@ -83,7 +83,7 @@
 .product-info {
   padding: 22px;
   display: grid;
-  gap: 12px;
+
   align-content: start;
 }
 
@@ -94,10 +94,16 @@
   letter-spacing: -0.02em;
 }
 
+.product-desc-full{
+  font-size: 20px;
+  margin: 0;
+}
+
 .product-price {
   font-size: 18px;
   font-weight: 900;
   color: var(--text);
+  margin: 20px 0px 20px 0px;
 }
 
 .product-meta {

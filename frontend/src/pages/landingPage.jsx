@@ -60,7 +60,7 @@ export default function LandingPage() {
           </SectionCard>
         </div>
 
-        <SectionCard title="Naš tim" cta="Pogledaj organizatore" href="#">
+        <SectionCard title="Naš tim" cta="Pogledaj organizatore" href="/tim">
           Upoznaj ekipu koja vjeruje da je glina najbolja terapija (i da nikad
           nije kasno zaprljati ruke!). Naši instruktori su majstori keramike —
           oni su vješti učitelji, osmijehom i ljubavlju za glinu koja se osjeti
