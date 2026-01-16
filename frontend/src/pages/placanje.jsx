@@ -1,10 +1,12 @@
+// ✅ src/pages/placanje.jsx (bez Apple Pay i bez “nedostupno”)
+// Zamijeni cijeli file
+
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanje.css";
 
 import cardIcon from "../assets/images/credit-card.svg";
 import paypalIcon from "../assets/images/pay-pal.png";
-import applePayIcon from "../assets/images/apple-pay.png";
 
 const DEV_FALLBACK = true;
 
@@ -54,7 +56,7 @@ export default function Placanje() {
         if (DEV_FALLBACK) {
           setSubscription({ ...DEV_SUBSCRIPTION, id: subscriptionId });
         } else {
-          setError(e.message || "Greška pri dohvaćanju.");
+          setError(e?.message || "Greška pri dohvaćanju.");
         }
       } finally {
         setLoading(false);
@@ -70,8 +72,16 @@ export default function Placanje() {
     const routeMap = {
       card: "/placanje/kartica",
       paypal: "/placanje/paypal",
-      applepay: "/placanje/applepay",
     };
+
+    sessionStorage.setItem(
+      "clayplay_pending_payment",
+      JSON.stringify({
+        subscriptionId: subscription?.id || subscriptionId,
+        subscription,
+        paymentMethod,
+      })
+    );
 
     navigate(routeMap[paymentMethod], {
       state: {
@@ -141,17 +151,6 @@ export default function Placanje() {
               <span className="payment-label">PayPal</span>
               <span className="payment-right">
                 <img className="payment-icon" src={paypalIcon} alt="PayPal" />
-              </span>
-            </button>
-
-            <button
-              className={`payment-row ${paymentMethod === "applepay" ? "selected" : ""}`}
-              type="button"
-              onClick={() => setPaymentMethod("applepay")}
-            >
-              <span className="payment-label">Apple Pay</span>
-              <span className="payment-right">
-                <img className="payment-icon apple" src={applePayIcon} alt="Apple Pay" />
               </span>
             </button>
           </div>
