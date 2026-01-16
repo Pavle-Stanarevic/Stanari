@@ -19,9 +19,8 @@ export default function Header() {
     window.location.href = "/";
   };
 
-const isOrganizer =
-  isAuthenticated && user?.userType === "organizator";
-
+  const isOrganizer =
+    isAuthenticated && user?.userType === "organizator";
 
   const navItems = isOrganizer
     ? [...NAV_ITEMS, { label: "Pretplata", to: "/plan" }]
@@ -61,20 +60,28 @@ const isOrganizer =
           })}
         </nav>
 
-        {isAuthenticated && user ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <Link to="/profile" className="sign-btn">
-              {user.firstName}
-            </Link>
-            <button className="sign-btn" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        ) : (
-          <Link to="/login" className="sign-btn">
-            Prijavi se
+        {/* DESNI DIO HEADERA */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* 🛒 KOŠARICA */}
+          <Link to="/kosarica" className="sign-btn">
+            Košarica
           </Link>
-        )}
+
+          {isAuthenticated && user ? (
+            <>
+              <Link to="/profile" className="sign-btn">
+                {user.firstName}
+              </Link>
+              <button className="sign-btn" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="sign-btn">
+              Prijavi se
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
