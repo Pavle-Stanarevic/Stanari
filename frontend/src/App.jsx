@@ -24,12 +24,6 @@ import PlacanjePayPal from "./pages/placanjePayPal.jsx";
 import PlacanjeStripeRedirect from "./pages/placanjeStripeRedirect.jsx";
 import PlacanjeUspjeh from "./pages/placanjeUspjeh.jsx";
 
-import Shop from "./pages/shop.jsx";
-import ProductPage from "./pages/productPage.jsx";
-import TimOrganizatora from "./pages/timOrganizatora.jsx";
-import ProfilOrganizator from "./pages/profilOrganizator.jsx";
-import PlacanjeKartica from "./pages/placanjeKartica.jsx";
-
 export default function App() {
   return (
     <Router>
