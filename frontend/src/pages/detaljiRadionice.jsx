@@ -1,10 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { listWorkshops } from "../api/workshops";
 import { addWorkshopToCart } from "../api/cart";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+/* ---------- helpers ---------- */
 function formatPrice(price) {
   if (price === "" || price == null) return "—";
   const n = Number(price);
@@ -33,15 +36,102 @@ function getWorkshopISO(w) {
   return w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
 }
 
-function getWorkshopImages(w) {
+// ✅ početne slike iz "workshop" objekta (pri kreiranju radionice)
+function getInitialImages(workshop) {
   const raw =
-    w?.images ?? w?.imageUrls ?? w?.photos ?? w?.slike ?? w?.gallery ?? [];
+    workshop?.images ??
+    workshop?.imageUrls ??
+    workshop?.photos ??
+    workshop?.slike ??
+    workshop?.gallery ??
+    [];
+
   if (!Array.isArray(raw)) return [];
+
   return raw
-    .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null))
+    .map((x) =>
+      typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null
+    )
     .filter(Boolean);
 }
 
+function calcEndDate(workshop) {
+  const startIso = getWorkshopISO(workshop);
+  if (!startIso) return null;
+
+  const start = new Date(startIso);
+  const dur = Number(workshop?.durationMinutes ?? 0);
+
+  if (!Number.isFinite(start.getTime())) return null;
+  if (!dur) return start;
+
+  return new Date(start.getTime() + dur * 60 * 1000);
+}
+
+// za dedupe (ako backend slučajno vrati i iste linkove)
+function uniqByString(arr) {
+  const seen = new Set();
+  const out = [];
+  for (const x of arr) {
+    const k = String(x);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(x);
+  }
+  return out;
+}
+
+/* ---------- api (extra photos after workshop) ---------- */
+/**
+ * Očekivani backend (preporuka):
+ *  - GET  /api/workshops/:id/photos   -> dodatne slike (naknadno dodane) kao [ "url", ... ] ili [ {url}, ... ]
+ *  - POST /api/workshops/:id/photos   -> multipart/form-data field "images" (dodaje nove)
+ */
+async function fetchExtraPhotos(workshopId) {
+  const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json().catch(() => []);
+  const arr = Array.isArray(data) ? data : [];
+  return arr
+    .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? null))
+    .filter(Boolean);
+}
+
+async function uploadExtraPhotos(workshopId, files) {
+  const fd = new FormData();
+  for (const f of files) fd.append("images", f);
+
+  const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
+    method: "POST",
+    credentials: "include",
+    body: fd,
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    const data = await res.json().catch(() => null);
+    if (Array.isArray(data)) {
+      return data
+        .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? null))
+        .filter(Boolean);
+    }
+  }
+  return null;
+}
+
+/* ---------- page ---------- */
 export default function DetaljiRadionice() {
   const { id } = useParams();
   const workshopId = Number(id);
@@ -51,7 +141,18 @@ export default function DetaljiRadionice() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [workshop, setWorkshop] = useState(null);
+
   const [adding, setAdding] = useState(false);
+
+  // ✅ dodatne (after) slike
+  const [extraPhotos, setExtraPhotos] = useState([]);
+  const [extraLoading, setExtraLoading] = useState(false);
+  const [extraErr, setExtraErr] = useState("");
+
+  // upload
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -77,7 +178,61 @@ export default function DetaljiRadionice() {
     };
   }, [workshopId]);
 
-  const images = useMemo(() => (workshop ? getWorkshopImages(workshop) : []), [workshop]);
+  const endAt = useMemo(() => (workshop ? calcEndDate(workshop) : null), [workshop]);
+  const isFinished = useMemo(() => {
+    if (!endAt) return false;
+    return Date.now() > endAt.getTime();
+  }, [endAt]);
+
+  const isOwnerOrganizer = useMemo(() => {
+    const uid = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+    const orgId = workshop?.organizerId ?? workshop?.organizatorId ?? null;
+    return (
+      user?.userType === "organizator" &&
+      uid != null &&
+      orgId != null &&
+      Number(uid) === Number(orgId)
+    );
+  }, [user, workshop]);
+
+  // ✅ početne slike: uvijek dostupne
+  const initialPhotos = useMemo(() => {
+    if (!workshop) return [];
+    return getInitialImages(workshop);
+  }, [workshop]);
+
+  // ✅ nakon završetka dohvaćamo dodatne slike (only when finished)
+  useEffect(() => {
+    let alive = true;
+    setExtraErr("");
+
+    if (!workshop || !isFinished) {
+      setExtraPhotos([]);
+      return;
+    }
+
+    setExtraLoading(true);
+    fetchExtraPhotos(workshopId)
+      .then((arr) => {
+        if (!alive) return;
+        setExtraPhotos(Array.isArray(arr) ? arr : []);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setExtraErr(e.message || "Greška pri dohvaćanju dodatnih slika.");
+      })
+      .finally(() => alive && setExtraLoading(false));
+
+    return () => {
+      alive = false;
+    };
+  }, [workshop, isFinished, workshopId]);
+
+  // ✅ ukupna galerija: prije završetka = initial, nakon završetka = initial + extra
+  const allPhotos = useMemo(() => {
+    if (!isFinished) return initialPhotos;
+    return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
+  }, [initialPhotos, extraPhotos, isFinished]);
 
   const onAddToCart = async () => {
     try {
@@ -85,6 +240,7 @@ export default function DetaljiRadionice() {
       if (user?.userType !== "polaznik")
         throw new Error("Samo polaznici mogu dodati radionicu u košaricu.");
       if (!workshop) return;
+      if (isFinished) throw new Error("Radionica je završila — više se nije moguće prijaviti.");
 
       setAdding(true);
       await addWorkshopToCart(workshop.id, 1);
@@ -96,13 +252,52 @@ export default function DetaljiRadionice() {
     }
   };
 
+  const onUploadExtra = async () => {
+    try {
+      setUploadErr("");
+      if (!isFinished) throw new Error("Dodatne slike možeš dodavati tek nakon završetka radionice.");
+      if (!isOwnerOrganizer) throw new Error("Samo organizator radionice može dodavati slike.");
+
+      const input = fileRef.current;
+      const files = input?.files ? Array.from(input.files) : [];
+      if (!files.length) throw new Error("Odaberite barem jednu sliku.");
+
+      const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+      const bad = files.find((f) => !allowed.has(f.type));
+      if (bad) throw new Error("Podržani formati: JPG, PNG, WEBP, GIF.");
+
+      setUploading(true);
+      const maybeNew = await uploadExtraPhotos(workshopId, files);
+
+      if (Array.isArray(maybeNew)) {
+        // backend vrati listu dodatnih slika (idealno)
+        setExtraPhotos(maybeNew);
+      } else {
+        // ako ne vrati listu, re-fetch
+        const fresh = await fetchExtraPhotos(workshopId);
+        setExtraPhotos(Array.isArray(fresh) ? fresh : []);
+      }
+
+      if (input) input.value = "";
+    } catch (e) {
+      setUploadErr(e.message || "Upload nije uspio.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="wd-page">
-      {/* ✅ Natrag izvan bijelog card-a (kao u shopu) */}
       <div className="wd-topbar">
         <button className="wd-back" onClick={() => navigate(-1)}>
           ← Natrag
         </button>
+
+        {!loading && workshop && (
+          <span className={`wd-badge ${isFinished ? "is-finished" : "is-upcoming"}`}>
+            {isFinished ? "Završena" : "Nadolazeća"}
+          </span>
+        )}
       </div>
 
       <main className="wd-wrap">
@@ -116,19 +311,29 @@ export default function DetaljiRadionice() {
                 <h1 className="wd-title">{workshop.title || "Bez naziva"}</h1>
 
                 <div className="wd-actions">
-                  <button
-                    className="wd-primary"
-                    disabled={adding || (workshop.capacity || 0) <= 0}
-                    onClick={onAddToCart}
-                    title={(workshop.capacity || 0) <= 0 ? "Radionica je popunjena" : ""}
-                  >
-                    {adding ? "Dodajem..." : "Prijavi se (u košaricu)"}
-                  </button>
+                  {!isFinished ? (
+                    <button
+                      className="wd-primary"
+                      disabled={adding || (workshop.capacity || 0) <= 0}
+                      onClick={onAddToCart}
+                      title={(workshop.capacity || 0) <= 0 ? "Radionica je popunjena" : ""}
+                    >
+                      {adding ? "Dodajem..." : "Prijavi se (u košaricu)"}
+                    </button>
+                  ) : (
+                    <div className="wd-finishedNote">Radionica je završila.</div>
+                  )}
                 </div>
               </div>
 
               <p className="wd-sub">
                 Datum: <strong>{formatDateTime(getWorkshopISO(workshop))}</strong>
+                {endAt && (
+                  <>
+                    {" "}
+                    · Kraj: <strong>{formatDateTime(endAt.toISOString())}</strong>
+                  </>
+                )}
               </p>
 
               <div className="wd-stats">
@@ -158,18 +363,52 @@ export default function DetaljiRadionice() {
               </p>
             </section>
 
+            {/* ✅ GALERIJA: prije završetka initial, nakon završetka initial+extra + upload */}
             <section className="wd-section">
-              <h2>Slike radionice</h2>
-              {images.length === 0 ? (
-                <div className="wd-emptyPhotos">Još nema dodanih slika za ovu radionicu.</div>
+              <div className="wd-sectionTop">
+                <div className="wd-galleryTitle">
+                  <h2>Galerija</h2>
+                  {!isFinished ? (
+                    <div className="wd-chip">slike prošlih radionica</div>
+                  ) : (
+                    <div className="wd-chip">prošle + dodatne slike</div>
+                  )}
+                </div>
+
+                {isFinished && isOwnerOrganizer && (
+                  <div className="wd-upload">
+                    <input ref={fileRef} className="wd-file" type="file" accept="image/*" multiple />
+                    <button className="wd-secondary" onClick={onUploadExtra} disabled={uploading}>
+                      {uploading ? "Dodajem..." : "Dodaj dodatne slike"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {isFinished && (
+                <>
+                  {!!uploadErr && <div className="wd-errorSmall">{uploadErr}</div>}
+                  {!!extraErr && <div className="wd-muted">{extraErr}</div>}
+                  {extraLoading && <div className="wd-muted">Učitavam dodatne slike…</div>}
+                </>
+              )}
+
+              {allPhotos.length === 0 ? (
+                <div className="wd-emptyPhotos">
+                  Još nema slika za ovu radionicu.
+                </div>
               ) : (
                 <div className="wd-gallery">
-                  {images.map((src, i) => (
+                  {allPhotos.map((src, i) => (
                     <div className="wd-photo" key={`${src}-${i}`}>
-                      <img src={src} alt={`Radionica slika ${i + 1}`} />
+                      <img src={src} alt={`Radionica slika ${i + 1}`} loading="lazy" />
                     </div>
                   ))}
                 </div>
+              )}
+
+              {isFinished && !isOwnerOrganizer && (
+                <div className="wd-hint">Samo organizator ove radionice može dodavati dodatne slike.</div>
               )}
             </section>
           </>
