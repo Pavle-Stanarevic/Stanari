@@ -30,8 +30,6 @@
   color: #111827;
 }
 
-/* (stari .list-wrap h1 zamijenjen je .list-header h1 da bude kao tim) */
-
 .empty {
   display: flex;
   align-items: center;
@@ -39,6 +37,7 @@
   padding: 2rem 1rem;
   color: #6b7280;
 }
+
 .empty button {
   background: #000;
   color: #fff;
@@ -74,6 +73,7 @@
   display: grid;
   place-items: center;
 }
+
 .thumb-circle {
   width: 42px;
   height: 42px;
@@ -109,13 +109,43 @@
   margin-top: 0.25rem;
 }
 
+/* ✅ SUBMETA: divider između Datuma / Lokacije / Kapaciteta */
 .submeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  align-items: center;
+  gap: 0;                 /* gap rješavamo s padding/margin zbog dividera */
   color: #6b7280;
   font-size: 0.9rem;
   margin-top: 0.25rem;
+}
+
+.submeta > span {
+  position: relative;
+  padding-right: 14px;
+  margin-right: 14px;
+}
+
+.submeta > span:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 14px;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 520px) {
+  .submeta {
+    row-gap: 8px;
+  }
+
+  .submeta > span {
+    padding-right: 12px;
+    margin-right: 12px;
+  }
 }
 
 .desc {

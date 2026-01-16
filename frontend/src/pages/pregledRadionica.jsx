@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listWorkshops, applyToWorkshop, cancelWorkshop, getReservedWorkshopIds } from "../api/workshops";
+import {
+  listWorkshops,
+  applyToWorkshop,
+  cancelWorkshop,
+  getReservedWorkshopIds,
+} from "../api/workshops";
 import useAuth from "../hooks/useAuth";
 import "../styles/pregledRadionica.css";
 
@@ -64,7 +69,9 @@ export default function PregledRadionica() {
     let alive = true;
     if (!user || user?.userType !== "polaznik") {
       setReservedIds(new Set());
-      return () => { alive = false; };
+      return () => {
+        alive = false;
+      };
     }
     const userId = user.id ?? user.idKorisnik;
     getReservedWorkshopIds(userId)
@@ -73,9 +80,10 @@ export default function PregledRadionica() {
         const set = new Set(Array.isArray(ids) ? ids : []);
         setReservedIds(set);
       })
-      .catch(() => {
-      });
-    return () => { alive = false; };
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, [user]);
 
   const upcomingItems = useMemo(() => {
@@ -88,19 +96,29 @@ export default function PregledRadionica() {
     });
   }, [items]);
 
-  const empty = useMemo(() => !upcomingItems || upcomingItems.length === 0, [upcomingItems]);
+  const empty = useMemo(
+    () => !upcomingItems || upcomingItems.length === 0,
+    [upcomingItems]
+  );
 
   const organizer = user?.userType === "organizator";
   const polaznik = user?.userType === "polaznik";
 
   const onApply = async (w) => {
     try {
-      if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
+      if (!user)
+        throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
       if (!polaznik) throw new Error("Samo polaznici se mogu prijaviti.");
       const userId = user.id ?? user.idKorisnik;
       await applyToWorkshop(w.id, userId);
       setReservedIds((prev) => new Set(prev).add(w.id));
-      setItems((xs) => xs.map((it) => (it.id === w.id ? { ...it, capacity: Math.max(0, (it.capacity || 0) - 1) } : it)));
+      setItems((xs) =>
+        xs.map((it) =>
+          it.id === w.id
+            ? { ...it, capacity: Math.max(0, (it.capacity || 0) - 1) }
+            : it
+        )
+      );
     } catch (e) {
       alert(e.message || "Nije moguće prijaviti se.");
     }
@@ -116,7 +134,11 @@ export default function PregledRadionica() {
         next.delete(w.id);
         return next;
       });
-      setItems((xs) => xs.map((it) => (it.id === w.id ? { ...it, capacity: (it.capacity || 0) + 1 } : it)));
+      setItems((xs) =>
+        xs.map((it) =>
+          it.id === w.id ? { ...it, capacity: (it.capacity || 0) + 1 } : it
+        )
+      );
     } catch (e) {
       alert(e.message || "Nije moguće otkazati prijavu.");
     }
@@ -172,14 +194,10 @@ export default function PregledRadionica() {
                   </div>
 
                   <div className="submeta">
-                    <span>Kapacitet: {w.capacity ?? "—"}</span>
                     <span>Datum: {formatDateTime(w.startDateTime)}</span>
                     {w.location ? <span>Lokacija: {w.location}</span> : null}
+                    <span>Kapacitet: {w.capacity ?? "—"}</span>
                   </div>
-
-                  {w.description ? (
-                    <p className="desc">{w.description}</p>
-                  ) : null}
 
                   {polaznik && (
                     <div className="actions-row">
@@ -192,7 +210,10 @@ export default function PregledRadionica() {
                           Prijavi se
                         </button>
                       ) : (
-                        <button className="new-workshop-btn" onClick={() => onCancel(w)}>
+                        <button
+                          className="new-workshop-btn"
+                          onClick={() => onCancel(w)}
+                        >
                           Otkaži prijavu
                         </button>
                       )}

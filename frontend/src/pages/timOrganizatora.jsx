@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/timOrganizatora.css";
 
 const API = import.meta.env.VITE_API_URL;
@@ -57,6 +58,8 @@ function resolvePhotoUrl(o) {
 }
 
 export default function TimOrganizatora() {
+  const navigate = useNavigate();
+
   const [organizatori, setOrganizatori] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -114,7 +117,19 @@ export default function TimOrganizatora() {
           {!loading && organizatori.length > 0 && (
             <ul className="team-list">
               {organizatori.map((o) => (
-                <li key={o.id ?? o.idKorisnik} className="team-item">
+                <li
+                  key={o.id ?? o.idKorisnik}
+                  className="team-item team-itemClickable"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/tim/${o.id ?? o.idKorisnik}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(`/tim/${o.id ?? o.idKorisnik}`);
+                    }
+                  }}
+                >
                   <div className="team-avatarWrap">
                     <img
                       src={resolvePhotoUrl(o) || PLACEHOLDER[0].photoUrl}
