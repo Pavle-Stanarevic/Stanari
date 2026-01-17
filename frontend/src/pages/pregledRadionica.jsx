@@ -78,7 +78,7 @@ export default function PregledRadionica() {
 
   useEffect(() => {
     let alive = true;
-    if (!user || user?.userType !== "polaznik") {
+    if (!user) {
       setReservedIds(new Set());
       return () => {
         alive = false;
@@ -322,6 +322,10 @@ export default function PregledRadionica() {
           <ul className="workshop-list">
             {filteredUpcomingItems.map((w) => {
               const wid = w?.id ?? w?.idRadionica ?? w?.workshopId;
+              const ownerId = w?.organizerId ?? w?.organizatorId ?? w?.idKorisnik ?? null;
+              const currentUserId = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+              const isOwner =
+                currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
               return (
               <li key={wid ?? w.id} className="workshop-item">
                 <div className="thumb" aria-hidden>
@@ -331,7 +335,9 @@ export default function PregledRadionica() {
                 <div className="content">
                   <h3 className="title">
                     {w.title || "Bez naziva"}
-                    {reservedIds.has(wid) ? (
+                    {isOwner ? (
+                      <span className="owner-badge">[Vaša radionica]</span>
+                    ) : reservedIds.has(wid) ? (
                       <span className="reserved-badge">[Prijavljen]</span>
                     ) : isInCart(wid) ? (
                       <span className="cart-badge">[U košarici]</span>

@@ -305,8 +305,11 @@ export default function DetaljiRadionice() {
   const onAddToCart = async () => {
     try {
       if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
-      if (user?.userType !== "polaznik")
-        throw new Error("Samo polaznici mogu dodati radionicu u košaricu.");
+      const isOrg = user?.userType === "organizator";
+      const isPolaznik = user?.userType === "polaznik";
+      if (!isPolaznik && !isOrg)
+        throw new Error("Samo polaznici ili organizatori mogu dodati radionicu u košaricu.");
+      if (isOrg && isOwnerOrganizer) return;
       if (!workshop) return;
       if (isFinished) throw new Error("Radionica je završila — više se nije moguće prijaviti.");
       if (isReserved) throw new Error("Već ste prijavljeni na radionicu.");
@@ -395,6 +398,7 @@ export default function DetaljiRadionice() {
                         isFinished ||
                         isReserved ||
                         isInCart ||
+                        isOwnerOrganizer ||
                         (workshop.capacity || 0) <= 0
                       }
                       onClick={onAddToCart}
@@ -402,6 +406,8 @@ export default function DetaljiRadionice() {
                     >
                       {adding
                         ? "Dodajem..."
+                        : isOwnerOrganizer
+                        ? "Vaša radionica"
                         : isReserved
                         ? "Prijavljen"
                         : isInCart
