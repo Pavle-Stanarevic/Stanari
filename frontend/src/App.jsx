@@ -60,7 +60,6 @@ export default function App() {
         <Route path="/placanje/stripe-redirect" element={<PlacanjeStripeRedirect />} />
         <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
 
-        <Route path="*" element={<LandingPage />} />
       </Routes>
 
       <Footer />
