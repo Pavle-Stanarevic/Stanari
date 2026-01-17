@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { listWorkshops } from "../api/workshops";
+import { listWorkshops, getReservedWorkshopIds } from "../api/workshops";
 import { addWorkshopToCart } from "../api/cart";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
@@ -25,6 +25,7 @@ function formatDuration(mins) {
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
@@ -36,7 +37,6 @@ function getWorkshopISO(w) {
   return w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
 }
 
-// ✅ početne slike iz "workshop" objekta (pri kreiranju radionice)
 function getInitialImages(workshop) {
   const raw =
     workshop?.images ??
@@ -45,9 +45,7 @@ function getInitialImages(workshop) {
     workshop?.slike ??
     workshop?.gallery ??
     [];
-
   if (!Array.isArray(raw)) return [];
-
   return raw
     .map((x) =>
       typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null
@@ -68,7 +66,6 @@ function calcEndDate(workshop) {
   return new Date(start.getTime() + dur * 60 * 1000);
 }
 
-// za dedupe (ako backend slučajno vrati i iste linkove)
 function uniqByString(arr) {
   const seen = new Set();
   const out = [];
@@ -81,7 +78,7 @@ function uniqByString(arr) {
   return out;
 }
 
-/* --- organizer helpers (NEW) --- */
+/* --- organizer helpers --- */
 function getOrganizerIdFromWorkshop(w) {
   const v =
     w?.organizerId ??
@@ -98,7 +95,6 @@ function getOrganizerIdFromWorkshop(w) {
 }
 
 function getOrganizerDisplayNameFromWorkshop(w) {
-  // pokušaj iz workshop-a izvući ime ako backend to šalje
   const first = w?.organizerFirstName ?? w?.organizatorIme ?? w?.firstName ?? "";
   const last = w?.organizerLastName ?? w?.organizatorPrezime ?? w?.lastName ?? "";
   const full = `${first} ${last}`.trim();
@@ -114,17 +110,15 @@ function getOrganizerDisplayNameFromWorkshop(w) {
   return full || studyName || "Organizator";
 }
 
-/* ---------- api (extra photos after workshop) ---------- */
+/* ---------- extra photos API ---------- */
 async function fetchExtraPhotos(workshopId) {
   const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
     credentials: "include",
   });
-
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(txt || `HTTP ${res.status}`);
   }
-
   const data = await res.json().catch(() => []);
   const arr = Array.isArray(data) ? data : [];
   return arr
@@ -159,6 +153,92 @@ async function uploadExtraPhotos(workshopId, files) {
   return null;
 }
 
+/* ---------- reviews API (final + fallback) ---------- */
+// Placeholder dok nema backenda
+const FALLBACK_REVIEWS = [
+  {
+    id: "r1",
+    author: "Ana",
+    rating: 5,
+    comment: "Odlična radionica, super atmosfera i jasne upute!",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+    _fallback: true,
+  },
+  {
+    id: "r2",
+    author: "Marko",
+    rating: 4,
+    comment: "Jako zabavno, možda bih dodao malo više vremena za glazuru.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
+    _fallback: true,
+  },
+];
+
+// Normalizacija da UI uvijek dobije isti shape
+function normalizeReviews(data) {
+  const arr = Array.isArray(data) ? data : [];
+  return arr.map((r) => {
+    const fullName = `${r?.user?.firstName || ""} ${r?.user?.lastName || ""}`.trim();
+
+    const author =
+      (r?.author ??
+        r?.authorName ??
+        r?.userName ??
+        (fullName || "")) || "Korisnik";
+
+    const ratingNum = Number(r?.rating ?? r?.ocjena ?? 0);
+    const rating = Number.isFinite(ratingNum) ? ratingNum : 0;
+
+    return {
+      id: r?.id ?? r?._id ?? `r-${Math.random().toString(16).slice(2)}`,
+      author,
+      rating,
+      comment: r?.comment ?? r?.komentar ?? r?.text ?? "",
+      createdAt: r?.createdAt ?? r?.created_at ?? r?.date ?? new Date().toISOString(),
+    };
+  });
+}
+
+
+async function fetchReviews(workshopId) {
+  const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/reviews`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    // ako endpoint ne postoji (npr. 404) ili backend još nije gotov -> fallback
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  const data = await res.json().catch(() => []);
+  return normalizeReviews(data);
+}
+
+async function postReview(workshopId, payload) {
+  const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/reviews`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) {
+    const data = await res.json().catch(() => null);
+    // backend može vratiti cijelu recenziju ili listu
+    if (Array.isArray(data)) return normalizeReviews(data);
+    if (data) return normalizeReviews([data])[0];
+  }
+
+  return null;
+}
+
 /* ---------- page ---------- */
 export default function DetaljiRadionice() {
   const { id } = useParams();
@@ -172,16 +252,31 @@ export default function DetaljiRadionice() {
 
   const [adding, setAdding] = useState(false);
 
-  // ✅ dodatne (after) slike
+  // photos
   const [extraPhotos, setExtraPhotos] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
   const [extraErr, setExtraErr] = useState("");
 
-  // upload
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState("");
 
+  // reserved
+  const [reservedIds, setReservedIds] = useState(() => new Set());
+  const [reservedLoading, setReservedLoading] = useState(false);
+
+  // reviews (final)
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsNote, setReviewsNote] = useState(""); // npr. "placeholder"
+  const [reviewsErr, setReviewsErr] = useState("");
+
+  const [myRating, setMyRating] = useState(5);
+  const [myComment, setMyComment] = useState("");
+  const [reviewErr, setReviewErr] = useState("");
+  const [postingReview, setPostingReview] = useState(false);
+
+  // load workshop
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -207,10 +302,9 @@ export default function DetaljiRadionice() {
   }, [workshopId]);
 
   const endAt = useMemo(() => (workshop ? calcEndDate(workshop) : null), [workshop]);
-  const isFinished = useMemo(() => {
-    if (!endAt) return false;
-    return Date.now() > endAt.getTime();
-  }, [endAt]);
+  const isFinished = useMemo(() => (endAt ? Date.now() > endAt.getTime() : false), [endAt]);
+
+  const polaznik = user?.userType === "polaznik";
 
   const isOwnerOrganizer = useMemo(() => {
     const uid = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
@@ -223,7 +317,7 @@ export default function DetaljiRadionice() {
     );
   }, [user, workshop]);
 
-  // ✅ organizer info (NEW)
+  // organizer info
   const organizerId = useMemo(
     () => (workshop ? getOrganizerIdFromWorkshop(workshop) : null),
     [workshop]
@@ -238,13 +332,10 @@ export default function DetaljiRadionice() {
     navigate(`/tim/${organizerId}`);
   };
 
-  // ✅ početne slike: uvijek dostupne
-  const initialPhotos = useMemo(() => {
-    if (!workshop) return [];
-    return getInitialImages(workshop);
-  }, [workshop]);
+  // initial photos
+  const initialPhotos = useMemo(() => (workshop ? getInitialImages(workshop) : []), [workshop]);
 
-  // ✅ nakon završetka dohvaćamo dodatne slike (only when finished)
+  // load extra photos after finish
   useEffect(() => {
     let alive = true;
     setExtraErr("");
@@ -271,11 +362,90 @@ export default function DetaljiRadionice() {
     };
   }, [workshop, isFinished, workshopId]);
 
-  // ✅ ukupna galerija: prije završetka = initial, nakon završetka = initial + extra
   const allPhotos = useMemo(() => {
     if (!isFinished) return initialPhotos;
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
+
+  // reserved ids (to decide canReview)
+  useEffect(() => {
+    let alive = true;
+
+    if (!user || user?.userType !== "polaznik") {
+      setReservedIds(new Set());
+      return () => {
+        alive = false;
+      };
+    }
+
+    const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+    if (userId == null) {
+      setReservedIds(new Set());
+      return () => {
+        alive = false;
+      };
+    }
+
+    setReservedLoading(true);
+    getReservedWorkshopIds(userId)
+      .then((ids) => {
+        if (!alive) return;
+        setReservedIds(new Set(Array.isArray(ids) ? ids : []));
+      })
+      .catch(() => {})
+      .finally(() => alive && setReservedLoading(false));
+
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
+  const canReview = useMemo(() => {
+    if (!isFinished) return false;
+    if (!polaznik) return false;
+    return reservedIds.has(workshopId);
+  }, [isFinished, polaznik, reservedIds, workshopId]);
+
+  // ✅ load reviews from backend when finished (fallback if not available)
+  useEffect(() => {
+    let alive = true;
+    if (!isFinished) {
+      setReviews([]);
+      setReviewsErr("");
+      setReviewsNote("");
+      return () => {
+        alive = false;
+      };
+    }
+
+    setReviewsLoading(true);
+    setReviewsErr("");
+    setReviewsNote("");
+
+    fetchReviews(workshopId)
+      .then((arr) => {
+        if (!alive) return;
+        setReviews(arr);
+        setReviewsNote("");
+      })
+      .catch(() => {
+        if (!alive) return;
+        // fallback mode
+        setReviews(normalizeReviews(FALLBACK_REVIEWS));
+        setReviewsNote("Recenzije su trenutno placeholder (backend još nije spojen).");
+      })
+      .finally(() => alive && setReviewsLoading(false));
+
+    return () => {
+      alive = false;
+    };
+  }, [isFinished, workshopId]);
+
+  const avgRating = useMemo(() => {
+    if (!reviews.length) return 0;
+    const sum = reviews.reduce((acc, r) => acc + Number(r.rating || 0), 0);
+    return sum / reviews.length;
+  }, [reviews]);
 
   const onAddToCart = async () => {
     try {
@@ -327,6 +497,75 @@ export default function DetaljiRadionice() {
     }
   };
 
+  // ✅ submit review to backend (fallback to local add if backend missing)
+  const onSubmitReview = async (e) => {
+    e.preventDefault();
+    setReviewErr("");
+
+    if (!canReview) {
+      setReviewErr("Samo polaznici koji su bili na radionici mogu ostaviti recenziju.");
+      return;
+    }
+
+    const comment = String(myComment || "").trim();
+    if (!comment) {
+      setReviewErr("Unesite komentar.");
+      return;
+    }
+
+    const ratingNum = Number(myRating);
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      setReviewErr("Ocjena mora biti između 1 i 5.");
+      return;
+    }
+
+    setPostingReview(true);
+    try {
+      // pokušaj backend
+      const created = await postReview(workshopId, { rating: ratingNum, comment });
+
+      if (created) {
+        // backend vratio jednu recenziju
+        setReviews((prev) => [created, ...prev]);
+        setReviewsNote("");
+      } else {
+        // backend nije vratio JSON -> refresh list
+        const fresh = await fetchReviews(workshopId);
+        setReviews(fresh);
+        setReviewsNote("");
+      }
+
+      setMyComment("");
+      setMyRating(5);
+    } catch (e2) {
+      // fallback: lokalno dodaj (dok backend nije spojen)
+      const author =
+        `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+        user?.email ||
+        "Polaznik";
+
+      const local = {
+        id: `local-${Date.now()}`,
+        author,
+        rating: ratingNum,
+        comment,
+        createdAt: new Date().toISOString(),
+      };
+
+      setReviews((prev) => [local, ...prev]);
+      setMyComment("");
+      setMyRating(5);
+
+      setReviewsNote(
+        "Recenzije su trenutno placeholder (backend još nije spojen) — spremljeno lokalno."
+      );
+      // ako želiš: možeš i pokazati warning, ali bez da blokira
+      // setReviewErr(e2?.message || "Backend nije dostupan - spremljeno lokalno.");
+    } finally {
+      setPostingReview(false);
+    }
+  };
+
   return (
     <div className="wd-page">
       <div className="wd-topbar">
@@ -367,7 +606,6 @@ export default function DetaljiRadionice() {
                 </div>
               </div>
 
-              {/* ✅ NEW: Organizator (klikabilno) */}
               <div className="wd-orgRow">
                 <span className="wd-orgLabel">Organizator:</span>{" "}
                 {organizerId ? (
@@ -434,13 +672,7 @@ export default function DetaljiRadionice() {
 
                 {isFinished && isOwnerOrganizer && (
                   <div className="wd-upload">
-                    <input
-                      ref={fileRef}
-                      className="wd-file"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                    />
+                    <input ref={fileRef} className="wd-file" type="file" accept="image/*" multiple />
                     <button className="wd-secondary" onClick={onUploadExtra} disabled={uploading}>
                       {uploading ? "Dodajem..." : "Dodaj dodatne slike"}
                     </button>
@@ -469,11 +701,107 @@ export default function DetaljiRadionice() {
               )}
 
               {isFinished && !isOwnerOrganizer && (
-                <div className="wd-hint">
-                  Samo organizator ove radionice može dodavati dodatne slike.
-                </div>
+                <div className="wd-hint">Samo organizator ove radionice može dodavati dodatne slike.</div>
               )}
             </section>
+
+            {/* ✅ REVIEWS (only finished) */}
+            {isFinished && (
+              <section className="wd-section">
+                <div className="wd-revTop">
+                  <h2>Ocjene i recenzije</h2>
+
+                  <div className="wd-revSummary">
+                    <span className="wd-revAvg">{avgRating ? avgRating.toFixed(1) : "0.0"}</span>
+                    <span className="wd-revStars" aria-label="Prosječna ocjena">
+                      {"★".repeat(Math.round(avgRating || 0))}
+                      {"☆".repeat(5 - Math.round(avgRating || 0))}
+                    </span>
+                    <span className="wd-revCount">({reviews.length})</span>
+                  </div>
+                </div>
+
+                {reviewsLoading ? <div className="wd-muted">Učitavam recenzije…</div> : null}
+                {!!reviewsErr ? <div className="wd-errorSmall">{reviewsErr}</div> : null}
+                {!!reviewsNote ? <div className="wd-muted">{reviewsNote}</div> : null}
+
+                {/* Forma: samo polaznik koji je bio prijavljen */}
+                <div className="wd-reviewBox">
+                  {polaznik && reservedLoading ? (
+                    <div className="wd-muted">Provjeravam prijavu na radionicu…</div>
+                  ) : canReview ? (
+                    <form className="wd-reviewForm" onSubmit={onSubmitReview}>
+                      <div className="wd-formRow">
+                        <label className="wd-formLabel">Ocjena</label>
+                        <select
+                          className="wd-select"
+                          value={myRating}
+                          onChange={(e) => setMyRating(Number(e.target.value))}
+                        >
+                          {[5, 4, 3, 2, 1].map((n) => (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="wd-formRow">
+                        <label className="wd-formLabel">Komentar</label>
+                        <textarea
+                          className="wd-textarea"
+                          rows={4}
+                          placeholder="Napiši svoje iskustvo…"
+                          value={myComment}
+                          onChange={(e) => setMyComment(e.target.value)}
+                        />
+                      </div>
+
+                      {!!reviewErr && <div className="wd-errorSmall">{reviewErr}</div>}
+
+                      <button className="wd-secondary" type="submit" disabled={postingReview}>
+                        {postingReview ? "Objavljujem..." : "Objavi recenziju"}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="wd-muted">
+                      {user?.userType !== "polaznik"
+                        ? "Samo polaznici mogu ostaviti recenziju."
+                        : "Recenziju mogu ostaviti samo polaznici koji su bili prijavljeni na ovu radionicu."}
+                    </div>
+                  )}
+                </div>
+
+                {/* Lista: svi mogu čitati */}
+                {(!reviewsLoading && reviews.length === 0) ? (
+                  <div className="wd-emptyPhotos">Još nema recenzija.</div>
+                ) : (
+                  <ul className="wd-revList">
+                    {reviews.map((r) => (
+                      <li key={r.id} className="wd-revItem">
+                        <div className="wd-revHead">
+                          <div className="wd-revAuthor">{r.author}</div>
+                          <div className="wd-revMeta">
+                            <span className="wd-revStarsSmall">
+                              {"★".repeat(Number(r.rating || 0))}
+                              {"☆".repeat(5 - Number(r.rating || 0))}
+                            </span>
+                            <span className="wd-dot">•</span>
+                            <span>{formatDateTime(r.createdAt)}</span>
+                          </div>
+                        </div>
+                        <div className="wd-revComment">{r.comment}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="wd-muted" style={{ marginTop: 10 }}>
+                  Backend očekivanje: <code>GET /api/workshops/:id/reviews</code> i{" "}
+                  <code>POST /api/workshops/:id/reviews</code> s {"{ rating, comment }"}.
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
