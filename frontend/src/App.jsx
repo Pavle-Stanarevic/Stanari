@@ -25,6 +25,7 @@ import DetaljiRadionice from "./pages/detaljiRadionice";
 import Kosarica from "./pages/kosarica";
 import Izlozbe from "./pages/izlozbe.jsx";
 import DetaljiIzlozbe from "./pages/detaljiIzlozbe.jsx";
+import AdminDashboard from "./pages/adminDashboard.jsx";
 
 export default function App() {
   return (
@@ -59,8 +60,8 @@ export default function App() {
         <Route path="/placanje/paypal" element={<PlacanjePayPal />} /> 
         <Route path="/placanje/stripe-redirect" element={<PlacanjeStripeRedirect />} />
         <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
+        <Route path="/admin" element={<AdminDashboard />} />
 
-        <Route path="*" element={<LandingPage />} />
       </Routes>
 
       <Footer />

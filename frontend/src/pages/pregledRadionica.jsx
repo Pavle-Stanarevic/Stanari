@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listWorkshops, getReservedWorkshopIds } from "../api/workshops";
+import {
+  listWorkshops,
+  getReservedWorkshopIds,
+} from "../api/workshops";
+import { getCart } from "../api/cart";
 import useAuth from "../hooks/useAuth";
 import "../styles/pregledRadionica.css";
 
@@ -40,6 +44,7 @@ export default function PregledRadionica() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [reservedIds, setReservedIds] = useState(() => new Set());
+  const [cartItems, setCartItems] = useState([]);
 
   // ✅ TABOVI
   const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "past"
@@ -73,7 +78,7 @@ export default function PregledRadionica() {
   // reserved ids samo za polaznika koji je logiran
   useEffect(() => {
     let alive = true;
-    if (!user || user?.userType !== "polaznik") {
+    if (!user) {
       setReservedIds(new Set());
       return () => {
         alive = false;
@@ -93,6 +98,39 @@ export default function PregledRadionica() {
 
   // PODJELA NA PROŠLE / NADOLAZEĆE
   const { pastItems, upcomingItems } = useMemo(() => {
+  useEffect(() => {
+    let alive = true;
+
+    const refresh = async () => {
+      try {
+        const data = await getCart();
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (alive) setCartItems(Array.isArray(items) ? items : []);
+      } catch {
+        if (alive) setCartItems([]);
+      }
+    };
+
+    refresh();
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartItems(items);
+      else refresh();
+    };
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      alive = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [user]);
+
+  const upcomingItems = useMemo(() => {
     const now = new Date();
     const past = [];
     const upcoming = [];
@@ -149,6 +187,19 @@ export default function PregledRadionica() {
 
   const empty = useMemo(() => !filteredItems || filteredItems.length === 0, [filteredItems]);
 
+  const isInCart = (workshopId) => {
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    return items.some((item) => {
+      if (item?.type && item.type !== "workshop") return false;
+      if (item?.workshopId != null) return Number(item.workshopId) === Number(workshopId);
+      if (item?.meta?.workshopId != null) return Number(item.meta.workshopId) === Number(workshopId);
+      if (typeof item?.id === "string" && item.id.startsWith("workshop:")) {
+        return Number(item.id.split(":")[1]) === Number(workshopId);
+      }
+      return false;
+    });
+  };
+
   const clearFilters = () => {
     setFilterStartDate("");
     setFilterEndDate("");
@@ -166,7 +217,8 @@ export default function PregledRadionica() {
   }, [filterStartDate, filterEndDate, filterLocation, maxPrice]);
 
   const goToDetails = (w) => {
-    navigate(`/radionica/${w.id}`);
+    const wid = w?.id ?? w?.idRadionica ?? w?.workshopId;
+    navigate(`/radionica/${wid}`);
   };
 
   return (
@@ -300,6 +352,36 @@ export default function PregledRadionica() {
                 <li key={w.id} className="workshop-item">
                   <div className="thumb" aria-hidden>
                     <div className="thumb-circle" />
+            {filteredUpcomingItems.map((w) => {
+              const wid = w?.id ?? w?.idRadionica ?? w?.workshopId;
+              const ownerId = w?.organizerId ?? w?.organizatorId ?? w?.idKorisnik ?? null;
+              const currentUserId = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+              const isOwner =
+                currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
+              return (
+              <li key={wid ?? w.id} className="workshop-item">
+                <div className="thumb" aria-hidden>
+                  <div className="thumb-circle" />
+                </div>
+
+                <div className="content">
+                  <h3 className="title">
+                    {w.title || "Bez naziva"}
+                    {isOwner ? (
+                      <span className="owner-badge">[Vaša radionica]</span>
+                    ) : reservedIds.has(wid) ? (
+                      <span className="reserved-badge">[Prijavljen]</span>
+                    ) : isInCart(wid) ? (
+                      <span className="cart-badge">[U košarici]</span>
+                    ) : Number(w.capacity) <= 0 ? (
+                      <span className="full-badge">[Popunjeno]</span>
+                    ) : null}
+                  </h3>
+
+                  <div className="meta">
+                    <span>{formatPrice(w.price)} po osobi</span>
+                    <span>•</span>
+                    <span>{formatDuration(w.durationMinutes)}</span>
                   </div>
 
                   <div className="content">
@@ -329,13 +411,17 @@ export default function PregledRadionica() {
 
 
                     <div className="actions-row">
-                      <button className="new-workshop-btn" onClick={() => goToDetails(w)}>
-                        {buttonText}
+                      <button
+                        className="new-workshop-btn"
+                        onClick={() => goToDetails(w)}
+                      >
+                        Detalji
                       </button>
                     </div>
-                  </div>
-                </li>
-              );
+                  )}
+                </div>
+              </li>
+            );
             })}
           </ul>
         )}

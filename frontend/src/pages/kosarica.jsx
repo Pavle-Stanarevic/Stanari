@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { clearCart, getCart, removeCartItem, updateCartItemQty } from "../api/cart";
+import { createCheckoutFromCart } from "../api/checkout";
 import "../styles/kosarica.css";
 
 function formatPrice(price) {
@@ -15,6 +16,7 @@ export default function Kosarica() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -61,7 +63,6 @@ export default function Kosarica() {
 
   const onQty = async (itemId, qty) => {
     const q = Math.max(1, Number(qty || 1));
-    // optimistički update
     setItems((xs) => xs.map((x) => (x.id === itemId ? { ...x, qty: q } : x)));
     try {
       await updateCartItemQty(itemId, q);
@@ -71,16 +72,41 @@ export default function Kosarica() {
     }
   };
 
+  const onCheckout = async () => {
+    setCheckoutLoading(true);
+
+    try {
+      // pravi flow kad backend bude spreman
+      const data = await createCheckoutFromCart();
+      const checkoutId = data?.checkoutId || data?.id;
+      if (!checkoutId) throw new Error("Backend nije vratio checkoutId.");
+
+      navigate("/placanje", { state: { mode: "cart", checkoutId } });
+    } catch (e) {
+      // ✅ fallback bez backenda: pokaži stvarne stavke iz košarice
+      navigate("/placanje", { state: { mode: "cart", items } });
+
+      // Ako želiš ručni demo placeholder:
+      // navigate("/placanje?demoCart=1");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   return (
     <div className="cart-page">
       <main className="cart-wrap">
         <div className="cart-header">
           <h1>Košarica</h1>
           <div className="cart-actions">
-            <button className="cart-btn" onClick={() => navigate(-1)}>
+            <button className="cart-btn" onClick={() => navigate(-1)} disabled={checkoutLoading}>
               ← Natrag
             </button>
-            <button className="cart-btn danger" onClick={onClear} disabled={!items.length}>
+            <button
+              className="cart-btn danger"
+              onClick={onClear}
+              disabled={!items.length || checkoutLoading}
+            >
               Očisti košaricu
             </button>
           </div>
@@ -163,26 +189,7 @@ export default function Kosarica() {
                       </div>
 
                       <div className="cart-item-right">
-                        <div className="cart-qty">
-                          <button className="qty-btn" onClick={() => onQty(p.id, (p.qty || 1) - 1)}>
-                            −
-                          </button>
-                          <input
-                            className="qty-input"
-                            type="number"
-                            min={1}
-                            value={p.qty || 1}
-                            onChange={(e) => onQty(p.id, e.target.value)}
-                          />
-                          <button className="qty-btn" onClick={() => onQty(p.id, (p.qty || 1) + 1)}>
-                            +
-                          </button>
-                        </div>
-
-                        <div className="cart-price">
-                          {formatPrice(Number(p.price || 0) * Number(p.qty || 1))}
-                        </div>
-
+                        <div className="cart-price">{formatPrice(Number(p.price || 0))}</div>
                         <button className="cart-remove" onClick={() => onRemove(p.id)}>
                           Ukloni
                         </button>
@@ -198,8 +205,9 @@ export default function Kosarica() {
                 <span>Ukupno</span>
                 <strong>{formatPrice(subtotal)}</strong>
               </div>
-              <button className="primary" onClick={() => alert("Checkout još nije spojen 🙂")}>
-                Nastavi na plaćanje
+
+              <button className="primary" onClick={onCheckout} disabled={checkoutLoading}>
+                {checkoutLoading ? "Pokrećem naplatu..." : "Nastavi na plaćanje"}
               </button>
             </section>
           </>

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { getCart } from "../api/cart";
 import "../styles/header.css";
 import logo from "../images/logo.png";
 
@@ -13,6 +14,40 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const { isAuthenticated, user, signOut } = useAuth();
+  const [cartCount, setCartCount] = useState(0);
+
+  const refreshCartCount = async () => {
+    try {
+      const data = await getCart();
+      const items = Array.isArray(data) ? data : data?.items || [];
+      setCartCount(items.length);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartCount(items.length);
+      else refreshCartCount();
+    };
+
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refreshCartCount();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    refreshCartCount();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();
@@ -63,9 +98,12 @@ export default function Header() {
         {/* DESNI DIO HEADERA */}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {/* 🛒 KOŠARICA */}
-          <Link to="/kosarica" className="sign-btn">
-            Košarica
-          </Link>
+          {isAuthenticated && user && (
+            <Link to="/kosarica" className="sign-btn">
+              Košarica
+              {cartCount > 0 && <span className="cart-indicator">{cartCount}</span>}
+            </Link>
+          )}
 
           {isAuthenticated && user ? (
             <>
