@@ -16,7 +16,7 @@
 }
 
 .admin-wrap .admin-title {
-  margin: 0;
+  margin-top: 3rem;
   font-size: 34px;
   letter-spacing: -0.02em;
 }
@@ -64,6 +64,8 @@
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  margin-top: 3rem ;
+  margin-bottom: 5rem;
 }
 
 .admin-wrap .card-head {

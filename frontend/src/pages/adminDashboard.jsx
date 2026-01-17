@@ -34,7 +34,7 @@ export default function AdminDashboard() {
 
   const [tab, setTab] = useState(TABS.PENDING);
 
-  // Placeholder users
+  // --- Placeholder users ---
   const [users, setUsers] = useState([
     {
       id: "u1",
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
     },
   ]);
 
-  // Placeholder pending organizer profiles
+  // --- Placeholder pending organizer profiles ---
   const [pendingProfiles, setPendingProfiles] = useState([
     {
       id: "p1",
@@ -84,16 +84,16 @@ export default function AdminDashboard() {
     },
   ]);
 
-  // Placeholder pricing
+  // --- Pricing (valuta fiksna EUR; dropdown uklonjen) ---
   const [pricing, setPricing] = useState({
     monthly: "9.99",
     yearly: "89.99",
-    currency: "EUR",
+    currency: "EUR", // ostaje radi kompatibilnosti s budućim backend formatom
   });
   const [pricingDraft, setPricingDraft] = useState(pricing);
   const [pricingSavedMsg, setPricingSavedMsg] = useState("");
 
-  // Search
+  // --- Search / filter ---
   const [qUsers, setQUsers] = useState("");
   const [qPending, setQPending] = useState("");
 
@@ -123,16 +123,14 @@ export default function AdminDashboard() {
     });
   }, [pendingProfiles, qPending]);
 
-  // Guard (UX)
+  // --- Guard: ako nije admin ---
   useEffect(() => {
     if (!user) return;
-
-    // prilagodi ako ti user dolazi u drugom obliku (npr. user.user.role)
     const role = user?.role ?? user?.user?.role;
     if (role && role !== "ADMIN") navigate("/", { replace: true });
   }, [user, navigate]);
 
-  // Mock actions (kasnije zamijeni API pozivima)
+  // --- Mock actions (kasnije zamijeni s API) ---
   function approveProfile(profileId) {
     setPendingProfiles((prev) => prev.filter((p) => p.id !== profileId));
   }
@@ -156,21 +154,20 @@ export default function AdminDashboard() {
   function savePricing() {
     const m = Number(String(pricingDraft.monthly).replace(",", "."));
     const y = Number(String(pricingDraft.yearly).replace(",", "."));
-
     if (Number.isNaN(m) || m <= 0 || Number.isNaN(y) || y <= 0) {
       setPricingSavedMsg("Unesi ispravne cijene (pozitivan broj).");
       return;
     }
 
     const normalized = {
-      ...pricingDraft,
       monthly: String(m.toFixed(2)),
       yearly: String(y.toFixed(2)),
+      currency: "EUR", // fiksno
     };
 
     setPricing(normalized);
     setPricingDraft(normalized);
-    setPricingSavedMsg("Cijene spremljene (placeholder).");
+    setPricingSavedMsg("Cijene su spremljene (placeholder).");
     window.setTimeout(() => setPricingSavedMsg(""), 2500);
   }
 
@@ -305,7 +302,10 @@ export default function AdminDashboard() {
                 </div>
                 <div className="right">
                   {u.status === "ACTIVE" ? (
-                    <button className="btn btn-danger" onClick={() => blockUser(u.id)}>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => blockUser(u.id)}
+                    >
                       Blokiraj
                     </button>
                   ) : (
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="hint">
-            *Placeholder. Kasnije se spaja na backend listu korisnika.
+            *Ovo je placeholder. Kasnije se spaja na backend listu korisnika.
           </div>
         </div>
       )}
@@ -333,14 +333,13 @@ export default function AdminDashboard() {
           <div className="card-head">
             <h2>Cijene članarina (organizatori)</h2>
             <div className="muted">
-              Trenutno: {pricing.monthly} {pricing.currency} / mj, {pricing.yearly}{" "}
-              {pricing.currency} / god
+              Trenutno: {pricing.monthly} € / mj, {pricing.yearly} € / god
             </div>
           </div>
 
           <div className="pricing-grid">
             <div className="field">
-              <label>Mjesecna cijena ({pricingDraft.currency})</label>
+              <label>Mjesecna cijena (€)</label>
               <input
                 className="input"
                 value={pricingDraft.monthly}
@@ -352,7 +351,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="field">
-              <label>Godišnja cijena ({pricingDraft.currency})</label>
+              <label>Godišnja cijena (€)</label>
               <input
                 className="input"
                 value={pricingDraft.yearly}
@@ -363,19 +362,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div className="field">
-              <label>Valuta</label>
-              <select
-                className="input"
-                value={pricingDraft.currency}
-                onChange={(e) =>
-                  setPricingDraft((p) => ({ ...p, currency: e.target.value }))
-                }
-              >
-                <option value="EUR">EUR</option>
-                <option value="HRK">HRK</option>
-              </select>
-            </div>
+            {/* ✅ Valuta select uklonjen – ostaje fiksno EUR */}
           </div>
 
           <div className="pricing-actions">
@@ -391,7 +378,6 @@ export default function AdminDashboard() {
             >
               Odustani
             </button>
-
             {pricingSavedMsg ? <div className="msg">{pricingSavedMsg}</div> : null}
           </div>
 
