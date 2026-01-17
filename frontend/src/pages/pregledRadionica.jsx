@@ -26,9 +26,7 @@ function formatDateTime(iso) {
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
-
   const time = d.toTimeString().slice(0, 5);
-
   return `${day}/${month}/${year} - ${time}h`;
 }
 
@@ -140,9 +138,12 @@ export default function PregledRadionica() {
   // 4) podjela na prošle/nadolazeće
   const { pastItems, upcomingItems } = useMemo(() => {
     const now = new Date();
-    return (items || []).filter((w) => {
+    const past = [];
+    const upcoming = [];
+
+    for (const w of items || []) {
       const iso = getWorkshopISO(w);
-      if (!iso) return false;
+      if (!iso) continue;
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) continue;
       if (d < now) past.push(w);
@@ -160,13 +161,11 @@ export default function PregledRadionica() {
   // 5) filter na aktivnom tabu
   const filteredItems = useMemo(() => {
     const locQ = (filterLocation || "").trim().toLowerCase();
-
     const start = filterStartDate ? new Date(`${filterStartDate}T00:00:00`) : null;
     const end = filterEndDate ? new Date(`${filterEndDate}T23:59:59`) : null;
-
     const maxP = maxPrice === "" ? null : Number(maxPrice);
 
-    return (upcomingItems || []).filter((w) => {
+    return (baseList || []).filter((w) => {
       const iso = getWorkshopISO(w);
       const d = iso ? new Date(iso) : null;
       if (!d || Number.isNaN(d.getTime())) return false;
@@ -180,14 +179,13 @@ export default function PregledRadionica() {
       }
 
       if (maxP != null && !Number.isNaN(maxP)) {
-        const priceNum =
-          w?.price === "" || w?.price == null ? null : Number(w.price);
+        const priceNum = w?.price === "" || w?.price == null ? null : Number(w.price);
         if (priceNum == null || Number.isNaN(priceNum) || priceNum > maxP) return false;
       }
 
       return true;
     });
-  }, [upcomingItems, filterLocation, filterStartDate, filterEndDate, maxPrice]);
+  }, [baseList, filterLocation, filterStartDate, filterEndDate, maxPrice]);
 
   const empty = !loading && !err && filteredItems.length === 0;
 
@@ -285,7 +283,6 @@ export default function PregledRadionica() {
               <div className="filters-top">
                 <span className="filters-caption">
                   Prikaz: <strong>{filteredItems.length}</strong> / {baseList.length}
-                  {upcomingItems.length}
                 </span>
 
                 <button
@@ -349,7 +346,7 @@ export default function PregledRadionica() {
 
         {empty ? (
           <div className="empty">
-            <p>Nema radionica koje odgovaraju odabranim filterima.</p>
+            <p>Nema radionica koje odgovaraju odabranom tabu i filterima.</p>
             <button onClick={clearFilters}>Očisti filtere</button>
           </div>
         ) : null}
