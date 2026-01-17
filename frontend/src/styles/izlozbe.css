@@ -198,8 +198,106 @@
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column; /* pomaže da sadržaj bude konzistentan */
 }
 
+/* ✅ cover uvijek iste visine (već imaš), samo osiguramo da je button block */
+.exh-coverOnly {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 12px 12px 0;
+  cursor: pointer;
+  display: block;
+}
+
+.exh-coverOnly img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(17, 24, 39, 0.03);
+}
+
+.exh-coverOnlyEmpty {
+  height: 220px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(17, 24, 39, 0.03);
+  color: #6b7280;
+  font-weight: 800;
+}
+
+/* ✅ KLJUČ: isti "header" dio kartice bez obzira na dužinu naslova */
+.exh-body {
+  padding: 12px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ✅ naslov uvijek zauzme 2 reda (i kad je kratak) -> sve ispod kreće u istoj ravnini */
+.exh-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+
+  line-height: 1.2;
+  min-height: calc(1.2em * 2); /* rezervira 2 reda visine */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; /* max 2 reda */
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* meta može wrapat, ali sad naslov više ne "raste" pa je layout stabilniji */
+.exh-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-weight: 650;
+  font-size: 13px;
+  margin: 0;
+}
+
+.exh-meta .dot {
+  opacity: 0.6;
+}
+
+.exh-apply {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #111827;
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-top: 2px;
+}
+
+.exh-apply:hover {
+  background: #1f2937;
+  transform: translateY(-1px);
+}
+
+.exh-apply:disabled {
+  background: rgba(17, 24, 39, 0.25);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- stari/neiskorišteni blokovi (može ostati, ne smeta) ---- */
 .exh-images {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
@@ -253,84 +351,6 @@
 .exh-thumb.empty {
   display: grid;
   place-items: center;
-  color: #6b7280;
-  font-weight: 800;
-}
-
-.exh-body {
-  padding: 0 12px 14px;
-}
-
-.exh-name {
-  margin: 4px 0 6px;
-  font-size: 16px;
-  font-weight: 900;
-  color: #111827;
-}
-
-.exh-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  color: #6b7280;
-  font-weight: 650;
-  font-size: 13px;
-  margin-bottom: 10px;
-}
-
-.exh-meta .dot {
-  opacity: 0.6;
-}
-
-.exh-apply {
-  width: 100%;
-  border: none;
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: #111827;
-  color: white;
-  font-weight: 900;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.exh-apply:hover {
-  background: #1f2937;
-  transform: translateY(-1px);
-}
-
-.exh-apply:disabled {
-  background: rgba(17, 24, 39, 0.25);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.exh-coverOnly {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 12px 12px 0;
-  cursor: pointer;
-}
-
-.exh-coverOnly img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  display: block;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(17, 24, 39, 0.03);
-}
-
-.exh-coverOnlyEmpty {
-  height: 220px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(17, 24, 39, 0.03);
   color: #6b7280;
   font-weight: 800;
 }

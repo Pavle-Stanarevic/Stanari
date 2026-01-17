@@ -1,9 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  listWorkshops,
-  getReservedWorkshopIds,
-} from "../api/workshops";
+import { listWorkshops, getReservedWorkshopIds } from "../api/workshops";
 import useAuth from "../hooks/useAuth";
 import "../styles/pregledRadionica.css";
 
@@ -24,13 +21,10 @@ function formatDuration(mins) {
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
-
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
-
   const time = d.toTimeString().slice(0, 5);
-
   return `${day}/${month}/${year} - ${time}h`;
 }
 
@@ -47,6 +41,9 @@ export default function PregledRadionica() {
   const [err, setErr] = useState("");
   const [reservedIds, setReservedIds] = useState(() => new Set());
 
+  // ✅ TABOVI
+  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "past"
+
   // FILTER STATE
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState("");
@@ -54,7 +51,6 @@ export default function PregledRadionica() {
   const [filterLocation, setFilterLocation] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
 
-  // dohvacanje radionica s API
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -74,6 +70,7 @@ export default function PregledRadionica() {
     };
   }, []);
 
+  // reserved ids samo za polaznika koji je logiran
   useEffect(() => {
     let alive = true;
     if (!user || user?.userType !== "polaznik") {
@@ -94,28 +91,41 @@ export default function PregledRadionica() {
     };
   }, [user]);
 
-  const upcomingItems = useMemo(() => {
+  // PODJELA NA PROŠLE / NADOLAZEĆE
+  const { pastItems, upcomingItems } = useMemo(() => {
     const now = new Date();
-    return (items || []).filter((w) => {
+    const past = [];
+    const upcoming = [];
+
+    for (const w of items || []) {
       const iso = getWorkshopISO(w);
-      if (!iso) return false;
+      if (!iso) continue;
       const d = new Date(iso);
-      return !Number.isNaN(d.getTime()) && d >= now;
-    });
+      if (Number.isNaN(d.getTime())) continue;
+      if (d < now) past.push(w);
+      else upcoming.push(w);
+    }
+
+    // opcionalno: sortiranje
+    past.sort((a, b) => new Date(getWorkshopISO(b)) - new Date(getWorkshopISO(a))); // najnovije prošle prve
+    upcoming.sort((a, b) => new Date(getWorkshopISO(a)) - new Date(getWorkshopISO(b))); // najbliže prve
+
+    return { pastItems: past, upcomingItems: upcoming };
   }, [items]);
 
   const organizer = user?.userType === "organizator";
   const polaznik = user?.userType === "polaznik";
 
-  const filteredUpcomingItems = useMemo(() => {
-    const locQ = (filterLocation || "").trim().toLowerCase();
+  const baseList = activeTab === "upcoming" ? upcomingItems : pastItems;
 
+  // ✅ FILTERI SE PRIMJENJUJU NA AKTIVNI TAB
+  const filteredItems = useMemo(() => {
+    const locQ = (filterLocation || "").trim().toLowerCase();
     const start = filterStartDate ? new Date(`${filterStartDate}T00:00:00`) : null;
     const end = filterEndDate ? new Date(`${filterEndDate}T23:59:59`) : null;
-
     const maxP = maxPrice === "" ? null : Number(maxPrice);
 
-    return (upcomingItems || []).filter((w) => {
+    return (baseList || []).filter((w) => {
       const iso = getWorkshopISO(w);
       const d = iso ? new Date(iso) : null;
       if (!d || Number.isNaN(d.getTime())) return false;
@@ -129,19 +139,15 @@ export default function PregledRadionica() {
       }
 
       if (maxP != null && !Number.isNaN(maxP)) {
-        const priceNum =
-          w?.price === "" || w?.price == null ? null : Number(w.price);
+        const priceNum = w?.price === "" || w?.price == null ? null : Number(w.price);
         if (priceNum == null || Number.isNaN(priceNum) || priceNum > maxP) return false;
       }
 
       return true;
     });
-  }, [upcomingItems, filterLocation, filterStartDate, filterEndDate, maxPrice]);
+  }, [baseList, filterLocation, filterStartDate, filterEndDate, maxPrice]);
 
-  const empty = useMemo(
-    () => !filteredUpcomingItems || filteredUpcomingItems.length === 0,
-    [filteredUpcomingItems]
-  );
+  const empty = useMemo(() => !filteredItems || filteredItems.length === 0, [filteredItems]);
 
   const clearFilters = () => {
     setFilterStartDate("");
@@ -176,32 +182,47 @@ export default function PregledRadionica() {
               onClick={() => setFiltersOpen((p) => !p)}
             >
               Filteri
-              {activeFiltersCount > 0 ? (
-                <span className="filters-pill">{activeFiltersCount}</span>
-              ) : null}
+              {activeFiltersCount > 0 ? <span className="filters-pill">{activeFiltersCount}</span> : null}
               <span className={`chev ${filtersOpen ? "open" : ""}`} aria-hidden>
                 ▾
               </span>
             </button>
 
             {organizer && (
-              <button
-                className="new-workshop-btn"
-                onClick={() => navigate("/organizacijaRadionica")}
-              >
+              <button className="new-workshop-btn" onClick={() => navigate("/organizacijaRadionica")}>
                 + Nova radionica
               </button>
             )}
           </div>
         </div>
 
+        {/* ✅ TABOVI */}
+        {!loading && !err && (
+          <div className="rw-tabs">
+            <button
+              type="button"
+              className={`rw-tab ${activeTab === "past" ? "active" : ""}`}
+              onClick={() => setActiveTab("past")}
+            >
+              Prošle <span className="rw-count">{pastItems.length}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`rw-tab ${activeTab === "upcoming" ? "active" : ""}`}
+              onClick={() => setActiveTab("upcoming")}
+            >
+              Nadolazeće <span className="rw-count">{upcomingItems.length}</span>
+            </button>
+          </div>
+        )}
+
         {!loading && !err && (
           <section className={`filters-dropdown ${filtersOpen ? "open" : ""}`}>
             <div className="filters-inner">
               <div className="filters-top">
                 <span className="filters-caption">
-                  Prikaz: <strong>{filteredUpcomingItems.length}</strong> /{" "}
-                  {upcomingItems.length}
+                  Prikaz: <strong>{filteredItems.length}</strong> / {baseList.length}
                 </span>
 
                 <button
@@ -217,20 +238,12 @@ export default function PregledRadionica() {
               <div className="filters-grid">
                 <div className="field">
                   <label>Datum od</label>
-                  <input
-                    type="date"
-                    value={filterStartDate}
-                    onChange={(e) => setFilterStartDate(e.target.value)}
-                  />
+                  <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} />
                 </div>
 
                 <div className="field">
                   <label>Datum do</label>
-                  <input
-                    type="date"
-                    value={filterEndDate}
-                    onChange={(e) => setFilterEndDate(e.target.value)}
-                  />
+                  <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} />
                 </div>
 
                 <div className="field field-wide">
@@ -265,55 +278,65 @@ export default function PregledRadionica() {
 
         {!loading && empty && !err && (
           <div className="empty">
-            <p>Nema radionica koje odgovaraju odabranim filterima.</p>
+            <p>Nema radionica koje odgovaraju odabranom tabu i filterima.</p>
             <button onClick={clearFilters}>Očisti filtere</button>
           </div>
         )}
 
         {!loading && !empty && (
           <ul className="workshop-list">
-            {filteredUpcomingItems.map((w) => (
-              <li key={w.id} className="workshop-item">
-                <div className="thumb" aria-hidden>
-                  <div className="thumb-circle" />
-                </div>
+            {filteredItems.map((w) => {
+              const isUpcoming = activeTab === "upcoming";
+              const isReserved = reservedIds.has(w.id);
+              const isFull = Number(w.capacity) <= 0;
 
-                <div className="content">
-                  <h3 className="title">
-                    {w.title || "Bez naziva"}
-                    {reservedIds.has(w.id) ? (
-                      <span className="reserved-badge">[Prijavljen]</span>
-                    ) : Number(w.capacity) <= 0 ? (
-                      <span className="full-badge">[Popunjeno]</span>
-                    ) : null}
-                  </h3>
+              const buttonText = isUpcoming
+                ? polaznik
+                  ? "Prijavi se"
+                  : "Detalji"
+                : "Detalji";
 
-                  <div className="meta">
-                    <span>{formatPrice(w.price)} po osobi</span>
-                    <span>•</span>
-                    <span>{formatDuration(w.durationMinutes)}</span>
+              return (
+                <li key={w.id} className="workshop-item">
+                  <div className="thumb" aria-hidden>
+                    <div className="thumb-circle" />
                   </div>
 
-                  <div className="submeta">
-                    <span>Datum: {formatDateTime(w.startDateTime)}</span>
-                    {w.location ? <span>Lokacija: {w.location}</span> : null}
-                    <span>Kapacitet: {w.capacity ?? "—"}</span>
-                  </div>
+                  <div className="content">
+                    <h3 className="title">
+                      {w.title || "Bez naziva"}
+                      {isUpcoming && isReserved ? (
+                        <span className="reserved-badge">[Prijavljen]</span>
+                      ) : isUpcoming && isFull ? (
+                        <span className="full-badge">[Popunjeno]</span>
+                      ) : null}
+                    </h3>
 
-                  {/* ✅ promjena: klik vodi na detalje */}
-                  {(polaznik || organizer) && (
+                    <div className="meta">
+                      <span>{formatPrice(w.price)} po osobi</span>
+                      <span>•</span>
+                      <span>{formatDuration(w.durationMinutes)}</span>
+                    </div>
+
+                    <div className="submeta">
+                       <span>Datum: {formatDateTime(w.startDateTime)}</span>
+                      {w.location ? <span>Lokacija: {w.location}</span> : null}
+
+                      {activeTab === "upcoming" && (
+                        <span>Kapacitet: {w.capacity ?? "—"}</span>
+                      )}
+                    </div>
+
+
                     <div className="actions-row">
-                      <button
-                        className="new-workshop-btn"
-                        onClick={() => goToDetails(w)}
-                      >
-                        {polaznik ? "Prijavi se" : "Detalji"}
+                      <button className="new-workshop-btn" onClick={() => goToDetails(w)}>
+                        {buttonText}
                       </button>
                     </div>
-                  )}
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </main>

@@ -81,12 +81,40 @@ function uniqByString(arr) {
   return out;
 }
 
+/* --- organizer helpers (NEW) --- */
+function getOrganizerIdFromWorkshop(w) {
+  const v =
+    w?.organizerId ??
+    w?.organizatorId ??
+    w?.creatorId ??
+    w?.ownerId ??
+    w?.userId ??
+    w?.idOrganizator ??
+    null;
+
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? String(v) : n;
+}
+
+function getOrganizerDisplayNameFromWorkshop(w) {
+  // pokušaj iz workshop-a izvući ime ako backend to šalje
+  const first = w?.organizerFirstName ?? w?.organizatorIme ?? w?.firstName ?? "";
+  const last = w?.organizerLastName ?? w?.organizatorPrezime ?? w?.lastName ?? "";
+  const full = `${first} ${last}`.trim();
+
+  const studyName =
+    w?.organizerStudyName ??
+    w?.organizatorNazivStudija ??
+    w?.studyName ??
+    w?.organizerName ??
+    w?.organizatorNaziv ??
+    "";
+
+  return full || studyName || "Organizator";
+}
+
 /* ---------- api (extra photos after workshop) ---------- */
-/**
- * Očekivani backend (preporuka):
- *  - GET  /api/workshops/:id/photos   -> dodatne slike (naknadno dodane) kao [ "url", ... ] ili [ {url}, ... ]
- *  - POST /api/workshops/:id/photos   -> multipart/form-data field "images" (dodaje nove)
- */
 async function fetchExtraPhotos(workshopId) {
   const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
     credentials: "include",
@@ -195,6 +223,21 @@ export default function DetaljiRadionice() {
     );
   }, [user, workshop]);
 
+  // ✅ organizer info (NEW)
+  const organizerId = useMemo(
+    () => (workshop ? getOrganizerIdFromWorkshop(workshop) : null),
+    [workshop]
+  );
+  const organizerName = useMemo(
+    () => (workshop ? getOrganizerDisplayNameFromWorkshop(workshop) : "Organizator"),
+    [workshop]
+  );
+
+  const goToOrganizerProfile = () => {
+    if (!organizerId) return;
+    navigate(`/tim/${organizerId}`);
+  };
+
   // ✅ početne slike: uvijek dostupne
   const initialPhotos = useMemo(() => {
     if (!workshop) return [];
@@ -270,10 +313,8 @@ export default function DetaljiRadionice() {
       const maybeNew = await uploadExtraPhotos(workshopId, files);
 
       if (Array.isArray(maybeNew)) {
-        // backend vrati listu dodatnih slika (idealno)
         setExtraPhotos(maybeNew);
       } else {
-        // ako ne vrati listu, re-fetch
         const fresh = await fetchExtraPhotos(workshopId);
         setExtraPhotos(Array.isArray(fresh) ? fresh : []);
       }
@@ -326,6 +367,23 @@ export default function DetaljiRadionice() {
                 </div>
               </div>
 
+              {/* ✅ NEW: Organizator (klikabilno) */}
+              <div className="wd-orgRow">
+                <span className="wd-orgLabel">Organizator:</span>{" "}
+                {organizerId ? (
+                  <button
+                    type="button"
+                    className="wd-orgLink"
+                    onClick={goToOrganizerProfile}
+                    title="Otvori profil organizatora"
+                  >
+                    {organizerName}
+                  </button>
+                ) : (
+                  <span className="wd-orgName">{organizerName}</span>
+                )}
+              </div>
+
               <p className="wd-sub">
                 Datum: <strong>{formatDateTime(getWorkshopISO(workshop))}</strong>
                 {endAt && (
@@ -363,7 +421,6 @@ export default function DetaljiRadionice() {
               </p>
             </section>
 
-            {/* ✅ GALERIJA: prije završetka initial, nakon završetka initial+extra + upload */}
             <section className="wd-section">
               <div className="wd-sectionTop">
                 <div className="wd-galleryTitle">
@@ -377,7 +434,13 @@ export default function DetaljiRadionice() {
 
                 {isFinished && isOwnerOrganizer && (
                   <div className="wd-upload">
-                    <input ref={fileRef} className="wd-file" type="file" accept="image/*" multiple />
+                    <input
+                      ref={fileRef}
+                      className="wd-file"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                    />
                     <button className="wd-secondary" onClick={onUploadExtra} disabled={uploading}>
                       {uploading ? "Dodajem..." : "Dodaj dodatne slike"}
                     </button>
@@ -394,9 +457,7 @@ export default function DetaljiRadionice() {
               )}
 
               {allPhotos.length === 0 ? (
-                <div className="wd-emptyPhotos">
-                  Još nema slika za ovu radionicu.
-                </div>
+                <div className="wd-emptyPhotos">Još nema slika za ovu radionicu.</div>
               ) : (
                 <div className="wd-gallery">
                   {allPhotos.map((src, i) => (
@@ -408,7 +469,9 @@ export default function DetaljiRadionice() {
               )}
 
               {isFinished && !isOwnerOrganizer && (
-                <div className="wd-hint">Samo organizator ove radionice može dodavati dodatne slike.</div>
+                <div className="wd-hint">
+                  Samo organizator ove radionice može dodavati dodatne slike.
+                </div>
               )}
             </section>
           </>
