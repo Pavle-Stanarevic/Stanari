@@ -25,6 +25,7 @@ function formatDuration(mins) {
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
@@ -36,7 +37,6 @@ function getWorkshopISO(w) {
   return w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
 }
 
-// ✅ početne slike iz "workshop" objekta (pri kreiranju radionice)
 function getInitialImages(workshop) {
   const raw =
     workshop?.images ??
@@ -45,9 +45,7 @@ function getInitialImages(workshop) {
     workshop?.slike ??
     workshop?.gallery ??
     [];
-
   if (!Array.isArray(raw)) return [];
-
   return raw
     .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null))
     .filter(Boolean);
@@ -114,12 +112,10 @@ async function fetchExtraPhotos(workshopId) {
   const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
     credentials: "include",
   });
-
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(txt || `HTTP ${res.status}`);
   }
-
   const data = await res.json().catch(() => []);
   const arr = Array.isArray(data) ? data : [];
   return arr
@@ -248,7 +244,7 @@ export default function DetaljiRadionice() {
   const [reservedSet, setReservedSet] = useState(() => new Set());
   const [reservedLoading, setReservedLoading] = useState(false);
 
-  // ✅ dodatne (after) slike
+  // photos
   const [extraPhotos, setExtraPhotos] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
   const [extraErr, setExtraErr] = useState("");
@@ -348,10 +344,23 @@ export default function DetaljiRadionice() {
   }, [user]);
 
   const endAt = useMemo(() => (workshop ? calcEndDate(workshop) : null), [workshop]);
-  const isFinished = useMemo(() => {
-    if (!endAt) return false;
-    return Date.now() > endAt.getTime();
-  }, [endAt]);
+  const isFinished = useMemo(() => (endAt ? Date.now() > endAt.getTime() : false), [endAt]);
+
+  const polaznik = user?.userType === "polaznik";
+
+  const organizerId = useMemo(
+    () => (workshop ? getOrganizerIdFromWorkshop(workshop) : null),
+    [workshop]
+  );
+  const organizerName = useMemo(
+    () => (workshop ? getOrganizerDisplayNameFromWorkshop(workshop) : "Organizator"),
+    [workshop]
+  );
+
+  const goToOrganizerProfile = () => {
+    if (!organizerId) return;
+    navigate(`/tim/${organizerId}`);
+  };
 
   const isOwnerOrganizer = useMemo(() => {
     const uid = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
@@ -364,13 +373,9 @@ export default function DetaljiRadionice() {
     );
   }, [user, workshop]);
 
-  // ✅ početne slike: uvijek dostupne
-  const initialPhotos = useMemo(() => {
-    if (!workshop) return [];
-    return getInitialImages(workshop);
-  }, [workshop]);
+  const initialPhotos = useMemo(() => (workshop ? getInitialImages(workshop) : []), [workshop]);
 
-  // ✅ nakon završetka dohvaćamo dodatne slike (only when finished)
+  // 4) extra photos after finish
   useEffect(() => {
     let alive = true;
     setExtraErr("");
@@ -399,7 +404,6 @@ export default function DetaljiRadionice() {
     };
   }, [workshop, isFinished, workshopId]);
 
-  // ✅ ukupna galerija: prije završetka = initial, nakon završetka = initial + extra
   const allPhotos = useMemo(() => {
     if (!isFinished) return initialPhotos;
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
@@ -519,10 +523,8 @@ export default function DetaljiRadionice() {
       const maybeNew = await uploadExtraPhotos(workshopId, files);
 
       if (Array.isArray(maybeNew)) {
-        // backend vrati listu dodatnih slika (idealno)
         setExtraPhotos(maybeNew);
       } else {
-        // ako ne vrati listu, re-fetch
         const fresh = await fetchExtraPhotos(workshopId);
         setExtraPhotos(Array.isArray(fresh) ? fresh : []);
       }
@@ -698,7 +700,6 @@ export default function DetaljiRadionice() {
               </p>
             </section>
 
-            {/* ✅ GALERIJA: prije završetka initial, nakon završetka initial+extra + upload */}
             <section className="wd-section">
               <div className="wd-sectionTop">
                 <div className="wd-galleryTitle">
@@ -727,9 +728,7 @@ export default function DetaljiRadionice() {
               ) : null}
 
               {allPhotos.length === 0 ? (
-                <div className="wd-emptyPhotos">
-                  Još nema slika za ovu radionicu.
-                </div>
+                <div className="wd-emptyPhotos">Još nema slika za ovu radionicu.</div>
               ) : (
                 <div className="wd-gallery">
                   {allPhotos.map((src, i) => (

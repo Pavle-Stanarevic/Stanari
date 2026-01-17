@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import RegisterFormBase from "../components/registerFormBase.jsx";
 import UserTypeSelect from "../components/userTypeSelect.jsx";
 import "../styles/login.css";
@@ -6,26 +6,71 @@ import { register, me } from "../api/auth.js";
 import useAuth from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 
+function isEmpty(v) {
+  return v == null || String(v).trim() === "";
+}
+
+function buildMissingMessage(missingKeys, labels) {
+  if (!missingKeys.length) return "";
+  const names = missingKeys.map((k) => labels[k] || k);
+  return `Nedostaju obavezna polja: ${names.join(", ")}.`;
+}
+
 export default function RegisterOrganizator() {
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState("");
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
+  // ✅ obavezna polja za organizatora (plus image se provjerava posebno jer nije u values)
+  const requiredKeys = useMemo(
+    () => ["firstName", "lastName", "email", "password", "studyName"],
+    []
+  );
+
+  const labels = useMemo(
+    () => ({
+      firstName: "ime",
+      lastName: "prezime",
+      email: "e-mail",
+      password: "lozinka",
+      studyName: "naziv studija",
+      image: "slika profila",
+    }),
+    []
+  );
+
   const handleSubmit = async (values, { image }) => {
+    setFormError("");
+
+    const missing = requiredKeys.filter((k) => isEmpty(values?.[k]));
+
+    // ✅ slika nije u values nego dolazi odvojeno
+    if (!image) missing.push("image");
+
+    if (missing.length) {
+      setFormError(buildMissingMessage(missing, labels));
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = { ...values, userType: "organizator" };
+
       const resp = await register(payload, image || null);
       const user = resp?.user || resp?.data?.user || null;
+
       if (user) {
         signIn(user);
       } else {
         const u = await me();
         if (u) signIn(u);
       }
+
       navigate("/");
     } catch (e) {
       console.error("Registration error:", e);
+      setFormError(e?.message || "Registracija nije uspjela. Pokušajte ponovno.");
     } finally {
       setLoading(false);
     }
@@ -35,6 +80,9 @@ export default function RegisterOrganizator() {
     <div className="register-page">
       <div className="register-box">
         <UserTypeSelect value="organizator" onChange={() => {}} />
+
+        {!!formError && <div className="error">{formError}</div>}
+
         <RegisterFormBase
           title="Kreiraj račun (Organizator)"
           defaultUserType="organizator"
@@ -46,7 +94,7 @@ export default function RegisterOrganizator() {
                 placeholder="Naziv studija"
                 name="studyName"
                 type="text"
-                value={values.studyName}
+                value={values.studyName || ""}
                 onChange={handleChange}
                 required
               />
