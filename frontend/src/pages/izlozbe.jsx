@@ -6,6 +6,7 @@ import {
   listExhibitions,
   createExhibition,
   getReservedExhibitionIds,
+  getExhibitionApplications,
 } from "../api/exhibitions";
 
 function formatDate(iso) {
@@ -87,12 +88,15 @@ export default function Izlozbe() {
   const isOrganizer = user?.userType === "organizator";
   const isPolaznik = user?.userType === "polaznik";
 
+  const MAX_IMAGE_MB = 5;
+
   const [tab, setTab] = useState("upcoming"); // upcoming | past
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   const [reservedIds, setReservedIds] = useState(() => new Set());
+  const [appStatuses, setAppStatuses] = useState({});
 
   // create form state
   const [formOpen, setFormOpen] = useState(false);
@@ -127,6 +131,7 @@ export default function Izlozbe() {
     (async () => {
       if (!isPolaznik || !user) {
         setReservedIds(new Set());
+        setAppStatuses({});
         return;
       }
       try {
@@ -134,6 +139,13 @@ export default function Izlozbe() {
         const ids = await getReservedExhibitionIds(userId);
         if (!alive) return;
         setReservedIds(new Set(Array.isArray(ids) ? ids : []));
+        const apps = await getExhibitionApplications(userId);
+        if (!alive) return;
+        const map = {};
+        (Array.isArray(apps) ? apps : []).forEach((a) => {
+          if (a?.exhibitionId != null) map[a.exhibitionId] = a.status;
+        });
+        setAppStatuses(map);
       } catch {
         // ignore
       }
@@ -178,12 +190,18 @@ export default function Izlozbe() {
       const bad = files.find((f) => !allowed.has(f.type));
       if (bad) throw new Error("Podržani formati: JPG, PNG, WEBP, GIF.");
 
+      const tooLarge = files.find((f) => f.size > MAX_IMAGE_MB * 1024 * 1024);
+      if (tooLarge) throw new Error(`Maksimalna veličina po slici je ${MAX_IMAGE_MB}MB.`);
+
       setCreating(true);
+      const organizerId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+      if (!organizerId) throw new Error("Niste prijavljeni kao organizator.");
       await createExhibition(
         {
           title: title.trim(),
           location: location.trim(),
           startDateTime: new Date(dateTime).toISOString(),
+          organizerId,
         },
         files
       );
@@ -203,6 +221,7 @@ export default function Izlozbe() {
   };
 
   const openDetails = (id) => {
+    if (id == null) return;
     navigate(`/izlozbe/${id}`);
   };
 
@@ -230,7 +249,6 @@ export default function Izlozbe() {
               <h2>Kreiranje izložbe</h2>
               <span className="exh-hint">Unesi podatke i dodaj slike radova.</span>
             </div>
-
             <form className="exh-form" onSubmit={onCreate}>
               <div className="exh-grid">
                 <div className="exh-field">
@@ -296,17 +314,23 @@ export default function Izlozbe() {
         {!loading && shown.length > 0 && (
           <section className="exh-gridCards">
             {shown.map((exh) => {
+              const exhId = exh?.id ?? exh?.idIzlozba ?? exh?.exhibitionId;
               const imgs = getImages(exh);
               const cover = imgs[0] || null;
-              const isReserved = reservedIds.has(exh.id);
+              const isReserved = reservedIds.has(exhId);
+              const status = appStatuses?.[exhId];
+              const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+              const currentUserId = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+              const isOwner =
+                currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
 
               return (
-                <article className="exh-item" key={exh.id}>
+                <article className="exh-item" key={exhId ?? exh.id}>
                   {/* ✅ Manje slika: samo cover */}
                   <button
                     type="button"
                     className="exh-coverOnly"
-                    onClick={() => openDetails(exh.id)}
+                    onClick={() => openDetails(exhId)}
                     title="Otvori detalje"
                   >
                     {cover ? (
@@ -317,7 +341,16 @@ export default function Izlozbe() {
                   </button>
 
                   <div className="exh-body">
-                    <h3 className="exh-name">{exh.title || "Bez naziva"}</h3>
+                    <h3 className="exh-name">
+                      {exh.title || "Bez naziva"}
+                      {(() => {
+                        const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+                        const currentUserId = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+                        const isOwner =
+                          currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
+                        return isOwner ? <span className="exh-owner">[Vaša izložba]</span> : null;
+                      })()}
+                    </h3>
 
                     <div className="exh-meta">
                       <span>{formatDate(getISO(exh))}</span>
@@ -327,14 +360,18 @@ export default function Izlozbe() {
 
                     {isPolaznik && (
                       <button
-                        className="exh-apply"
+                        className={`exh-apply ${!isOwner && status === "pending" ? "is-pending" : ""}`}
                         type="button"
-                        disabled={tab === "past"}
-                        onClick={() => openDetails(exh.id)}
+                        disabled={tab === "past" || isOwner}
+                        onClick={() => !isOwner && openDetails(exhId)}
                         title={tab === "past" ? "Ne možeš se prijaviti na prošlu izložbu." : ""}
                       >
-                        {tab === "past"
+                        {isOwner
+                          ? "Vaša izložba"
+                          : tab === "past"
                           ? "Izložba završena"
+                          : status === "pending"
+                          ? "Prijava se obrađuje"
                           : isReserved
                           ? "Detalji (već prijavljen/a)"
                           : "Prijava"}

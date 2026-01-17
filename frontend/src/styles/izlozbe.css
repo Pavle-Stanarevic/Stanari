@@ -257,6 +257,13 @@
   overflow: hidden;
 }
 
+.exh-owner {
+  margin-left: 8px;
+  color: #7c3aed;
+  font-weight: 900;
+  font-size: 0.95em;
+}
+
 /* meta može wrapat, ali sad naslov više ne "raste" pa je layout stabilniji */
 .exh-meta {
   display: flex;
@@ -289,6 +296,14 @@
 .exh-apply:hover {
   background: #1f2937;
   transform: translateY(-1px);
+}
+
+.exh-apply.is-pending {
+  background: #2563eb;
+}
+
+.exh-apply.is-pending:hover {
+  background: #1d4ed8;
 }
 
 .exh-apply:disabled {

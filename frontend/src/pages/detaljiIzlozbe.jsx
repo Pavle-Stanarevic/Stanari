@@ -6,6 +6,7 @@ import {
   listExhibitions,
   applyToExhibition,
   getReservedExhibitionIds,
+  getExhibitionApplications,
 } from "../api/exhibitions";
 
 function formatDateTime(iso) {
@@ -50,6 +51,7 @@ export default function DetaljiIzlozbe() {
   const [exh, setExh] = useState(null);
 
   const [reserved, setReserved] = useState(false);
+  const [appStatus, setAppStatus] = useState("");
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
@@ -60,7 +62,8 @@ export default function DetaljiIzlozbe() {
       try {
         const data = await listExhibitions();
         const arr = Array.isArray(data) ? data : [];
-        const found = arr.find((x) => Number(x.id) === exhId) || null;
+        const found =
+          arr.find((x) => Number(x?.id ?? x?.idIzlozba ?? x?.exhibitionId) === exhId) || null;
         if (!alive) return;
         setExh(found);
         if (!found) setErr("Izložba nije pronađena.");
@@ -92,7 +95,13 @@ export default function DetaljiIzlozbe() {
         const userId = user.id ?? user.idKorisnik ?? user.userId;
         const ids = await getReservedExhibitionIds(userId);
         if (!alive) return;
-        setReserved(Array.isArray(ids) ? ids.includes(exhId) : false);
+        setReserved(Array.isArray(ids) ? ids.map(Number).includes(Number(exhId)) : false);
+        const apps = await getExhibitionApplications(userId);
+        if (!alive) return;
+        const found = Array.isArray(apps)
+          ? apps.find((a) => Number(a?.exhibitionId) === Number(exhId))
+          : null;
+        setAppStatus(found?.status || "");
       } catch {
         // ignore
       }
@@ -105,6 +114,11 @@ export default function DetaljiIzlozbe() {
   const onApply = async () => {
     try {
       if (!user) throw new Error("Prijavi se za prijavu na izložbu.");
+      const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+      const currentUserId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+      const isOwner =
+        currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
+      if (isOwner) return;
       if (!isPolaznik) throw new Error("Samo polaznici se mogu prijaviti na izložbu.");
       if (isPast) throw new Error("Ne možeš se prijaviti na prošlu izložbu.");
       if (!exh) return;
@@ -155,12 +169,26 @@ export default function DetaljiIzlozbe() {
 
                 {isPolaznik && (
                   <button
-                    className="ed-primary"
-                    disabled={reserved || isPast || applying}
+                    className={`ed-primary ${appStatus === "pending" ? "is-pending" : ""}`}
+                    disabled={
+                      reserved ||
+                      isPast ||
+                      applying
+                    }
                     onClick={onApply}
                     title={isPast ? "Izložba je prošla." : ""}
                   >
-                    {isPast ? "Izložba završena" : reserved ? "Već prijavljen/a" : applying ? "Prijavljujem..." : "Prijava"}
+                    {(() => {
+                      const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+                      const currentUserId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+                      const isOwner =
+                        currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
+                      if (isOwner) return "Vaša izložba";
+                      if (isPast) return "Izložba završena";
+                      if (appStatus === "pending" || reserved) return "Prijava se obrađuje";
+                      if (applying) return "Prijavljujem...";
+                      return "Prijava";
+                    })()}
                   </button>
                 )}
               </div>

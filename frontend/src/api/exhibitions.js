@@ -23,12 +23,13 @@ export function listExhibitions() {
   return fetchJson("/api/exhibitions");
 }
 
-// POST /api/exhibitions  (multipart: title, location, startDateTime, images[])
-export function createExhibition({ title, location, startDateTime }, files = []) {
+// POST /api/exhibitions  (multipart: title, location, startDateTime, organizerId, images[])
+export function createExhibition({ title, location, startDateTime, organizerId }, files = []) {
   const fd = new FormData();
   fd.append("title", title);
   fd.append("location", location);
   fd.append("startDateTime", startDateTime);
+  if (organizerId != null) fd.append("organizerId", String(organizerId));
 
   (files || []).forEach((f) => fd.append("images", f));
 
@@ -49,4 +50,9 @@ export function applyToExhibition(id, userId) {
 // GET /api/exhibitions/reserved?userId=...
 export function getReservedExhibitionIds(userId) {
   return fetchJson(`/api/exhibitions/reserved?userId=${encodeURIComponent(userId)}`);
+}
+
+// GET /api/exhibitions/applications?userId=...
+export function getExhibitionApplications(userId) {
+  return fetchJson(`/api/exhibitions/applications?userId=${encodeURIComponent(userId)}`);
 }
