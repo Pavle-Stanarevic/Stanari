@@ -47,23 +47,8 @@ function getInitialImages(workshop) {
     [];
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((x) =>
-      typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null
-    )
+    .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null))
     .filter(Boolean);
-}
-
-function calcEndDate(workshop) {
-  const startIso = getWorkshopISO(workshop);
-  if (!startIso) return null;
-
-  const start = new Date(startIso);
-  const dur = Number(workshop?.durationMinutes ?? 0);
-
-  if (!Number.isFinite(start.getTime())) return null;
-  if (!dur) return start;
-
-  return new Date(start.getTime() + dur * 60 * 1000);
 }
 
 function uniqByString(arr) {
@@ -76,6 +61,18 @@ function uniqByString(arr) {
     out.push(x);
   }
   return out;
+}
+
+function calcEndDate(workshop) {
+  const startIso = getWorkshopISO(workshop);
+  if (!startIso) return null;
+  const start = new Date(startIso);
+  if (!Number.isFinite(start.getTime())) return null;
+
+  const dur = Number(workshop?.durationMinutes ?? 0);
+  if (!dur) return start;
+
+  return new Date(start.getTime() + dur * 60 * 1000);
 }
 
 /* --- organizer helpers --- */
@@ -141,6 +138,7 @@ async function uploadExtraPhotos(workshopId, files) {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
+  // optional JSON response
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
     const data = await res.json().catch(() => null);
@@ -154,7 +152,6 @@ async function uploadExtraPhotos(workshopId, files) {
 }
 
 /* ---------- reviews API (final + fallback) ---------- */
-// Placeholder dok nema backenda
 const FALLBACK_REVIEWS = [
   {
     id: "r1",
@@ -174,17 +171,13 @@ const FALLBACK_REVIEWS = [
   },
 ];
 
-// Normalizacija da UI uvijek dobije isti shape
 function normalizeReviews(data) {
   const arr = Array.isArray(data) ? data : [];
   return arr.map((r) => {
     const fullName = `${r?.user?.firstName || ""} ${r?.user?.lastName || ""}`.trim();
 
     const author =
-      (r?.author ??
-        r?.authorName ??
-        r?.userName ??
-        (fullName || "")) || "Korisnik";
+      (r?.author ?? r?.authorName ?? r?.userName ?? (fullName || "")) || "Korisnik";
 
     const ratingNum = Number(r?.rating ?? r?.ocjena ?? 0);
     const rating = Number.isFinite(ratingNum) ? ratingNum : 0;
@@ -199,17 +192,13 @@ function normalizeReviews(data) {
   });
 }
 
-
 async function fetchReviews(workshopId) {
   const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/reviews`, {
     method: "GET",
     credentials: "include",
   });
 
-  if (!res.ok) {
-    // ako endpoint ne postoji (npr. 404) ili backend još nije gotov -> fallback
-    throw new Error(`HTTP ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const data = await res.json().catch(() => []);
   return normalizeReviews(data);
@@ -231,11 +220,9 @@ async function postReview(workshopId, payload) {
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
     const data = await res.json().catch(() => null);
-    // backend može vratiti cijelu recenziju ili listu
     if (Array.isArray(data)) return normalizeReviews(data);
     if (data) return normalizeReviews([data])[0];
   }
-
   return null;
 }
 
@@ -251,34 +238,30 @@ export default function DetaljiRadionice() {
   const [workshop, setWorkshop] = useState(null);
 
   const [adding, setAdding] = useState(false);
+
+  // cart / reserved
   const [cartItems, setCartItems] = useState([]);
-  const [reservedIds, setReservedIds] = useState([]);
+  const [reservedSet, setReservedSet] = useState(() => new Set());
+  const [reservedLoading, setReservedLoading] = useState(false);
 
   // photos
   const [extraPhotos, setExtraPhotos] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
   const [extraErr, setExtraErr] = useState("");
-
-  const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState("");
+  const fileRef = useRef(null);
 
-  // reserved
-  const [reservedIds, setReservedIds] = useState(() => new Set());
-  const [reservedLoading, setReservedLoading] = useState(false);
-
-  // reviews (final)
+  // reviews
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsNote, setReviewsNote] = useState(""); // npr. "placeholder"
-  const [reviewsErr, setReviewsErr] = useState("");
-
+  const [reviewsNote, setReviewsNote] = useState("");
   const [myRating, setMyRating] = useState(5);
   const [myComment, setMyComment] = useState("");
   const [reviewErr, setReviewErr] = useState("");
   const [postingReview, setPostingReview] = useState(false);
 
-  // load workshop
+  // 1) load workshop
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -303,23 +286,43 @@ export default function DetaljiRadionice() {
     };
   }, [workshopId]);
 
+  // 2) reserved ids (polaznik)
   useEffect(() => {
-    if (!user) {
-      setReservedIds([]);
-      return;
+    let alive = true;
+
+    if (!user || user.userType !== "polaznik") {
+      setReservedSet(new Set());
+      return () => {
+        alive = false;
+      };
     }
 
-    const userId = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
-    if (!userId) {
-      setReservedIds([]);
-      return;
+    const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+    if (userId == null) {
+      setReservedSet(new Set());
+      return () => {
+        alive = false;
+      };
     }
 
+    setReservedLoading(true);
     getReservedWorkshopIds(userId)
-      .then((ids) => setReservedIds(Array.isArray(ids) ? ids : []))
-      .catch(() => setReservedIds([]));
+      .then((ids) => {
+        if (!alive) return;
+        setReservedSet(new Set(Array.isArray(ids) ? ids.map((x) => Number(x)) : []));
+      })
+      .catch(() => {
+        if (!alive) return;
+        setReservedSet(new Set());
+      })
+      .finally(() => alive && setReservedLoading(false));
+
+    return () => {
+      alive = false;
+    };
   }, [user]);
 
+  // 3) cart (simple refresh on load + after add)
   useEffect(() => {
     let alive = true;
 
@@ -334,21 +337,9 @@ export default function DetaljiRadionice() {
     };
 
     refresh();
-    const onCartUpdated = (e) => {
-      const items = e?.detail?.items;
-      if (Array.isArray(items)) setCartItems(items);
-      else refresh();
-    };
-    const onStorage = (e) => {
-      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
-    };
 
-    window.addEventListener("cart:updated", onCartUpdated);
-    window.addEventListener("storage", onStorage);
     return () => {
       alive = false;
-      window.removeEventListener("cart:updated", onCartUpdated);
-      window.removeEventListener("storage", onStorage);
     };
   }, [user]);
 
@@ -357,18 +348,6 @@ export default function DetaljiRadionice() {
 
   const polaznik = user?.userType === "polaznik";
 
-  const isOwnerOrganizer = useMemo(() => {
-    const uid = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
-    const orgId = workshop?.organizerId ?? workshop?.organizatorId ?? null;
-    return (
-      user?.userType === "organizator" &&
-      uid != null &&
-      orgId != null &&
-      Number(uid) === Number(orgId)
-    );
-  }, [user, workshop]);
-
-  // organizer info
   const organizerId = useMemo(
     () => (workshop ? getOrganizerIdFromWorkshop(workshop) : null),
     [workshop]
@@ -383,17 +362,29 @@ export default function DetaljiRadionice() {
     navigate(`/tim/${organizerId}`);
   };
 
-  // initial photos
+  const isOwnerOrganizer = useMemo(() => {
+    const uid = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+    const orgId = workshop?.organizerId ?? workshop?.organizatorId ?? null;
+    return (
+      user?.userType === "organizator" &&
+      uid != null &&
+      orgId != null &&
+      Number(uid) === Number(orgId)
+    );
+  }, [user, workshop]);
+
   const initialPhotos = useMemo(() => (workshop ? getInitialImages(workshop) : []), [workshop]);
 
-  // load extra photos after finish
+  // 4) extra photos after finish
   useEffect(() => {
     let alive = true;
     setExtraErr("");
 
     if (!workshop || !isFinished) {
       setExtraPhotos([]);
-      return;
+      return () => {
+        alive = false;
+      };
     }
 
     setExtraLoading(true);
@@ -418,51 +409,12 @@ export default function DetaljiRadionice() {
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
 
-  // reserved ids (to decide canReview)
+  // 5) reviews after finish (fallback)
   useEffect(() => {
     let alive = true;
 
-    if (!user || user?.userType !== "polaznik") {
-      setReservedIds(new Set());
-      return () => {
-        alive = false;
-      };
-    }
-
-    const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
-    if (userId == null) {
-      setReservedIds(new Set());
-      return () => {
-        alive = false;
-      };
-    }
-
-    setReservedLoading(true);
-    getReservedWorkshopIds(userId)
-      .then((ids) => {
-        if (!alive) return;
-        setReservedIds(new Set(Array.isArray(ids) ? ids : []));
-      })
-      .catch(() => {})
-      .finally(() => alive && setReservedLoading(false));
-
-    return () => {
-      alive = false;
-    };
-  }, [user]);
-
-  const canReview = useMemo(() => {
-    if (!isFinished) return false;
-    if (!polaznik) return false;
-    return reservedIds.has(workshopId);
-  }, [isFinished, polaznik, reservedIds, workshopId]);
-
-  // ✅ load reviews from backend when finished (fallback if not available)
-  useEffect(() => {
-    let alive = true;
     if (!isFinished) {
       setReviews([]);
-      setReviewsErr("");
       setReviewsNote("");
       return () => {
         alive = false;
@@ -470,7 +422,6 @@ export default function DetaljiRadionice() {
     }
 
     setReviewsLoading(true);
-    setReviewsErr("");
     setReviewsNote("");
 
     fetchReviews(workshopId)
@@ -481,7 +432,6 @@ export default function DetaljiRadionice() {
       })
       .catch(() => {
         if (!alive) return;
-        // fallback mode
         setReviews(normalizeReviews(FALLBACK_REVIEWS));
         setReviewsNote("Recenzije su trenutno placeholder (backend još nije spojen).");
       })
@@ -497,9 +447,8 @@ export default function DetaljiRadionice() {
     const sum = reviews.reduce((acc, r) => acc + Number(r.rating || 0), 0);
     return sum / reviews.length;
   }, [reviews]);
-  const isReserved = useMemo(() => {
-    return Array.isArray(reservedIds) && reservedIds.some((rid) => Number(rid) === Number(workshopId));
-  }, [reservedIds, workshopId]);
+
+  const isReserved = useMemo(() => reservedSet.has(Number(workshopId)), [reservedSet, workshopId]);
 
   const isInCart = useMemo(() => {
     const items = Array.isArray(cartItems) ? cartItems : [];
@@ -514,28 +463,40 @@ export default function DetaljiRadionice() {
     });
   }, [cartItems, workshopId]);
 
+  const canReview = useMemo(() => {
+    if (!isFinished) return false;
+    if (!polaznik) return false;
+    return reservedSet.has(Number(workshopId));
+  }, [isFinished, polaznik, reservedSet, workshopId]);
+
   const onAddToCart = async () => {
     try {
       if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
-      const isOrg = user?.userType === "organizator";
-      const isPolaznik = user?.userType === "polaznik";
-      if (!isPolaznik && !isOrg)
-        throw new Error("Samo polaznici ili organizatori mogu dodati radionicu u košaricu.");
-      if (isOrg && isOwnerOrganizer) return;
       if (!workshop) return;
       if (isFinished) throw new Error("Radionica je završila — više se nije moguće prijaviti.");
+      if (isOwnerOrganizer) throw new Error("Ne možete se prijaviti na vlastitu radionicu.");
       if (isReserved) throw new Error("Već ste prijavljeni na radionicu.");
       if (isInCart) throw new Error("Radionica je već u košarici.");
+
+      if (user.userType !== "polaznik") {
+        throw new Error("Samo polaznici mogu dodati radionicu u košaricu.");
+      }
 
       setAdding(true);
       await addWorkshopToCart(workshop.id, 1, {
         title: workshop.title || workshop.nazivRadionica,
         price: workshop.price ?? workshop.cijenaRadionica,
         meta: {
+          workshopId: workshop.id,
           dateISO: getWorkshopISO(workshop),
           location: workshop.location || workshop.lokacijaRadionica,
         },
       });
+
+      // refresh cart
+      const data = await getCart();
+      const items = Array.isArray(data) ? data : data?.items || [];
+      setCartItems(Array.isArray(items) ? items : []);
     } catch (e) {
       alert(e.message || "Nije moguće dodati u košaricu.");
     } finally {
@@ -546,6 +507,7 @@ export default function DetaljiRadionice() {
   const onUploadExtra = async () => {
     try {
       setUploadErr("");
+
       if (!isFinished) throw new Error("Dodatne slike možeš dodavati tek nakon završetka radionice.");
       if (!isOwnerOrganizer) throw new Error("Samo organizator radionice može dodavati slike.");
 
@@ -575,7 +537,6 @@ export default function DetaljiRadionice() {
     }
   };
 
-  // ✅ submit review to backend (fallback to local add if backend missing)
   const onSubmitReview = async (e) => {
     e.preventDefault();
     setReviewErr("");
@@ -599,15 +560,12 @@ export default function DetaljiRadionice() {
 
     setPostingReview(true);
     try {
-      // pokušaj backend
       const created = await postReview(workshopId, { rating: ratingNum, comment });
 
       if (created) {
-        // backend vratio jednu recenziju
         setReviews((prev) => [created, ...prev]);
         setReviewsNote("");
       } else {
-        // backend nije vratio JSON -> refresh list
         const fresh = await fetchReviews(workshopId);
         setReviews(fresh);
         setReviewsNote("");
@@ -615,8 +573,8 @@ export default function DetaljiRadionice() {
 
       setMyComment("");
       setMyRating(5);
-    } catch (e2) {
-      // fallback: lokalno dodaj (dok backend nije spojen)
+    } catch {
+      // fallback lokalno (dok backend nije spojen)
       const author =
         `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
         user?.email ||
@@ -633,12 +591,7 @@ export default function DetaljiRadionice() {
       setReviews((prev) => [local, ...prev]);
       setMyComment("");
       setMyRating(5);
-
-      setReviewsNote(
-        "Recenzije su trenutno placeholder (backend još nije spojen) — spremljeno lokalno."
-      );
-      // ako želiš: možeš i pokazati warning, ali bez da blokira
-      // setReviewErr(e2?.message || "Backend nije dostupan - spremljeno lokalno.");
+      setReviewsNote("Recenzije su trenutno placeholder (backend još nije spojen) — spremljeno lokalno.");
     } finally {
       setPostingReview(false);
     }
@@ -651,18 +604,18 @@ export default function DetaljiRadionice() {
           ← Natrag
         </button>
 
-        {!loading && workshop && (
+        {!loading && workshop ? (
           <span className={`wd-badge ${isFinished ? "is-finished" : "is-upcoming"}`}>
             {isFinished ? "Završena" : "Nadolazeća"}
           </span>
-        )}
+        ) : null}
       </div>
 
       <main className="wd-wrap">
-        {loading && <div className="wd-info">Učitavanje…</div>}
-        {!!err && !loading && <div className="wd-error">{err}</div>}
+        {loading ? <div className="wd-info">Učitavanje…</div> : null}
+        {!loading && err ? <div className="wd-error">{err}</div> : null}
 
-        {!loading && workshop && (
+        {!loading && workshop ? (
           <>
             <header className="wd-header">
               <div className="wd-titleRow">
@@ -702,12 +655,7 @@ export default function DetaljiRadionice() {
               <div className="wd-orgRow">
                 <span className="wd-orgLabel">Organizator:</span>{" "}
                 {organizerId ? (
-                  <button
-                    type="button"
-                    className="wd-orgLink"
-                    onClick={goToOrganizerProfile}
-                    title="Otvori profil organizatora"
-                  >
+                  <button type="button" className="wd-orgLink" onClick={goToOrganizerProfile}>
                     {organizerName}
                   </button>
                 ) : (
@@ -717,12 +665,12 @@ export default function DetaljiRadionice() {
 
               <p className="wd-sub">
                 Datum: <strong>{formatDateTime(getWorkshopISO(workshop))}</strong>
-                {endAt && (
+                {endAt ? (
                   <>
                     {" "}
                     · Kraj: <strong>{formatDateTime(endAt.toISOString())}</strong>
                   </>
-                )}
+                ) : null}
               </p>
 
               <div className="wd-stats">
@@ -756,30 +704,28 @@ export default function DetaljiRadionice() {
               <div className="wd-sectionTop">
                 <div className="wd-galleryTitle">
                   <h2>Galerija</h2>
-                  {!isFinished ? (
-                    <div className="wd-chip">slike prošlih radionica</div>
-                  ) : (
-                    <div className="wd-chip">prošle + dodatne slike</div>
-                  )}
+                  <div className="wd-chip">
+                    {isFinished ? "prošle + dodatne slike" : "slike radionice"}
+                  </div>
                 </div>
 
-                {isFinished && isOwnerOrganizer && (
+                {isFinished && isOwnerOrganizer ? (
                   <div className="wd-upload">
                     <input ref={fileRef} className="wd-file" type="file" accept="image/*" multiple />
                     <button className="wd-secondary" onClick={onUploadExtra} disabled={uploading}>
                       {uploading ? "Dodajem..." : "Dodaj dodatne slike"}
                     </button>
                   </div>
-                )}
+                ) : null}
               </div>
 
-              {isFinished && (
+              {isFinished ? (
                 <>
-                  {!!uploadErr && <div className="wd-errorSmall">{uploadErr}</div>}
-                  {!!extraErr && <div className="wd-muted">{extraErr}</div>}
-                  {extraLoading && <div className="wd-muted">Učitavam dodatne slike…</div>}
+                  {uploadErr ? <div className="wd-errorSmall">{uploadErr}</div> : null}
+                  {extraErr ? <div className="wd-muted">{extraErr}</div> : null}
+                  {extraLoading ? <div className="wd-muted">Učitavam dodatne slike…</div> : null}
                 </>
-              )}
+              ) : null}
 
               {allPhotos.length === 0 ? (
                 <div className="wd-emptyPhotos">Još nema slika za ovu radionicu.</div>
@@ -792,18 +738,12 @@ export default function DetaljiRadionice() {
                   ))}
                 </div>
               )}
-
-              {isFinished && !isOwnerOrganizer && (
-                <div className="wd-hint">Samo organizator ove radionice može dodavati dodatne slike.</div>
-              )}
             </section>
 
-            {/* ✅ REVIEWS (only finished) */}
-            {isFinished && (
+            {isFinished ? (
               <section className="wd-section">
                 <div className="wd-revTop">
                   <h2>Ocjene i recenzije</h2>
-
                   <div className="wd-revSummary">
                     <span className="wd-revAvg">{avgRating ? avgRating.toFixed(1) : "0.0"}</span>
                     <span className="wd-revStars" aria-label="Prosječna ocjena">
@@ -815,10 +755,8 @@ export default function DetaljiRadionice() {
                 </div>
 
                 {reviewsLoading ? <div className="wd-muted">Učitavam recenzije…</div> : null}
-                {!!reviewsErr ? <div className="wd-errorSmall">{reviewsErr}</div> : null}
-                {!!reviewsNote ? <div className="wd-muted">{reviewsNote}</div> : null}
+                {reviewsNote ? <div className="wd-muted">{reviewsNote}</div> : null}
 
-                {/* Forma: samo polaznik koji je bio prijavljen */}
                 <div className="wd-reviewBox">
                   {polaznik && reservedLoading ? (
                     <div className="wd-muted">Provjeravam prijavu na radionicu…</div>
@@ -850,7 +788,7 @@ export default function DetaljiRadionice() {
                         />
                       </div>
 
-                      {!!reviewErr && <div className="wd-errorSmall">{reviewErr}</div>}
+                      {reviewErr ? <div className="wd-errorSmall">{reviewErr}</div> : null}
 
                       <button className="wd-secondary" type="submit" disabled={postingReview}>
                         {postingReview ? "Objavljujem..." : "Objavi recenziju"}
@@ -865,8 +803,7 @@ export default function DetaljiRadionice() {
                   )}
                 </div>
 
-                {/* Lista: svi mogu čitati */}
-                {(!reviewsLoading && reviews.length === 0) ? (
+                {!reviewsLoading && reviews.length === 0 ? (
                   <div className="wd-emptyPhotos">Još nema recenzija.</div>
                 ) : (
                   <ul className="wd-revList">
@@ -888,15 +825,10 @@ export default function DetaljiRadionice() {
                     ))}
                   </ul>
                 )}
-
-                <div className="wd-muted" style={{ marginTop: 10 }}>
-                  Backend očekivanje: <code>GET /api/workshops/:id/reviews</code> i{" "}
-                  <code>POST /api/workshops/:id/reviews</code> s {"{ rating, comment }"}.
-                </div>
               </section>
-            )}
+            ) : null}
           </>
-        )}
+        ) : null}
       </main>
     </div>
   );
