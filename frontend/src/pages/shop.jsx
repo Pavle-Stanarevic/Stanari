@@ -4,6 +4,7 @@ import ShopProductAdd from "../components/shopProductAdd.jsx";
 import useAuth from "../hooks/useAuth";
 import "../styles/shop.css";
 import { PRODUCT_CATEGORIES } from "../data/productCategories";
+import { getCart } from "../api/cart";
 
 
 
@@ -47,6 +48,7 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   const canAddProducts = user?.userType === "organizator";
 
@@ -78,6 +80,51 @@ export default function Shop() {
     loadMe();
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    const refresh = async () => {
+      try {
+        const data = await getCart();
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (alive) setCartItems(Array.isArray(items) ? items : []);
+      } catch {
+        if (alive) setCartItems([]);
+      }
+    };
+
+    refresh();
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartItems(items);
+      else refresh();
+    };
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      alive = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [user]);
+
+  const isProductInCart = (productId) => {
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    return items.some((item) => {
+      if (item?.type && item.type !== "product") return false;
+      if (item?.productId != null) return Number(item.productId) === Number(productId);
+      if (item?.meta?.productId != null) return Number(item.meta.productId) === Number(productId);
+      if (typeof item?.id === "string" && item.id.startsWith("product:")) {
+        return Number(item.id.split(":")[1]) === Number(productId);
+      }
+      return false;
+    });
+  };
 
   const categories = useMemo(() => ["", ...PRODUCT_CATEGORIES], []);
 
@@ -205,6 +252,9 @@ export default function Shop() {
                 <div className="product-top">
                   <h3 className="product-title">
                     <p className="product-desc">{p.opisProizvod}</p>
+                    {isProductInCart(p.proizvodId ?? p.id ?? p.productId) && (
+                      <span className="cart-badge">U košarici</span>
+                    )}
                   </h3>
                   <span className="product-price">
                     € {Number(p.cijenaProizvod).toFixed(2)}

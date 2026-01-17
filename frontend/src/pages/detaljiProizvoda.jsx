@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
-import { addProductToCart } from "../api/cart";
+import { addProductToCart, getCart } from "../api/cart";
 import "../styles/detaljiProizvoda.css";
 
 async function fetchJson(url, options) {
@@ -32,6 +32,7 @@ export default function ProductPage() {
   const [error, setError] = useState("");
 
   const [adding, setAdding] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
     let alive = true;
@@ -59,10 +60,58 @@ export default function ProductPage() {
     };
   }, [proizvodId]);
 
+  useEffect(() => {
+    let alive = true;
+
+    const refresh = async () => {
+      try {
+        const data = await getCart();
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (alive) setCartItems(Array.isArray(items) ? items : []);
+      } catch {
+        if (alive) setCartItems([]);
+      }
+    };
+
+    refresh();
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartItems(items);
+      else refresh();
+    };
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      alive = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [user]);
+
   const displayName =
     product?.nazivProizvod || product?.kategorijaProizvod || "Proizvod";
 
   const productTitle = product?.opisProizvod || displayName;
+
+  const productIdResolved =
+    product?.idProizvod ??
+    product?.proizvodId ??
+    product?.id ??
+    proizvodId;
+
+  const isInCart = cartItems.some((item) => {
+    if (item?.type && item.type !== "product") return false;
+    if (item?.productId != null) return Number(item.productId) === Number(productIdResolved);
+    if (item?.meta?.productId != null) return Number(item.meta.productId) === Number(productIdResolved);
+    if (typeof item?.id === "string" && item.id.startsWith("product:")) {
+      return Number(item.id.split(":")[1]) === Number(productIdResolved);
+    }
+    return false;
+  });
 
   const onAddToCart = async () => {
     try {
@@ -72,14 +121,15 @@ export default function ProductPage() {
       if (!product) return;
 
       // ID fallback logika (za slučaj da backend vraća različito ime polja)
-      const id =
-        product?.idProizvod ??
-        product?.proizvodId ??
-        product?.id ??
-        proizvodId;
+      const id = productIdResolved;
+      if (isInCart) throw new Error("Proizvod je već u košarici.");
 
       setAdding(true);
-      await addProductToCart(Number(id), 1);
+      await addProductToCart(Number(id), 1, {
+        title: productTitle,
+        price: product?.cijenaProizvod,
+        category: product?.kategorijaProizvod,
+      });
       navigate("/kosarica");
     } catch (e) {
       alert(e.message || "Nije moguće dodati u košaricu.");
@@ -121,9 +171,9 @@ export default function ProductPage() {
                 <button
                   className="btn btn-primary"
                   onClick={onAddToCart}
-                  disabled={adding}
+                  disabled={adding || isInCart}
                 >
-                  {adding ? "Dodajem..." : "Dodaj u košaricu"}
+                  {adding ? "Dodajem..." : isInCart ? "U košarici" : "Dodaj u košaricu"}
                 </button>
 
                 <button

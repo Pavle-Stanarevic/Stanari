@@ -163,25 +163,7 @@ export default function Kosarica() {
                       </div>
 
                       <div className="cart-item-right">
-                        <div className="cart-qty">
-                          <button className="qty-btn" onClick={() => onQty(p.id, (p.qty || 1) - 1)}>
-                            −
-                          </button>
-                          <input
-                            className="qty-input"
-                            type="number"
-                            min={1}
-                            value={p.qty || 1}
-                            onChange={(e) => onQty(p.id, e.target.value)}
-                          />
-                          <button className="qty-btn" onClick={() => onQty(p.id, (p.qty || 1) + 1)}>
-                            +
-                          </button>
-                        </div>
-
-                        <div className="cart-price">
-                          {formatPrice(Number(p.price || 0) * Number(p.qty || 1))}
-                        </div>
+                        <div className="cart-price">{formatPrice(Number(p.price || 0))}</div>
 
                         <button className="cart-remove" onClick={() => onRemove(p.id)}>
                           Ukloni
