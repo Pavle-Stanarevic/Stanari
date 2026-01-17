@@ -152,24 +152,18 @@ export default function OrganizacijaRadionica() {
       if (!form.capacity) throw new Error("Unesi broj slobodnih mjesta.");
       if (!form.price) throw new Error("Unesi cijenu.");
 
-      // ✅ multipart payload: radionica + vise slika
-      const fd = new FormData();
-      fd.append("title", form.title);
-      fd.append("description", form.description);
-      fd.append("durationMinutes", String(Number(form.duration)));
-      fd.append("dateISO", when.toISOString());
-      fd.append("location", form.location);
-      fd.append("capacity", String(Number(form.capacity)));
-      fd.append("price", String(Number(form.price)));
-      fd.append("organizerId", String(organizerId));
+      const payload = {
+        title: form.title,
+        description: form.description,
+        durationMinutes: Number(form.duration),
+        dateISO: when.toISOString(),
+        location: form.location,
+        capacity: Number(form.capacity),
+        price: Number(form.price),
+        organizerId,
+      };
 
-      // ✅ vise slika (backend najcesce ocekuje "images" ponovljeno)
-      (form.images || []).forEach((file) => {
-        fd.append("images", file);
-      });
-
-      // ✅ API treba prihvatiti FormData (multipart)
-      await createWorkshop(fd);
+      await createWorkshop(payload);
 
       navigate("/pregledRadionica");
     } catch (e) {

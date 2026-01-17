@@ -4,6 +4,7 @@ import {
   listWorkshops,
   getReservedWorkshopIds,
 } from "../api/workshops";
+import { getCart } from "../api/cart";
 import useAuth from "../hooks/useAuth";
 import "../styles/pregledRadionica.css";
 
@@ -46,6 +47,7 @@ export default function PregledRadionica() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [reservedIds, setReservedIds] = useState(() => new Set());
+  const [cartItems, setCartItems] = useState([]);
 
   // FILTER STATE
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -91,6 +93,38 @@ export default function PregledRadionica() {
       .catch(() => {});
     return () => {
       alive = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    let alive = true;
+
+    const refresh = async () => {
+      try {
+        const data = await getCart();
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (alive) setCartItems(Array.isArray(items) ? items : []);
+      } catch {
+        if (alive) setCartItems([]);
+      }
+    };
+
+    refresh();
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartItems(items);
+      else refresh();
+    };
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      alive = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
     };
   }, [user]);
 
@@ -143,6 +177,19 @@ export default function PregledRadionica() {
     [filteredUpcomingItems]
   );
 
+  const isInCart = (workshopId) => {
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    return items.some((item) => {
+      if (item?.type && item.type !== "workshop") return false;
+      if (item?.workshopId != null) return Number(item.workshopId) === Number(workshopId);
+      if (item?.meta?.workshopId != null) return Number(item.meta.workshopId) === Number(workshopId);
+      if (typeof item?.id === "string" && item.id.startsWith("workshop:")) {
+        return Number(item.id.split(":")[1]) === Number(workshopId);
+      }
+      return false;
+    });
+  };
+
   const clearFilters = () => {
     setFilterStartDate("");
     setFilterEndDate("");
@@ -160,7 +207,8 @@ export default function PregledRadionica() {
   }, [filterStartDate, filterEndDate, filterLocation, maxPrice]);
 
   const goToDetails = (w) => {
-    navigate(`/radionica/${w.id}`);
+    const wid = w?.id ?? w?.idRadionica ?? w?.workshopId;
+    navigate(`/radionica/${wid}`);
   };
 
   return (
@@ -272,8 +320,10 @@ export default function PregledRadionica() {
 
         {!loading && !empty && (
           <ul className="workshop-list">
-            {filteredUpcomingItems.map((w) => (
-              <li key={w.id} className="workshop-item">
+            {filteredUpcomingItems.map((w) => {
+              const wid = w?.id ?? w?.idRadionica ?? w?.workshopId;
+              return (
+              <li key={wid ?? w.id} className="workshop-item">
                 <div className="thumb" aria-hidden>
                   <div className="thumb-circle" />
                 </div>
@@ -281,8 +331,10 @@ export default function PregledRadionica() {
                 <div className="content">
                   <h3 className="title">
                     {w.title || "Bez naziva"}
-                    {reservedIds.has(w.id) ? (
+                    {reservedIds.has(wid) ? (
                       <span className="reserved-badge">[Prijavljen]</span>
+                    ) : isInCart(wid) ? (
+                      <span className="cart-badge">[U košarici]</span>
                     ) : Number(w.capacity) <= 0 ? (
                       <span className="full-badge">[Popunjeno]</span>
                     ) : null}
@@ -307,13 +359,14 @@ export default function PregledRadionica() {
                         className="new-workshop-btn"
                         onClick={() => goToDetails(w)}
                       >
-                        {polaznik ? "Prijavi se" : "Detalji"}
+                        Detalji
                       </button>
                     </div>
                   )}
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
         )}
       </main>

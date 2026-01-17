@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { listWorkshops } from "../api/workshops";
-import { addWorkshopToCart } from "../api/cart";
+import { listWorkshops, getReservedWorkshopIds } from "../api/workshops";
+import { addWorkshopToCart, getCart } from "../api/cart";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
 
@@ -143,6 +143,8 @@ export default function DetaljiRadionice() {
   const [workshop, setWorkshop] = useState(null);
 
   const [adding, setAdding] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [reservedIds, setReservedIds] = useState([]);
 
   // ✅ dodatne (after) slike
   const [extraPhotos, setExtraPhotos] = useState([]);
@@ -177,6 +179,55 @@ export default function DetaljiRadionice() {
       alive = false;
     };
   }, [workshopId]);
+
+  useEffect(() => {
+    if (!user) {
+      setReservedIds([]);
+      return;
+    }
+
+    const userId = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+    if (!userId) {
+      setReservedIds([]);
+      return;
+    }
+
+    getReservedWorkshopIds(userId)
+      .then((ids) => setReservedIds(Array.isArray(ids) ? ids : []))
+      .catch(() => setReservedIds([]));
+  }, [user]);
+
+  useEffect(() => {
+    let alive = true;
+
+    const refresh = async () => {
+      try {
+        const data = await getCart();
+        const items = Array.isArray(data) ? data : data?.items || [];
+        if (alive) setCartItems(Array.isArray(items) ? items : []);
+      } catch {
+        if (alive) setCartItems([]);
+      }
+    };
+
+    refresh();
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartItems(items);
+      else refresh();
+    };
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      alive = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [user]);
 
   const endAt = useMemo(() => (workshop ? calcEndDate(workshop) : null), [workshop]);
   const isFinished = useMemo(() => {
@@ -234,6 +285,23 @@ export default function DetaljiRadionice() {
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
 
+  const isReserved = useMemo(() => {
+    return Array.isArray(reservedIds) && reservedIds.some((rid) => Number(rid) === Number(workshopId));
+  }, [reservedIds, workshopId]);
+
+  const isInCart = useMemo(() => {
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    return items.some((item) => {
+      if (item?.type && item.type !== "workshop") return false;
+      if (item?.workshopId != null) return Number(item.workshopId) === Number(workshopId);
+      if (item?.meta?.workshopId != null) return Number(item.meta.workshopId) === Number(workshopId);
+      if (typeof item?.id === "string" && item.id.startsWith("workshop:")) {
+        return Number(item.id.split(":")[1]) === Number(workshopId);
+      }
+      return false;
+    });
+  }, [cartItems, workshopId]);
+
   const onAddToCart = async () => {
     try {
       if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
@@ -241,10 +309,18 @@ export default function DetaljiRadionice() {
         throw new Error("Samo polaznici mogu dodati radionicu u košaricu.");
       if (!workshop) return;
       if (isFinished) throw new Error("Radionica je završila — više se nije moguće prijaviti.");
+      if (isReserved) throw new Error("Već ste prijavljeni na radionicu.");
+      if (isInCart) throw new Error("Radionica je već u košarici.");
 
       setAdding(true);
-      await addWorkshopToCart(workshop.id, 1);
-      navigate("/kosarica");
+      await addWorkshopToCart(workshop.id, 1, {
+        title: workshop.title || workshop.nazivRadionica,
+        price: workshop.price ?? workshop.cijenaRadionica,
+        meta: {
+          dateISO: getWorkshopISO(workshop),
+          location: workshop.location || workshop.lokacijaRadionica,
+        },
+      });
     } catch (e) {
       alert(e.message || "Nije moguće dodati u košaricu.");
     } finally {
@@ -314,11 +390,23 @@ export default function DetaljiRadionice() {
                   {!isFinished ? (
                     <button
                       className="wd-primary"
-                      disabled={adding || (workshop.capacity || 0) <= 0}
+                      disabled={
+                        adding ||
+                        isFinished ||
+                        isReserved ||
+                        isInCart ||
+                        (workshop.capacity || 0) <= 0
+                      }
                       onClick={onAddToCart}
                       title={(workshop.capacity || 0) <= 0 ? "Radionica je popunjena" : ""}
                     >
-                      {adding ? "Dodajem..." : "Prijavi se (u košaricu)"}
+                      {adding
+                        ? "Dodajem..."
+                        : isReserved
+                        ? "Prijavljen"
+                        : isInCart
+                        ? "U košarici"
+                        : "Prijavi se (u košaricu)"}
                     </button>
                   ) : (
                     <div className="wd-finishedNote">Radionica je završila.</div>
