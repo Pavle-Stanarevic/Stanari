@@ -1,12 +1,11 @@
-// ✅ src/pages/placanje.jsx (bez Apple Pay i bez “nedostupno”)
-// Zamijeni cijeli file
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanje.css";
 
 import cardIcon from "../assets/images/credit-card.svg";
 import paypalIcon from "../assets/images/pay-pal.png";
+import { getCheckout } from "../api/checkout";
+import { getSubscription } from "../api/subscriptions";
 
 const DEV_FALLBACK = true;
 
@@ -17,9 +16,44 @@ const DEV_SUBSCRIPTION = {
   billing: "monthly",
 };
 
+const DEV_CART_CHECKOUT = {
+  checkoutId: "demo-cart-001",
+  currency: "EUR",
+  total: 47.97,
+  items: [
+    { title: "Šalica — bijela glazura", qty: 1, price: 14.99 },
+    { title: "Zdjelica — plava glazura", qty: 2, price: 9.99 },
+    { title: "Radionica: Osnove keramike", qty: 1, price: 12.99 },
+  ],
+};
+
 function formatBilling(billing) {
   if (!billing) return "";
   return billing === "monthly" ? "mjesečno" : billing === "yearly" ? "godišnje" : billing;
+}
+
+function formatMoney(n, currency = "EUR") {
+  const x = Number(n || 0);
+  const val = Number.isNaN(x) ? 0 : x;
+  return `${currency === "EUR" ? "€" : ""}${val.toFixed(2)}`;
+}
+
+function checkoutFromCartItems(items) {
+  const safe = Array.isArray(items) ? items : [];
+  const mapped = safe.map((it) => ({
+    title: it?.title || "Stavka",
+    qty: Number(it?.qty || 1),
+    price: Number(it?.price || 0),
+  }));
+
+  const total = mapped.reduce((s, it) => s + it.price * (it.qty || 1), 0);
+
+  return {
+    checkoutId: "dev-from-cart-items",
+    currency: "EUR",
+    total,
+    items: mapped,
+  };
 }
 
 export default function Placanje() {
@@ -27,44 +61,101 @@ export default function Placanje() {
   const location = useLocation();
 
   const subscriptionId = location.state?.subscriptionId;
+  const checkoutId = location.state?.checkoutId;
+  const cartItems = location.state?.items || null;
 
-  const [subscription, setSubscription] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const demoCart = new URLSearchParams(location.search).get("demoCart") === "1";
+
+  const mode =
+    location.state?.mode || (demoCart ? "cart" : checkoutId ? "cart" : "subscription");
+
   const [paymentMethod, setPaymentMethod] = useState(null);
 
+  const [subscription, setSubscription] = useState(null);
+  const [checkout, setCheckout] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   useEffect(() => {
-    if (!subscriptionId) {
-      if (DEV_FALLBACK) {
-        setSubscription(DEV_SUBSCRIPTION);
-        setLoading(false);
+    let mounted = true;
+
+    async function run() {
+      setLoading(true);
+      setError("");
+
+      // CART
+      if (mode === "cart") {
+        if (demoCart) {
+          setCheckout(DEV_CART_CHECKOUT);
+          setLoading(false);
+          return;
+        }
+
+        if (cartItems && Array.isArray(cartItems) && cartItems.length > 0) {
+          setCheckout(checkoutFromCartItems(cartItems));
+          setLoading(false);
+          return;
+        }
+
+        if (checkoutId) {
+          try {
+            const data = await getCheckout(checkoutId);
+            if (!mounted) return;
+            setCheckout({ ...data, checkoutId });
+          } catch (e) {
+            if (!mounted) return;
+            if (DEV_FALLBACK) setCheckout({ ...DEV_CART_CHECKOUT, checkoutId });
+            else setError(e?.message || "Greška pri dohvaćanju narudžbe.");
+          } finally {
+            if (mounted) setLoading(false);
+          }
+          return;
+        }
+
+        if (DEV_FALLBACK) {
+          setCheckout(DEV_CART_CHECKOUT);
+          setLoading(false);
+          return;
+        }
+
+        navigate("/kosarica");
         return;
       }
-      navigate("/plan");
-      return;
-    }
 
-    async function loadSubscription() {
+      // SUBSCRIPTION
+      if (!subscriptionId) {
+        if (DEV_FALLBACK) {
+          setSubscription(DEV_SUBSCRIPTION);
+          setLoading(false);
+          return;
+        }
+        navigate("/plan");
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/subscriptions/${subscriptionId}`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Ne mogu dohvatiti pretplatu.");
-        const data = await res.json();
+        const data = await getSubscription(subscriptionId);
+        if (!mounted) return;
         setSubscription(data);
       } catch (e) {
-        if (DEV_FALLBACK) {
-          setSubscription({ ...DEV_SUBSCRIPTION, id: subscriptionId });
-        } else {
-          setError(e?.message || "Greška pri dohvaćanju.");
-        }
+        if (!mounted) return;
+        if (DEV_FALLBACK) setSubscription({ ...DEV_SUBSCRIPTION, id: subscriptionId });
+        else setError(e?.message || "Greška pri dohvaćanju.");
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     }
 
-    loadSubscription();
-  }, [subscriptionId, navigate]);
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [mode, demoCart, checkoutId, subscriptionId, navigate, cartItems]);
+
+  const summaryTitle = useMemo(() => {
+    return mode === "cart" ? "Vaša košarica" : "Vaša pretplata";
+  }, [mode]);
 
   function handleContinue() {
     if (!paymentMethod) return;
@@ -74,54 +165,92 @@ export default function Placanje() {
       paypal: "/placanje/paypal",
     };
 
-    sessionStorage.setItem(
-      "clayplay_pending_payment",
-      JSON.stringify({
-        subscriptionId: subscription?.id || subscriptionId,
-        subscription,
-        paymentMethod,
-      })
-    );
+    const payload =
+      mode === "cart"
+        ? {
+            mode: "cart",
+            checkoutId: checkout?.checkoutId || checkoutId || DEV_CART_CHECKOUT.checkoutId,
+            checkout: checkout || DEV_CART_CHECKOUT,
+            paymentMethod,
+          }
+        : {
+            mode: "subscription",
+            subscriptionId: subscription?.id || subscriptionId,
+            subscription,
+            paymentMethod,
+          };
 
-    navigate(routeMap[paymentMethod], {
-      state: {
-        subscriptionId: subscription?.id || subscriptionId,
-        subscription,
-        paymentMethod,
-      },
-    });
+    sessionStorage.setItem("clayplay_pending_payment", JSON.stringify(payload));
+    navigate(routeMap[paymentMethod], { state: payload });
   }
 
   if (loading) return <p className="placanje-state">Učitavanje...</p>;
   if (error) return <p className="placanje-state error">{error}</p>;
-  if (!subscription) return <p className="placanje-state error">Nema podataka o pretplati.</p>;
+
+  if (mode === "cart" && !checkout) return <p className="placanje-state error">Nema košarice.</p>;
+  if (mode !== "cart" && !subscription)
+    return <p className="placanje-state error">Nema pretplate.</p>;
 
   return (
     <div className="placanje-page">
       <div className="placanje-wrap">
         <header className="placanje-header">
           <h1 className="placanje-title">Odaberite način plaćanja</h1>
-          <p className="placanje-subtitle">Pretplatom možete upravljati u bilo kojem trenutku.</p>
+          <p className="placanje-subtitle">
+            {mode === "cart"
+              ? "Pregledajte košaricu i odaberite način plaćanja."
+              : "Pretplatom možete upravljati u bilo kojem trenutku."}
+          </p>
         </header>
 
         <section className="placanje-section">
-          <h2 className="placanje-h2">Vaša pretplata</h2>
+          <h2 className="placanje-h2">{summaryTitle}</h2>
 
           <div className="subscription-card">
             <div className="subscription-top">
               <div>
-                <p className="subscription-kicker">Odabrani plan</p>
-                <h3 className="subscription-title">{subscription.title}</h3>
+                <p className="subscription-kicker">
+                  {mode === "cart" ? "Košarica → naplata" : "Odabrani plan"}
+                </p>
+
+                <h3 className="subscription-title">
+                  {mode === "cart" ? `Checkout #${checkout.checkoutId}` : subscription.title}
+                </h3>
+
+                {mode === "cart" && Array.isArray(checkout.items) && checkout.items.length ? (
+                  <div style={{ marginTop: 10, fontSize: 14, opacity: 0.9 }}>
+                    {checkout.items.map((it, idx) => (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>
+                          {it.title} {it.qty ? `× ${it.qty}` : ""}
+                        </span>
+                        <span>{formatMoney(it.price * (it.qty || 1), checkout.currency)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="subscription-right">
-                <button className="link-btn" type="button" onClick={() => navigate("/plan")}>
+                <button
+                  className="link-btn"
+                  type="button"
+                  onClick={() => navigate(mode === "cart" ? "/kosarica" : "/plan")}
+                >
                   Uredi
                 </button>
 
                 <div className="subscription-price">
-                  <span className="price-amount">€{Number(subscription.amount).toFixed(2)}</span>
-                  <span className="price-cycle">/{formatBilling(subscription.billing)}</span>
+                  {mode === "cart" ? (
+                    <span className="price-amount">
+                      {formatMoney(checkout.total, checkout.currency)}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="price-amount">€{Number(subscription.amount).toFixed(2)}</span>
+                      <span className="price-cycle">/{formatBilling(subscription.billing)}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -167,8 +296,12 @@ export default function Placanje() {
             Nastavi
           </button>
 
-          <button className="ghost-btn" type="button" onClick={() => navigate("/plan")}>
-            Povratak na planove
+          <button
+            className="ghost-btn"
+            type="button"
+            onClick={() => navigate(mode === "cart" ? "/kosarica" : "/plan")}
+          >
+            {mode === "cart" ? "Povratak na košaricu" : "Povratak na planove"}
           </button>
         </div>
       </div>
