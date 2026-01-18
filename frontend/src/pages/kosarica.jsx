@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 import { clearCart, getCart, removeCartItem, updateCartItemQty } from "../api/cart";
 import { createCheckoutFromCart } from "../api/checkout";
 import "../styles/kosarica.css";
@@ -13,6 +14,7 @@ function formatPrice(price) {
 
 export default function Kosarica() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
@@ -33,8 +35,12 @@ export default function Kosarica() {
   };
 
   useEffect(() => {
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
     reload();
-  }, []);
+  }, [user, navigate]);
 
   const workshops = useMemo(() => items.filter((x) => x.type === "workshop"), [items]);
   const products = useMemo(() => items.filter((x) => x.type === "product"), [items]);
