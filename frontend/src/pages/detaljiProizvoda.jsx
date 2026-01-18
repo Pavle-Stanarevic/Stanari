@@ -182,14 +182,15 @@ export default function ProductPage() {
                     ? "U košarici"
                     : "Dodaj u košaricu"}
                 </button>
-
-                <button
-                  className="btn btn-ghost"
-                  type="button"
-                  onClick={() => navigate("/kosarica")}
-                >
-                  Idi u košaricu
-                </button>
+                {user && (
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    onClick={() => navigate("/kosarica")}
+                  >
+                    Idi u košaricu
+                  </button>
+                )}
               </div>
 
               <div className="seller-note">
