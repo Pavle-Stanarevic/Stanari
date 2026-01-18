@@ -36,7 +36,11 @@ public class AuthController {
     @Value("${google.clientId:}")
     private String googleClientId;
 
-    public AuthController(UserService userService, KorisnikRepository korisnikRepository, OrganizatorRepository organizatorRepository) {
+    public AuthController(
+        UserService userService,
+        KorisnikRepository korisnikRepository,
+        OrganizatorRepository organizatorRepository
+    ) {
         this.userService = userService;
         this.korisnikRepository = korisnikRepository;
         this.organizatorRepository = organizatorRepository;
@@ -54,6 +58,7 @@ public class AuthController {
             boolean isOrg = userService.isOrganizator(created.getIdKorisnik());
             userMap.put("userType", isOrg ? "organizator" : "polaznik");
             userMap.put("contact", created.getBrojTelefona());
+            userMap.put("address", created.getAdresa());
             if (isOrg) {
                 String orgStudyName = organizatorRepository.findById(created.getIdKorisnik())
                         .map(Organizator::getImeStudija)
@@ -113,6 +118,7 @@ public class AuthController {
             boolean isOrg = userService.isOrganizator(created.getIdKorisnik());
             userMap.put("userType", isOrg ? "organizator" : "polaznik");
             userMap.put("contact", created.getBrojTelefona());
+            userMap.put("address", created.getAdresa());
             if (isOrg) {
                 String orgStudyName = organizatorRepository.findById(created.getIdKorisnik())
                         .map(Organizator::getImeStudija)
@@ -148,6 +154,7 @@ public class AuthController {
                 boolean isOrg = userService.isOrganizator(u.getIdKorisnik());
                 userMap.put("userType", isOrg ? "organizator" : "polaznik");
                 userMap.put("contact", u.getBrojTelefona());
+                userMap.put("address", u.getAdresa());
                 if (isOrg) {
                     String orgStudyName = organizatorRepository.findById(u.getIdKorisnik())
                             .map(Organizator::getImeStudija)
@@ -200,6 +207,7 @@ public class AuthController {
             boolean isOrg = userService.isOrganizator(u.getIdKorisnik());
             userMap.put("userType", isOrg ? "organizator" : "polaznik");
             userMap.put("contact", u.getBrojTelefona());
+            userMap.put("address", u.getAdresa());
             if (isOrg) {
                 String orgStudyName = organizatorRepository.findById(u.getIdKorisnik())
                         .map(Organizator::getImeStudija)
