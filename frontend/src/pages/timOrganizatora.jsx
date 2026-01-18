@@ -2,47 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/timOrganizatora.css";
 
-const API = import.meta.env.VITE_API_URL;
-
-// Placeholder dok backend endpoint nije spreman
-const PLACEHOLDER = [
-  {
-    id: "1",
-    firstName: "Tim",
-    lastName: "Cheese",
-    studyName: "Clay Studio Cheese",
-    email: "cheese@clayplay.com",
-    photoUrl:
-      "https://api.dicebear.com/7.x/thumbs/svg?seed=Cheese&backgroundColor=b6e3f4",
-  },
-  {
-    id: "2",
-    firstName: "Tech",
-    lastName: "Support",
-    studyName: "Support Studio",
-    email: "support@clayplay.com",
-    photoUrl:
-      "https://api.dicebear.com/7.x/thumbs/svg?seed=TechSupport&backgroundColor=b6e3f4",
-  },
-  {
-    id: "3",
-    firstName: "John",
-    lastName: "Pork",
-    studyName: null,
-    email: "john.pork@clayplay.com",
-    photoUrl:
-      "https://api.dicebear.com/7.x/thumbs/svg?seed=JohnPork&backgroundColor=b6e3f4",
-  },
-  {
-    id: "4",
-    firstName: "Mladi",
-    lastName: "Adam",
-    studyName: "Adam Studio",
-    email: "adam@clayplay.com",
-    photoUrl:
-      "https://api.dicebear.com/7.x/thumbs/svg?seed=Adam&backgroundColor=b6e3f4",
-  },
-];
+const API = import.meta.env.VITE_API_URL || "";
 
 function getDisplayName(o) {
   if (o?.studyName) return o.studyName;
@@ -84,8 +44,8 @@ export default function TimOrganizatora() {
         setOrganizatori(Array.isArray(data) && data.length ? data : []);
       } catch (e) {
         if (!alive) return;
-        setError(e.message);
-        setOrganizatori(PLACEHOLDER); // fallback za UI
+        setError(e.message || "Greška pri dohvaćanju organizatora.");
+        setOrganizatori([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -132,7 +92,7 @@ export default function TimOrganizatora() {
                 >
                   <div className="team-avatarWrap">
                     <img
-                      src={resolvePhotoUrl(o) || PLACEHOLDER[0].photoUrl}
+                      src={resolvePhotoUrl(o) || ""}
                       alt={getDisplayName(o)}
                       className="team-avatar"
                     />
