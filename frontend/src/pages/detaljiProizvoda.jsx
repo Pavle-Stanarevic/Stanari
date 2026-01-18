@@ -171,9 +171,16 @@ export default function ProductPage() {
                 <button
                   className="btn btn-primary"
                   onClick={onAddToCart}
-                  disabled={adding || isInCart}
+                  disabled={adding || isInCart || !user}
+                  title={!user ? "Odjavljeni ste" : ""}
                 >
-                  {adding ? "Dodajem..." : isInCart ? "U košarici" : "Dodaj u košaricu"}
+                  {adding
+                    ? "Dodajem..."
+                    : !user
+                    ? "Odjavljeni ste"
+                    : isInCart
+                    ? "U košarici"
+                    : "Dodaj u košaricu"}
                 </button>
 
                 <button

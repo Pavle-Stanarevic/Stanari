@@ -358,15 +358,23 @@ export default function Izlozbe() {
                       <span>{exh.location || "—"}</span>
                     </div>
 
-                    {isPolaznik && (
+                    {(isPolaznik || !user) && (
                       <button
                         className={`exh-apply ${!isOwner && status === "pending" ? "is-pending" : ""}`}
                         type="button"
-                        disabled={tab === "past" || isOwner}
+                        disabled={tab === "past" || isOwner || !user}
                         onClick={() => !isOwner && openDetails(exhId)}
-                        title={tab === "past" ? "Ne možeš se prijaviti na prošlu izložbu." : ""}
+                        title={
+                          !user
+                            ? "Odjavljeni ste"
+                            : tab === "past"
+                            ? "Ne možeš se prijaviti na prošlu izložbu."
+                            : ""
+                        }
                       >
-                        {isOwner
+                        {!user
+                          ? "Odjavljeni ste"
+                          : isOwner
                           ? "Vaša izložba"
                           : tab === "past"
                           ? "Izložba završena"
