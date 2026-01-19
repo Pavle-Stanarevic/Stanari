@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { applyToWorkshop, getReservedWorkshopIds, listWorkshops } from "../api/workshops";
 import { getCart } from "../api/cart";
+import { getOrganizator } from "../api/organisers";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-/* ---------- helpers ---------- */
 function formatPrice(price) {
   if (price === "" || price == null) return "—";
   const n = Number(price);
@@ -34,13 +34,10 @@ function formatDateTime(iso) {
 }
 
 function getWorkshopISO(w) {
-  // backend WorkshopResponse: startDateTime
   return w?.startDateTime ?? null;
 }
 
 function getInitialImages(workshop) {
-  // backend /api/workshops trenutno ne šalje slike,
-  // ali ostavljamo ako ih negdje kasnije dodate.
   const raw = workshop?.images ?? workshop?.imageUrls ?? [];
   if (!Array.isArray(raw)) return [];
   return raw
@@ -77,7 +74,6 @@ function formatTimeOnly(d) {
   return `${d.toTimeString().slice(0, 5)}h`;
 }
 
-/* ---------- extra photos API (NOTE: endpoint trenutno NE postoji u backendu zipa) ---------- */
 async function fetchExtraPhotos(workshopId) {
   const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
     credentials: "include",
@@ -120,7 +116,6 @@ async function uploadExtraPhotos(workshopId, files) {
   return null;
 }
 
-/* ---------- reviews API (final + fallback) ---------- */
 const FALLBACK_REVIEWS = [
   {
     id: "r1",
@@ -192,7 +187,6 @@ async function postReview(workshopId, payload) {
   return null;
 }
 
-/* ---------- page ---------- */
 export default function DetaljiRadionice() {
   const { id } = useParams();
   const workshopId = Number(id);
@@ -205,16 +199,13 @@ export default function DetaljiRadionice() {
 
   const [adding, setAdding] = useState(false);
 
-  // organizer (REAL: iz backenda /api/organizatori/{id})
   const [organizer, setOrganizer] = useState(null);
   const [organizerErr, setOrganizerErr] = useState("");
 
-  // cart / reserved
   const [cartItems, setCartItems] = useState([]);
   const [reservedSet, setReservedSet] = useState(() => new Set());
   const [reservedLoading, setReservedLoading] = useState(false);
 
-  // photos
   const [extraPhotos, setExtraPhotos] = useState([]);
   const [extraLoading, setExtraLoading] = useState(false);
   const [extraErr, setExtraErr] = useState("");
@@ -222,7 +213,6 @@ export default function DetaljiRadionice() {
   const [uploadErr, setUploadErr] = useState("");
   const fileRef = useRef(null);
 
-  // reviews
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsNote, setReviewsNote] = useState("");
@@ -231,7 +221,6 @@ export default function DetaljiRadionice() {
   const [reviewErr, setReviewErr] = useState("");
   const [postingReview, setPostingReview] = useState(false);
 
-  /* 1) load workshop */
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -257,7 +246,6 @@ export default function DetaljiRadionice() {
     };
   }, [workshopId]);
 
-  /* 1b) load organizer (from backend, no local guessing) */
   useEffect(() => {
     let alive = true;
     setOrganizer(null);
@@ -273,8 +261,8 @@ export default function DetaljiRadionice() {
         setOrganizer(data || null);
       } catch (e) {
         if (!alive) return;
-        setOrganizerErr(e.message || "Ne mogu dohvatiti organizatora.");
         setOrganizer(null);
+        setOrganizerErr(e?.message || "Ne mogu dohvatiti organizatora.");
       }
     })();
 
@@ -283,7 +271,6 @@ export default function DetaljiRadionice() {
     };
   }, [workshop?.organizerId]);
 
-  /* 2) reserved ids (polaznik) */
   useEffect(() => {
     let alive = true;
 
@@ -319,7 +306,7 @@ export default function DetaljiRadionice() {
     };
   }, [user]);
 
-  /* cart */
+  // cart
   useEffect(() => {
     let alive = true;
 
@@ -347,10 +334,13 @@ export default function DetaljiRadionice() {
   const organizerId = workshop?.organizerId ?? null;
 
   const organizerName = useMemo(() => {
+    if (!organizerId) return "Organizator";
+    if (!organizer && !organizerErr) return "Učitavam...";
     if (!organizer) return "Organizator";
+
     const full = `${organizer?.firstName || ""} ${organizer?.lastName || ""}`.trim();
     return full || organizer?.studyName || organizer?.email || "Organizator";
-  }, [organizer]);
+  }, [organizer, organizerErr, organizerId]);
 
   const goToOrganizerProfile = () => {
     if (!organizerId) return;
@@ -366,7 +356,7 @@ export default function DetaljiRadionice() {
 
   const initialPhotos = useMemo(() => (workshop ? getInitialImages(workshop) : []), [workshop]);
 
-  /* 4) extra photos after finish */
+  // dodatne slike nakon zavrsetka radionice
   useEffect(() => {
     let alive = true;
     setExtraErr("");
@@ -400,7 +390,7 @@ export default function DetaljiRadionice() {
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
 
-  /* 5) reviews after finish (fallback) */
+  // recenzije nakon zavrsetka radionice
   useEffect(() => {
     let alive = true;
 
@@ -476,7 +466,9 @@ export default function DetaljiRadionice() {
       setAdding(true);
       const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
       if (!userId) throw new Error("Nedostaje ID korisnika.");
+
       await applyToWorkshop(workshop.id, userId);
+
       setReservedSet((prev) => {
         const next = new Set(prev);
         next.add(Number(workshop.id));
@@ -658,7 +650,6 @@ export default function DetaljiRadionice() {
 
               <p className="wd-sub">
                 Datum: <strong>{formatDateTime(getWorkshopISO(workshop))}</strong>
-                {/* kraj: samo vrijeme */}
                 {endAt ? (
                   <>
                     {" "}
