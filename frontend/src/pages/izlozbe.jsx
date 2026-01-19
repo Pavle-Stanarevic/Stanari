@@ -180,9 +180,7 @@ export default function Izlozbe() {
       if (!title.trim()) throw new Error("Unesi naziv izložbe.");
       if (!location.trim()) throw new Error("Unesi lokaciju.");
       if (!dateTime) throw new Error("Odaberi datum i vrijeme.");
-
-      // ✅ opis je opcionalan, ali ako želiš da bude obavezno, odkomentiraj:
-      // if (!description.trim()) throw new Error("Unesi opis izložbe.");
+      if (!description.trim()) throw new Error("Unesi opis izložbe.");
 
       const files = fileRef.current?.files ? Array.from(fileRef.current.files) : [];
 
