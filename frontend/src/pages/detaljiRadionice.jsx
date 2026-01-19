@@ -627,6 +627,7 @@ export default function DetaljiRadionice() {
                       className="wd-primary"
                       disabled={
                         adding ||
+                        !user ||
                         isFinished ||
                         isReserved ||
                         isInCart ||
@@ -634,10 +635,18 @@ export default function DetaljiRadionice() {
                         (workshop.capacity || 0) <= 0
                       }
                       onClick={onAddToCart}
-                      title={(workshop.capacity || 0) <= 0 ? "Radionica je popunjena" : ""}
+                      title={
+                        !user
+                          ? "Odjavljeni ste"
+                          : (workshop.capacity || 0) <= 0
+                          ? "Radionica je popunjena"
+                          : ""
+                      }
                     >
                       {adding
                         ? "Dodajem..."
+                        : !user
+                        ? "Odjavljeni ste"
                         : isOwnerOrganizer
                         ? "Vaša radionica"
                         : isReserved

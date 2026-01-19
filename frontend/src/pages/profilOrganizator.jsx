@@ -10,57 +10,6 @@ import "../styles/profilOrganizator.css";
 
 const API = import.meta.env.VITE_API_URL;
 
-// fallback (da vidim jel css radi dok backend nije gotov)
-const FALLBACK_ORGANIZER = {
-  id: "1",
-  firstName: "Tim",
-  lastName: "Cheese",
-  studyName: "Clay Studio Cheese",
-  email: "timcheese@gmail.com",
-  contact: "+385 99 123 456",
-  address: "Trg bana Josipa Jelačića 69, Zagreb, Croatia",
-  age: 28,
-  photoUrl: "https://api.dicebear.com/7.x/thumbs/svg?seed=Cheese&backgroundColor=b6e3f4",
-};
-
-const FALLBACK = {
-  pastWorkshops: [
-    {
-      id: "w1",
-      title: "Radionica gline",
-      startDateTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
-      location: "Unska 1, Zagreb",
-    },
-  ],
-  upcomingWorkshops: [
-    {
-      id: "w2",
-      title: "Radionica gline",
-      startDateTime: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-      location: "Unska 1, Zagreb",
-    },
-  ],
-  pastExhibitions: [
-    {
-      id: "e1",
-      title: "Izložba keramike",
-      startDateTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 35).toISOString(),
-      location: "Galerija Kaptol",
-    },
-  ],
-  upcomingExhibitions: [
-    {
-      id: "e2",
-      title: "Izložba - Proljeće",
-      startDateTime: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-      location: "Galerija SC",
-    },
-  ],
-  products: [
-    { id: "p1", name: "Keramička zdjela", price: 24.99, description: "Ručni rad, glazura." },
-    { id: "p2", name: "Šalica", price: 12.5 },
-  ],
-};
 
 function resolvePhotoUrl(o) {
   const raw = o?.photoUrl || o?.fotoUrl || o?.avatarUrl || "";
@@ -71,8 +20,9 @@ function resolvePhotoUrl(o) {
 }
 
 function getDisplayName(o) {
-  if (`${o?.firstName || ""} ${o?.lastName || ""}`.trim()) return (`${o?.firstName || ""} ${o?.lastName || ""}`.trim());
+  if (`${o?.firstName || ""} ${o?.lastName || ""}`.trim()) return `${o?.firstName || ""} ${o?.lastName || ""}`.trim();
   if (o?.studyName) return o.studyName || "Organizator";
+  return "Organizator";
 }
 
 function formatDateTime(iso) {
@@ -128,7 +78,7 @@ export default function ProfilOrganizator() {
       .catch((e) => {
         if (!alive) return;
         setOrgError(e.message || "Greška pri dohvaćanju organizatora");
-        setOrg(FALLBACK_ORGANIZER);
+        setOrg(null);
       })
       .finally(() => alive && setOrgLoading(false));
 
@@ -163,7 +113,7 @@ export default function ProfilOrganizator() {
       } catch (e) {
         if (!alive) return;
         setListError(e.message || "Greška pri dohvaćanju popisa");
-        setListItems(FALLBACK[activeTab] || []);
+        setListItems([]);
       } finally {
         if (!alive) return;
         setListLoading(false);
@@ -177,10 +127,7 @@ export default function ProfilOrganizator() {
   }, [organizatorId, activeTab]);
 
   const displayName = useMemo(() => getDisplayName(org), [org]);
-  const avatar = useMemo(
-    () => resolvePhotoUrl(org) || FALLBACK_ORGANIZER.photoUrl,
-    [org]
-  );
+  const avatar = useMemo(() => resolvePhotoUrl(org), [org]);
 
   return (
     <div className="org-page">

@@ -119,6 +119,14 @@
   transform: translateY(-1px);
 }
 
+.ed-primary.is-pending {
+  background: #2563eb;
+}
+
+.ed-primary.is-pending:hover {
+  background: #1d4ed8;
+}
+
 .ed-primary:disabled {
   background: rgba(17, 24, 39, 0.25);
   cursor: not-allowed;

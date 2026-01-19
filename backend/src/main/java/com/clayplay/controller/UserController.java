@@ -35,6 +35,7 @@ public class UserController {
             boolean isOrg = userService.isOrganizator(updated.getIdKorisnik());
             userMap.put("userType", isOrg ? "organizator" : "polaznik");
             userMap.put("contact", updated.getBrojTelefona());
+            userMap.put("address", updated.getAdresa());
             if (isOrg) {
                 String orgStudyName = organizatorRepository.findById(updated.getIdKorisnik())
                         .map(Organizator::getImeStudija)
