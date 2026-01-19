@@ -201,6 +201,8 @@ public class AuthController {
         userMap.put("address", u.getAdresa());
         userMap.put("status", u.getStatus());
 
+        userMap.put("photoUrl", userService.resolvePhotoUrl(u));
+
         boolean isAdmin = userService.isAdmin(u.getIdKorisnik());
         boolean isOrg = userService.isOrganizator(u.getIdKorisnik());
         String role = isAdmin ? "ADMIN" : isOrg ? "ORGANIZATOR" : "POLAZNIK";

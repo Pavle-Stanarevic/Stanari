@@ -12,12 +12,13 @@ public class WorkshopResponse {
     private Integer capacity;
     private Double price;
     private Long organizerId;
+    private java.util.List<String> images;
 
     public WorkshopResponse() {}
 
     public WorkshopResponse(Long id, String title, String description, Integer durationMinutes,
                             OffsetDateTime startDateTime, String location, Integer capacity,
-                            Double price, Long organizerId) {
+                            Double price, Long organizerId, java.util.List<String> images) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -27,6 +28,7 @@ public class WorkshopResponse {
         this.capacity = capacity;
         this.price = price;
         this.organizerId = organizerId;
+        this.images = images;
     }
 
     public Long getId() { return id; }
@@ -55,4 +57,7 @@ public class WorkshopResponse {
 
     public Long getOrganizerId() { return organizerId; }
     public void setOrganizerId(Long organizerId) { this.organizerId = organizerId; }
+
+    public java.util.List<String> getImages() { return images; }
+    public void setImages(java.util.List<String> images) { this.images = images; }
 }

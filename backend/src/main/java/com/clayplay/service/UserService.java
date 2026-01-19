@@ -149,4 +149,35 @@ public class UserService {
 
         return saved;
     }
+
+    @Transactional
+    public Korisnik updateProfileImage(Long idKorisnik, byte[] imageBytes, String contentType) {
+        if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");
+        if (imageBytes == null || imageBytes.length == 0) throw new IllegalArgumentException("Empty image");
+
+        Korisnik u = korisnikRepository.findById(idKorisnik)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String publicUrl = fileStorageService.save(imageBytes, contentType);
+        Fotografija f = new Fotografija();
+        f.setFotoURL(publicUrl);
+        Fotografija savedFoto = fotografijaRepository.save(f);
+        u.setFotoId(savedFoto.getFotoId());
+        u.setFotografija(savedFoto);
+
+        Korisnik saved = korisnikRepository.save(u);
+        return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public String resolvePhotoUrl(Korisnik u) {
+        if (u == null) return null;
+        Fotografija f = u.getFotografija();
+        if (f != null && f.getFotoURL() != null) return f.getFotoURL();
+        Long fotoId = u.getFotoId();
+        if (fotoId == null) return null;
+        return fotografijaRepository.findById(fotoId)
+                .map(Fotografija::getFotoURL)
+                .orElse(null);
+    }
 }

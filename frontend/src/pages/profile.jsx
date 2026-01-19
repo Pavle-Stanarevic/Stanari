@@ -6,7 +6,21 @@ import { Edit, Check, X } from "lucide-react";
 import { updateProfile, me } from "../api/auth.js";
 import { listWorkshops } from "../api/workshops.js";
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || "";
+
+function resolvePhotoUrl(u) {
+  const raw =
+    u?.imageUrl ||
+    u?.photoUrl ||
+    u?.fotoUrl ||
+    u?.avatarUrl ||
+    u?.imagePath ||
+    "";
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("/")) return `${API}${raw}`;
+  return raw;
+}
 
 function getCookie(name = "XSRF-TOKEN") {
   return document.cookie
@@ -43,6 +57,7 @@ export default function Profile() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
 
   // promjena lozinke
   const [pwCurrent, setPwCurrent] = useState("");
@@ -207,20 +222,28 @@ export default function Profile() {
       }
 
       const updated = await res.json().catch(() => ({}));
+      let resolvedUrl = "";
 
       if (updated && Object.keys(updated).length > 0) {
         signIn(updated);
         setLocalUser(updated);
+        resolvedUrl = resolvePhotoUrl(updated);
       } else {
         const refreshed = await me();
         if (refreshed) {
           signIn(refreshed);
           setLocalUser(refreshed);
+          resolvedUrl = resolvePhotoUrl(refreshed);
         }
       }
 
+      if (resolvedUrl) {
+        const busted = `${resolvedUrl}${resolvedUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+        setUploadedImageUrl(busted);
+        setImagePreview("");
+      }
+
       setImageFile(null);
-      setImagePreview("");
     } catch (e) {
       setError(e?.message || "Neuspješno spremanje slike.");
     } finally {
@@ -311,8 +334,8 @@ export default function Profile() {
             <img
               src={
                 imagePreview ||
-                safeUser.imageUrl ||
-                safeUser.photoUrl ||
+                uploadedImageUrl ||
+                resolvePhotoUrl(safeUser) ||
                 "https://via.placeholder.com/140x140.png?text=Profil"
               }
               alt="Profilna slika"
@@ -324,7 +347,10 @@ export default function Profile() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                setImageFile(e.target.files?.[0] || null);
+                setUploadedImageUrl("");
+              }}
               disabled={uploadingImage}
             />
             <button

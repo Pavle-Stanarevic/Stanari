@@ -4,8 +4,10 @@ import com.clayplay.dto.WorkshopRequest;
 import com.clayplay.dto.WorkshopResponse;
 import com.clayplay.service.WorkshopService;
 import com.clayplay.service.ReservationService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +42,31 @@ public class WorkshopController {
     @GetMapping
     public List<WorkshopResponse> list() {
         return service.listRecent(100);
+    }
+
+    @GetMapping("/{id}/photos")
+    public ResponseEntity<?> listPhotos(@PathVariable("id") Long workshopId) {
+        try {
+            return ResponseEntity.ok(service.listPhotoUrls(workshopId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    @PostMapping(path = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadPhotos(
+            @PathVariable("id") Long workshopId,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        try {
+            return ResponseEntity.ok(service.addPhotos(workshopId, images));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
     }
 
     @PostMapping("/{id}/apply")

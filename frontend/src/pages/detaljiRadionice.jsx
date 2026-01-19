@@ -8,6 +8,13 @@ import "../styles/detaljiRadionice.css";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
+function resolvePhotoUrl(raw) {
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("/")) return `${BASE_URL}${raw}`;
+  return raw;
+}
+
 function formatPrice(price) {
   if (price === "" || price == null) return "—";
   const n = Number(price);
@@ -42,6 +49,7 @@ function getInitialImages(workshop) {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null))
+    .map(resolvePhotoUrl)
     .filter(Boolean);
 }
 
@@ -86,6 +94,7 @@ async function fetchExtraPhotos(workshopId) {
   const arr = Array.isArray(data) ? data : [];
   return arr
     .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? null))
+    .map(resolvePhotoUrl)
     .filter(Boolean);
 }
 
@@ -110,6 +119,7 @@ async function uploadExtraPhotos(workshopId, files) {
     if (Array.isArray(data)) {
       return data
         .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? null))
+        .map(resolvePhotoUrl)
         .filter(Boolean);
     }
   }
