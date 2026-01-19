@@ -221,6 +221,7 @@ export default function Izlozbe() {
         {
           title: title.trim(),
           location: location.trim(),
+          description: description.trim(),
           startDateTime: new Date(dateTime).toISOString(),
           organizerId,
         },

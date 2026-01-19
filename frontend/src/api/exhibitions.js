@@ -23,11 +23,12 @@ export function listExhibitions() {
   return fetchJson("/api/exhibitions");
 }
 
-// POST /api/exhibitions  (multipart: title, location, startDateTime, organizerId, images[])
-export function createExhibition({ title, location, startDateTime, organizerId }, files = []) {
+// POST /api/exhibitions  (multipart: title, location, description, startDateTime, organizerId, images[])
+export function createExhibition({ title, location, description, startDateTime, organizerId }, files = []) {
   const fd = new FormData();
   fd.append("title", title);
   fd.append("location", location);
+  if (description != null) fd.append("description", description);
   fd.append("startDateTime", startDateTime);
   if (organizerId != null) fd.append("organizerId", String(organizerId));
 
