@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth.js";
 import "../styles/profile.css";
 import { Edit, Check, X } from "lucide-react";
@@ -29,6 +30,7 @@ function isStrongEnoughPassword(pw) {
 
 export default function Profile() {
   const { user, signIn } = useAuth();
+  const navigate = useNavigate();
 
   const [localUser, setLocalUser] = useState(user || null);
 
@@ -60,6 +62,15 @@ export default function Profile() {
 
   const safeUser = useMemo(() => localUser || user, [localUser, user]);
   const isOrganizator = safeUser?.userType === "organizator";
+  const isAdmin =
+    safeUser?.role === "ADMIN" ||
+    safeUser?.userType === "admin" ||
+    safeUser?.userType === "ADMIN";
+
+  useEffect(() => {
+    if (!safeUser) return;
+    if (isAdmin) navigate("/admin", { replace: true });
+  }, [safeUser, isAdmin, navigate]);
 
   // preview slike
   useEffect(() => {

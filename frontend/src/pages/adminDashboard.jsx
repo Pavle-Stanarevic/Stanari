@@ -1,6 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import {
+  approveProfile as approveProfileApi,
+  blockUser as blockUserApi,
+  getMembershipPricing,
+  listPendingProfiles,
+  listUsers,
+  rejectProfile as rejectProfileApi,
+  unblockUser as unblockUserApi,
+  updateMembershipPricing,
+} from "../api/admin";
 import "../styles/adminDashboard.css";
 
 const TABS = {
@@ -34,64 +44,23 @@ export default function AdminDashboard() {
 
   const [tab, setTab] = useState(TABS.PENDING);
 
-  // --- Placeholder users ---
-  const [users, setUsers] = useState([
-    {
-      id: "u1",
-      name: "Ana Horvat",
-      email: "ana@example.com",
-      role: "POLAZNIK",
-      status: "ACTIVE",
-      createdAt: "2025-12-03",
-    },
-    {
-      id: "u2",
-      name: "Studio Glina",
-      email: "studio@example.com",
-      role: "ORGANIZATOR",
-      status: "ACTIVE",
-      createdAt: "2025-12-10",
-    },
-    {
-      id: "u3",
-      name: "Marko Marić",
-      email: "marko@example.com",
-      role: "POLAZNIK",
-      status: "BLOCKED",
-      createdAt: "2025-12-12",
-    },
-  ]);
-
-  // --- Placeholder pending organizer profiles ---
-  const [pendingProfiles, setPendingProfiles] = useState([
-    {
-      id: "p1",
-      name: "Keramika Luna Studio",
-      email: "luna-studio@example.com",
-      phone: "+385 99 123 4567",
-      address: "Zagreb, Ilica 10",
-      createdAt: "2026-01-10",
-      status: "PENDING",
-    },
-    {
-      id: "p2",
-      name: "ClayCraft",
-      email: "claycraft@example.com",
-      phone: "+385 91 222 3333",
-      address: "Rijeka, Korzo 1",
-      createdAt: "2026-01-12",
-      status: "PENDING",
-    },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [pendingProfiles, setPendingProfiles] = useState([]);
 
   // --- Pricing (valuta fiksna EUR; dropdown uklonjen) ---
   const [pricing, setPricing] = useState({
     monthly: "9.99",
     yearly: "89.99",
-    currency: "EUR", // ostaje radi kompatibilnosti s budućim backend formatom
+    currency: "EUR",
   });
   const [pricingDraft, setPricingDraft] = useState(pricing);
   const [pricingSavedMsg, setPricingSavedMsg] = useState("");
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingPending, setLoadingPending] = useState(false);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const [errorUsers, setErrorUsers] = useState("");
+  const [errorPending, setErrorPending] = useState("");
+  const [errorPricing, setErrorPricing] = useState("");
 
   // --- Search / filter ---
   const [qUsers, setQUsers] = useState("");
@@ -102,10 +71,10 @@ export default function AdminDashboard() {
     if (!q) return users;
     return users.filter((u) => {
       return (
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        (u.role || "").toLowerCase().includes(q) ||
-        (u.status || "").toLowerCase().includes(q)
+        String(u.name || "").toLowerCase().includes(q) ||
+        String(u.email || "").toLowerCase().includes(q) ||
+        String(u.role || "").toLowerCase().includes(q) ||
+        String(u.status || "").toLowerCase().includes(q)
       );
     });
   }, [users, qUsers]);
@@ -115,43 +84,98 @@ export default function AdminDashboard() {
     if (!q) return pendingProfiles;
     return pendingProfiles.filter((p) => {
       return (
-        p.name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        (p.address || "").toLowerCase().includes(q) ||
-        (p.phone || "").toLowerCase().includes(q)
+        String(p.name || "").toLowerCase().includes(q) ||
+        String(p.email || "").toLowerCase().includes(q) ||
+        String(p.address || "").toLowerCase().includes(q) ||
+        String(p.phone || "").toLowerCase().includes(q)
       );
     });
   }, [pendingProfiles, qPending]);
 
   // --- Guard: ako nije admin ---
   useEffect(() => {
-    if (!user) return;
-    const role = user?.role ?? user?.user?.role;
-    if (role && role !== "ADMIN") navigate("/", { replace: true });
+    const role = user?.role ?? user?.user?.role ?? null;
+    if (role !== "ADMIN") navigate("/", { replace: true });
   }, [user, navigate]);
 
+  useEffect(() => {
+    const role = user?.role ?? user?.user?.role;
+    if (!role || role !== "ADMIN") return;
+
+    const loadAll = async () => {
+      try {
+        setLoadingUsers(true);
+        setErrorUsers("");
+        const data = await listUsers();
+        setUsers(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setErrorUsers(e.message || "Ne mogu dohvatiti korisnike.");
+      } finally {
+        setLoadingUsers(false);
+      }
+
+      try {
+        setLoadingPending(true);
+        setErrorPending("");
+        const data = await listPendingProfiles();
+        setPendingProfiles(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setErrorPending(e.message || "Ne mogu dohvatiti pending profile.");
+      } finally {
+        setLoadingPending(false);
+      }
+
+      try {
+        setLoadingPricing(true);
+        setErrorPricing("");
+        const data = await getMembershipPricing();
+        const normalized = {
+          monthly: String(data?.monthly ?? pricing.monthly),
+          yearly: String(data?.yearly ?? pricing.yearly),
+          currency: "EUR",
+        };
+        setPricing(normalized);
+        setPricingDraft(normalized);
+      } catch (e) {
+        setErrorPricing(e.message || "Ne mogu dohvatiti cijene članarina.");
+      } finally {
+        setLoadingPricing(false);
+      }
+    };
+
+    loadAll();
+  }, [user]);
+
   // --- Mock actions (kasnije zamijeni s API) ---
-  function approveProfile(profileId) {
-    setPendingProfiles((prev) => prev.filter((p) => p.id !== profileId));
+  async function approveProfile(profileId) {
+    await approveProfileApi(profileId);
+    const data = await listPendingProfiles();
+    setPendingProfiles(Array.isArray(data) ? data : []);
+    const usersData = await listUsers();
+    setUsers(Array.isArray(usersData) ? usersData : []);
   }
 
-  function rejectProfile(profileId) {
-    setPendingProfiles((prev) => prev.filter((p) => p.id !== profileId));
+  async function rejectProfile(profileId) {
+    await rejectProfileApi(profileId);
+    const data = await listPendingProfiles();
+    setPendingProfiles(Array.isArray(data) ? data : []);
+    const usersData = await listUsers();
+    setUsers(Array.isArray(usersData) ? usersData : []);
   }
 
-  function blockUser(userId) {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, status: "BLOCKED" } : u))
-    );
+  async function blockUser(userId) {
+    await blockUserApi(userId);
+    const data = await listUsers();
+    setUsers(Array.isArray(data) ? data : []);
   }
 
-  function unblockUser(userId) {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, status: "ACTIVE" } : u))
-    );
+  async function unblockUser(userId) {
+    await unblockUserApi(userId);
+    const data = await listUsers();
+    setUsers(Array.isArray(data) ? data : []);
   }
 
-  function savePricing() {
+  async function savePricing() {
     const m = Number(String(pricingDraft.monthly).replace(",", "."));
     const y = Number(String(pricingDraft.yearly).replace(",", "."));
     if (Number.isNaN(m) || m <= 0 || Number.isNaN(y) || y <= 0) {
@@ -165,9 +189,10 @@ export default function AdminDashboard() {
       currency: "EUR", // fiksno
     };
 
+    await updateMembershipPricing({ monthly: normalized.monthly, yearly: normalized.yearly });
     setPricing(normalized);
     setPricingDraft(normalized);
-    setPricingSavedMsg("Cijene su spremljene (placeholder).");
+    setPricingSavedMsg("Cijene su spremljene.");
     window.setTimeout(() => setPricingSavedMsg(""), 2500);
   }
 
@@ -213,7 +238,15 @@ export default function AdminDashboard() {
             />
           </div>
 
-          {filteredPending.length === 0 ? (
+          {loadingPending ? (
+            <div className="empty">
+              <div className="empty-title">Učitavanje…</div>
+            </div>
+          ) : errorPending ? (
+            <div className="empty">
+              <div className="empty-title">{errorPending}</div>
+            </div>
+          ) : filteredPending.length === 0 ? (
             <div className="empty">
               <div className="empty-title">Nema profila za odobravanje</div>
               <div className="empty-subtitle">
@@ -321,9 +354,8 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          <div className="hint">
-            *Ovo je placeholder. Kasnije se spaja na backend listu korisnika.
-          </div>
+          {loadingUsers ? <div className="hint">Učitavanje korisnika…</div> : null}
+          {errorUsers ? <div className="hint">{errorUsers}</div> : null}
         </div>
       )}
 
@@ -336,6 +368,9 @@ export default function AdminDashboard() {
               Trenutno: {pricing.monthly} € / mj, {pricing.yearly} € / god
             </div>
           </div>
+
+          {loadingPricing ? <div className="hint">Učitavanje cijena…</div> : null}
+          {errorPricing ? <div className="hint">{errorPricing}</div> : null}
 
           <div className="pricing-grid">
             <div className="field">

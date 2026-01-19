@@ -49,7 +49,7 @@ public class OrganizatorController {
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<?> listAll() {
-        List<Organizator> all = organizatorRepository.findAll();
+        List<Organizator> all = organizatorRepository.findByStatusOrganizatorOrderByIdKorisnikAsc("APPROVED");
         List<Map<String, Object>> payload = all.stream().map(org -> {
             Korisnik k = org.getKorisnik();
             Fotografija f = k != null ? k.getFotografija() : null;

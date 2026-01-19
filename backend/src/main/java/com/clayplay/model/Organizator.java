@@ -12,6 +12,8 @@ public class Organizator {
 
     @Column(name = "imeStudija")
     private String imeStudija; // nullable in DB, optional here
+    @Column(name = "statusOrganizator", nullable = false)
+    private String statusOrganizator = "APPROVED";
 
     @OneToOne(optional = false)
     @JoinColumn(name = "idKorisnik", referencedColumnName = "idKorisnik", insertable = false, updatable = false)
@@ -22,6 +24,9 @@ public class Organizator {
 
     public String getImeStudija() { return imeStudija; }
     public void setImeStudija(String imeStudija) { this.imeStudija = imeStudija; }
+    
+    public String getStatusOrganizator() { return statusOrganizator; }
+    public void setStatusOrganizator(String statusOrganizator) { this.statusOrganizator = statusOrganizator; }
 
     public Korisnik getKorisnik() { return korisnik; }
     public void setKorisnik(Korisnik korisnik) { this.korisnik = korisnik; }

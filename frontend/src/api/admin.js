@@ -1,25 +1,20 @@
 // src/api/admin.js
-import { fetchJson } from "./fetchJson"; 
-// ako ti je helper drugdje, prilagodi import
+import { requestJson } from "./http";
 
 /* =========================
    KORISNICI
 ========================= */
 
 export function listUsers() {
-  return fetchJson("/admin/users");
+  return requestJson("/api/admin/users");
 }
 
 export function blockUser(userId) {
-  return fetchJson(`/admin/users/${userId}/block`, {
-    method: "PATCH",
-  });
+  return requestJson(`/api/admin/users/${userId}/block`, { method: "PATCH" });
 }
 
 export function unblockUser(userId) {
-  return fetchJson(`/admin/users/${userId}/unblock`, {
-    method: "PATCH",
-  });
+  return requestJson(`/api/admin/users/${userId}/unblock`, { method: "PATCH" });
 }
 
 /* =========================
@@ -27,19 +22,15 @@ export function unblockUser(userId) {
 ========================= */
 
 export function listPendingProfiles() {
-  return fetchJson("/admin/pending-profiles");
+  return requestJson("/api/admin/pending-profiles");
 }
 
 export function approveProfile(profileId) {
-  return fetchJson(`/admin/profiles/${profileId}/approve`, {
-    method: "PATCH",
-  });
+  return requestJson(`/api/admin/profiles/${profileId}/approve`, { method: "PATCH" });
 }
 
 export function rejectProfile(profileId) {
-  return fetchJson(`/admin/profiles/${profileId}/reject`, {
-    method: "PATCH",
-  });
+  return requestJson(`/api/admin/profiles/${profileId}/reject`, { method: "PATCH" });
 }
 
 /* =========================
@@ -47,12 +38,9 @@ export function rejectProfile(profileId) {
 ========================= */
 
 export function getMembershipPricing() {
-  return fetchJson("/admin/membership-pricing");
+  return requestJson("/api/admin/membership-pricing");
 }
 
 export function updateMembershipPricing(data) {
-  return fetchJson("/admin/membership-pricing", {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
+  return requestJson("/api/admin/membership-pricing", { method: "PUT", data });
 }

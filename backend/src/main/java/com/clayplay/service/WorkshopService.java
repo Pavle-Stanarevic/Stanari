@@ -30,8 +30,8 @@ public class WorkshopService {
     public Long create(WorkshopRequest req) {
         if (req == null) throw new IllegalArgumentException("Missing body");
         if (req.getOrganizerId() == null) throw new IllegalArgumentException("Missing organizerId");
-        if (!organizatorRepository.existsByIdKorisnik(req.getOrganizerId())) {
-            throw new IllegalArgumentException("Organizer does not exist");
+        if (!organizatorRepository.existsByIdKorisnikAndStatusOrganizator(req.getOrganizerId(), "APPROVED")) {
+            throw new IllegalArgumentException("Organizer is not approved");
         }
         if (req.getTitle() == null || req.getTitle().isBlank()) throw new IllegalArgumentException("Missing title");
         if (req.getLocation() == null || req.getLocation().isBlank()) throw new IllegalArgumentException("Missing location");
