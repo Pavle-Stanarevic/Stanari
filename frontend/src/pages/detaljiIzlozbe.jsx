@@ -39,6 +39,12 @@ function getImages(x) {
     .filter(Boolean);
 }
 
+// ✅ opis samo iz backenda (exh objekta)
+function getDescription(x) {
+  const v = x?.description ?? x?.opis ?? x?.opisIzlozbe ?? "";
+  return typeof v === "string" ? v.trim() : "";
+}
+
 export default function DetaljiIzlozbe() {
   const { id } = useParams();
   const exhId = Number(id);
@@ -123,7 +129,7 @@ export default function DetaljiIzlozbe() {
       if (isPast) throw new Error("Ne možeš se prijaviti na prošlu izložbu.");
       if (!exh) return;
 
-      // demo blok
+      // demo blok (ostavljeno kako si imala)
       if (String(exh.id).startsWith("900")) {
         throw new Error("Ovo je demo izložba (placeholder) — prijava nije dostupna.");
       }
@@ -142,6 +148,8 @@ export default function DetaljiIzlozbe() {
   const imgs = getImages(exh);
   const cover = imgs[0] || null;
   const rest = imgs.slice(1);
+
+  const description = getDescription(exh);
 
   return (
     <div className="ed-page">
@@ -170,20 +178,19 @@ export default function DetaljiIzlozbe() {
                 {isPolaznik && (
                   <button
                     className={`ed-primary ${appStatus === "pending" ? "is-pending" : ""}`}
-                    disabled={
-                      reserved ||
-                      isPast ||
-                      applying
-                    }
+                    disabled={reserved || isPast || applying}
                     onClick={onApply}
                     title={isPast ? "Izložba je prošla." : ""}
                   >
                     {(() => {
-                      const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
-                      const currentUserId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
-                      const isOwner =
-                        currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
-                      if (isOwner) return "Vaša izložba";
+                      const ownerId2 =
+                        exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+                      const currentUserId2 = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+                      const isOwner2 =
+                        currentUserId2 != null &&
+                        ownerId2 != null &&
+                        Number(currentUserId2) === Number(ownerId2);
+                      if (isOwner2) return "Vaša izložba";
                       if (isPast) return "Izložba završena";
                       if (appStatus === "pending" || reserved) return "Prijava se obrađuje";
                       if (applying) return "Prijavljujem...";
@@ -194,10 +201,24 @@ export default function DetaljiIzlozbe() {
               </div>
 
               <div className="ed-meta">
-                <span><strong>Datum:</strong> {formatDateTime(getISO(exh))}</span>
+                <span>
+                  <strong>Datum:</strong> {formatDateTime(getISO(exh))}
+                </span>
                 <span className="dot">•</span>
-                <span><strong>Lokacija:</strong> {exh.location || "—"}</span>
+                <span>
+                  <strong>Lokacija:</strong> {exh.location || "—"}
+                </span>
               </div>
+
+              {/* ✅ OPIS: samo iz backenda */}
+              {description ? (
+                <section className="ed-desc">
+                  <h2 className="ed-descTitle">Opis izložbe</h2>
+                  <p className="ed-descText">{description}</p>
+                </section>
+              ) : (
+                <div className="ed-descEmpty">Opis nije dostupan.</div>
+              )}
             </header>
 
             <section className="ed-gallery">

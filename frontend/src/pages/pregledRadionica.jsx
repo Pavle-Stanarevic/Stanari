@@ -27,7 +27,7 @@ function formatDateTime(iso) {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
   const time = d.toTimeString().slice(0, 5);
-  return `${day}/${month}/${year} - ${time}h`;
+  return `${day}/${month}/${year} • ${time}h`;
 }
 
 function getWorkshopISO(w) {

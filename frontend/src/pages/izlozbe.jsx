@@ -34,7 +34,9 @@ function getImages(x) {
     [];
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((v) => (typeof v === "string" ? v : v?.url ?? v?.imageUrl ?? v?.path ?? null))
+    .map((v) =>
+      typeof v === "string" ? v : v?.url ?? v?.imageUrl ?? v?.path ?? null
+    )
     .filter(Boolean);
 }
 
@@ -43,6 +45,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9001,
     title: "Plodovi Jeseni",
+    description: "Izložba keramičkih radova inspiriranih bojama i teksturama jeseni.",
     location: "Zagreb, Studio ClayPlay",
     startDateTime: "2026-02-11T18:00:00.000Z",
     images: [
@@ -53,6 +56,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9002,
     title: "Mediterranski valovi",
+    description: "Radovi inspirirani morem, solju i svjetlom mediteranskog podneblja.",
     location: "Rijeka, Galerija Mare",
     startDateTime: "2026-02-29T17:30:00.000Z",
     images: [
@@ -63,6 +67,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9003,
     title: "Tiha jutra",
+    description: "Minimalistički pristup, fokus na oblike i glazure u pastelnim tonovima.",
     location: "Split, Galerija Kamen",
     startDateTime: "2025-10-05T19:00:00.000Z",
     images: [
@@ -73,6 +78,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9004,
     title: "Glina i svjetlo",
+    description: "Igra refleksija i sjena kroz prozirne glazure i tanke stijenke.",
     location: "Osijek, Umjetnički paviljon",
     startDateTime: "2025-06-12T18:00:00.000Z",
     images: [
@@ -103,6 +109,10 @@ export default function Izlozbe() {
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [dateTime, setDateTime] = useState("");
+
+  // ✅ NEW: opis izložbe
+  const [description, setDescription] = useState("");
+
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
   const fileRef = useRef(null);
@@ -182,9 +192,12 @@ export default function Izlozbe() {
       if (!title.trim()) throw new Error("Unesi naziv izložbe.");
       if (!location.trim()) throw new Error("Unesi lokaciju.");
       if (!dateTime) throw new Error("Odaberi datum i vrijeme.");
+      if (!description.trim()) throw new Error("Unesi opis izložbe.");
 
       const files = fileRef.current?.files ? Array.from(fileRef.current.files) : [];
-      if (!files.length) throw new Error("Dodaj barem jednu sliku radova.");
+
+      // ✅ više slika: dozvoli 1+ (već radi), samo tekst promijenjen
+      if (!files.length) throw new Error("Dodaj barem jednu sliku radova (može i više).");
 
       const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
       const bad = files.find((f) => !allowed.has(f.type));
@@ -203,12 +216,13 @@ export default function Izlozbe() {
           startDateTime: new Date(dateTime).toISOString(),
           organizerId,
         },
-        files
+        files // ✅ array datoteka (1 ili više)
       );
 
       setTitle("");
       setLocation("");
       setDateTime("");
+      setDescription("");
       if (fileRef.current) fileRef.current.value = "";
       setFormOpen(false);
 
@@ -247,7 +261,7 @@ export default function Izlozbe() {
           <section className="exh-card">
             <div className="exh-cardTop">
               <h2>Kreiranje izložbe</h2>
-              <span className="exh-hint">Unesi podatke i dodaj slike radova.</span>
+              <span className="exh-hint">Unesi podatke i dodaj slike radova</span>
             </div>
             <form className="exh-form" onSubmit={onCreate}>
               <div className="exh-grid">
@@ -270,8 +284,19 @@ export default function Izlozbe() {
                   />
                 </div>
 
+                {/* ✅ NEW: opis */}
                 <div className="exh-field">
-                  <label>Slike radova</label>
+                  <label>Opis izložbe</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Npr. tema izložbe, inspiracija, broj radova, info za posjetitelje…"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="exh-field">
+                  <label>Slike radova (može više)</label>
                   <input ref={fileRef} type="file" accept="image/*" multiple />
                 </div>
               </div>
