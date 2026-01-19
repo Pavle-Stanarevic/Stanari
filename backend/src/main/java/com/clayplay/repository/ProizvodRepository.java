@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ProizvodRepository extends JpaRepository<Proizvod, Long> {
 	List<Proizvod> findByIdKorisnikOrderByProizvodIdDesc(Long idKorisnik);
+	List<Proizvod> findByKupljenFalseOrderByProizvodIdDesc();
 }

@@ -8,5 +8,6 @@ public class ProductResponse {
     public BigDecimal cijenaProizvod;
     public String kategorijaProizvod;
     public Long idKorisnik;
+    public Boolean kupljen;
     public String imageUrl;
 }

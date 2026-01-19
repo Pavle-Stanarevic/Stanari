@@ -21,6 +21,9 @@ public class Proizvod {
     @Column(name = "kategorijaProizvod", nullable = false)
     private String kategorijaProizvod;
 
+    @Column(name = "kupljen", nullable = false)
+    private Boolean kupljen = false;
+
     @Column(name = "idKorisnik", nullable = false)
     private Long idKorisnik;
 
@@ -39,6 +42,9 @@ public class Proizvod {
 
     public String getKategorijaProizvod() { return kategorijaProizvod; }
     public void setKategorijaProizvod(String kategorijaProizvod) { this.kategorijaProizvod = kategorijaProizvod; }
+
+    public Boolean getKupljen() { return kupljen; }
+    public void setKupljen(Boolean kupljen) { this.kupljen = kupljen; }
 
     public Long getIdKorisnik() { return idKorisnik; }
     public void setIdKorisnik(Long idKorisnik) { this.idKorisnik = idKorisnik; }

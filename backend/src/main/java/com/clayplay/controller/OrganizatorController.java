@@ -167,6 +167,7 @@ public class OrganizatorController {
             m.put("description", p.getOpisProizvod());
             m.put("price", p.getCijenaProizvod());
             m.put("category", p.getKategorijaProizvod());
+            m.put("kupljen", p.getKupljen());
             return m;
         }).collect(Collectors.toList());
 
