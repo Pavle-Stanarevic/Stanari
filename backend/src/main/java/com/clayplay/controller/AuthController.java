@@ -50,21 +50,7 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegistrationRequest req) {
         try {
             Korisnik created = userService.register(req);
-            Map<String, Object> userMap = new HashMap<>();
-            userMap.put("id", created.getIdKorisnik());
-            userMap.put("email", created.getEmail());
-            userMap.put("firstName", created.getIme());
-            userMap.put("lastName", created.getPrezime());
-            boolean isOrg = userService.isOrganizator(created.getIdKorisnik());
-            userMap.put("userType", isOrg ? "organizator" : "polaznik");
-            userMap.put("contact", created.getBrojTelefona());
-            userMap.put("address", created.getAdresa());
-            if (isOrg) {
-                String orgStudyName = organizatorRepository.findById(created.getIdKorisnik())
-                        .map(Organizator::getImeStudija)
-                        .orElse(null);
-                userMap.put("studyName", orgStudyName);
-            }
+            Map<String, Object> userMap = buildUserMap(created);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("user", userMap);
@@ -110,21 +96,7 @@ public class AuthController {
             }
 
             Korisnik created = userService.register(req, bytes, contentType);
-            Map<String, Object> userMap = new HashMap<>();
-            userMap.put("id", created.getIdKorisnik());
-            userMap.put("email", created.getEmail());
-            userMap.put("firstName", created.getIme());
-            userMap.put("lastName", created.getPrezime());
-            boolean isOrg = userService.isOrganizator(created.getIdKorisnik());
-            userMap.put("userType", isOrg ? "organizator" : "polaznik");
-            userMap.put("contact", created.getBrojTelefona());
-            userMap.put("address", created.getAdresa());
-            if (isOrg) {
-                String orgStudyName = organizatorRepository.findById(created.getIdKorisnik())
-                        .map(Organizator::getImeStudija)
-                        .orElse(null);
-                userMap.put("studyName", orgStudyName);
-            }
+            Map<String, Object> userMap = buildUserMap(created);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("user", userMap);
@@ -146,21 +118,10 @@ public class AuthController {
             Optional<Korisnik> userOpt = userService.authenticate(email, password);
             if (userOpt.isPresent()) {
                 Korisnik u = userOpt.get();
-                Map<String, Object> userMap = new HashMap<>();
-                userMap.put("id", u.getIdKorisnik());
-                userMap.put("email", u.getEmail());
-                userMap.put("firstName", u.getIme());
-                userMap.put("lastName", u.getPrezime());
-                boolean isOrg = userService.isOrganizator(u.getIdKorisnik());
-                userMap.put("userType", isOrg ? "organizator" : "polaznik");
-                userMap.put("contact", u.getBrojTelefona());
-                userMap.put("address", u.getAdresa());
-                if (isOrg) {
-                    String orgStudyName = organizatorRepository.findById(u.getIdKorisnik())
-                            .map(Organizator::getImeStudija)
-                            .orElse(null);
-                    userMap.put("studyName", orgStudyName);
+                if ("BLOCKED".equalsIgnoreCase(u.getStatus())) {
+                    return ResponseEntity.status(403).body("User is blocked");
                 }
+                Map<String, Object> userMap = buildUserMap(u);
 
                 Map<String, Object> resp = new HashMap<>();
                 resp.put("user", userMap);
@@ -199,21 +160,10 @@ public class AuthController {
                 return ResponseEntity.status(404).body("User with this Google account is not registered");
             }
             Korisnik u = userOpt.get();
-            Map<String, Object> userMap = new HashMap<>();
-            userMap.put("id", u.getIdKorisnik());
-            userMap.put("email", u.getEmail());
-            userMap.put("firstName", u.getIme());
-            userMap.put("lastName", u.getPrezime());
-            boolean isOrg = userService.isOrganizator(u.getIdKorisnik());
-            userMap.put("userType", isOrg ? "organizator" : "polaznik");
-            userMap.put("contact", u.getBrojTelefona());
-            userMap.put("address", u.getAdresa());
-            if (isOrg) {
-                String orgStudyName = organizatorRepository.findById(u.getIdKorisnik())
-                        .map(Organizator::getImeStudija)
-                        .orElse(null);
-                userMap.put("studyName", orgStudyName);
+            if ("BLOCKED".equalsIgnoreCase(u.getStatus())) {
+                return ResponseEntity.status(403).body("User is blocked");
             }
+            Map<String, Object> userMap = buildUserMap(u);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("user", userMap);
@@ -239,5 +189,30 @@ public class AuthController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Map<String, Object> buildUserMap(Korisnik u) {
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("id", u.getIdKorisnik());
+        userMap.put("email", u.getEmail());
+        userMap.put("firstName", u.getIme());
+        userMap.put("lastName", u.getPrezime());
+        userMap.put("contact", u.getBrojTelefona());
+        userMap.put("address", u.getAdresa());
+        userMap.put("status", u.getStatus());
+
+        boolean isAdmin = userService.isAdmin(u.getIdKorisnik());
+        boolean isOrg = userService.isOrganizator(u.getIdKorisnik());
+        String role = isAdmin ? "ADMIN" : isOrg ? "ORGANIZATOR" : "POLAZNIK";
+        userMap.put("role", role);
+        userMap.put("userType", isAdmin ? "admin" : isOrg ? "organizator" : "polaznik");
+
+        if (isOrg) {
+            Organizator org = organizatorRepository.findById(u.getIdKorisnik()).orElse(null);
+            userMap.put("studyName", org != null ? org.getImeStudija() : null);
+            userMap.put("organizerStatus", org != null ? org.getStatusOrganizator() : null);
+        }
+
+        return userMap;
     }
 }

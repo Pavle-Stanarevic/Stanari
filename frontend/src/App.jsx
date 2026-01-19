@@ -1,5 +1,6 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import useAuth from "./hooks/useAuth";
 
 import Header from "./components/header";
 import Footer from "./components/footer.jsx";
@@ -26,6 +27,13 @@ import Kosarica from "./pages/kosarica";
 import Izlozbe from "./pages/izlozbe.jsx";
 import DetaljiIzlozbe from "./pages/detaljiIzlozbe.jsx";
 import AdminDashboard from "./pages/adminDashboard.jsx";
+
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  const role = user?.role ?? user?.user?.role ?? null;
+  if (role !== "ADMIN") return <Navigate to="/" replace />;
+  return children;
+}
 
 export default function App() {
   return (
@@ -60,7 +68,12 @@ export default function App() {
         <Route path="/placanje/paypal" element={<PlacanjePayPal />} /> 
         <Route path="/placanje/stripe-redirect" element={<PlacanjeStripeRedirect />} />
         <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        } />
+        <Route path="/adimn" element={<Navigate to="/" replace />} />
 
       </Routes>
 
