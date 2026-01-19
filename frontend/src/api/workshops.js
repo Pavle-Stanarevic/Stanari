@@ -32,3 +32,22 @@ export function getReservedWorkshopIds(userId) {
   const url = `/api/workshops/reserved?userId=${encodeURIComponent(userId)}`;
   return http(url);
 }
+
+export async function uploadWorkshopPhotos(id, files) {
+  const fd = new FormData();
+  (files || []).forEach((f) => fd.append("images", f));
+  const res = await fetch(`${BASE_URL}/api/workshops/${id}/photos`, {
+    method: "POST",
+    credentials: "include",
+    body: fd,
+  });
+  if (!res.ok) {
+    let msg = "";
+    try {
+      msg = (await res.text()) || res.statusText;
+    } catch {}
+    throw new Error(msg || "Request failed");
+  }
+  const data = await res.json().catch(() => []);
+  return Array.isArray(data) ? data : [];
+}

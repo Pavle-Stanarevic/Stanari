@@ -9,6 +9,8 @@ import {
   getExhibitionApplications,
 } from "../api/exhibitions";
 
+const API = import.meta.env.VITE_API_URL || "";
+
 function formatDate(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -37,6 +39,12 @@ function getImages(x) {
     .map((v) =>
       typeof v === "string" ? v : v?.url ?? v?.imageUrl ?? v?.path ?? null
     )
+    .map((v) => {
+      if (!v) return null;
+      if (v.startsWith("http://") || v.startsWith("https://")) return v;
+      if (v.startsWith("/")) return `${API}${v}`;
+      return v;
+    })
     .filter(Boolean);
 }
 

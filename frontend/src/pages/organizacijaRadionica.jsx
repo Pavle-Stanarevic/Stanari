@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
-import { createWorkshop } from "../api/workshops";
+import { createWorkshop, uploadWorkshopPhotos } from "../api/workshops";
 import useAuth from "../hooks/useAuth";
 import "../styles/organizacijaRadionica.css";
 
@@ -163,7 +163,13 @@ export default function OrganizacijaRadionica() {
         organizerId,
       };
 
-      await createWorkshop(payload);
+      const created = await createWorkshop(payload);
+
+      if (form.images && form.images.length > 0) {
+        const wid = created?.workshopId ?? created?.id ?? null;
+        if (!wid) throw new Error("Ne mogu pronaći ID radionice za upload slika.");
+        await uploadWorkshopPhotos(wid, form.images);
+      }
 
       navigate("/pregledRadionica");
     } catch (e) {

@@ -2,12 +2,16 @@ package com.clayplay.service;
 
 import com.clayplay.dto.WorkshopRequest;
 import com.clayplay.dto.WorkshopResponse;
+import com.clayplay.model.Fotografija;
 import com.clayplay.model.Radionica;
+import com.clayplay.repository.FotoRadRepository;
+import com.clayplay.repository.FotografijaRepository;
 import com.clayplay.repository.OrganizatorRepository;
 import com.clayplay.repository.RadionicaRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -20,10 +24,20 @@ public class WorkshopService {
 
     private final RadionicaRepository radionicaRepository;
     private final OrganizatorRepository organizatorRepository;
+    private final FotografijaRepository fotografijaRepository;
+    private final FotoRadRepository fotoRadRepository;
+    private final FileStorageService fileStorageService;
 
-    public WorkshopService(RadionicaRepository radionicaRepository, OrganizatorRepository organizatorRepository) {
+    public WorkshopService(RadionicaRepository radionicaRepository,
+                           OrganizatorRepository organizatorRepository,
+                           FotografijaRepository fotografijaRepository,
+                           FotoRadRepository fotoRadRepository,
+                           FileStorageService fileStorageService) {
         this.radionicaRepository = radionicaRepository;
         this.organizatorRepository = organizatorRepository;
+        this.fotografijaRepository = fotografijaRepository;
+        this.fotoRadRepository = fotoRadRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -69,8 +83,43 @@ public class WorkshopService {
                         r.getLokacijaRadionica(),
                         r.getBrSlobMjesta(),
                         r.getCijenaRadionica() == null ? null : r.getCijenaRadionica().doubleValue(),
-                        r.getIdKorisnik()
+                        r.getIdKorisnik(),
+                        fotografijaRepository.findUrlsByRadionicaId(r.getIdRadionica())
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<String> addPhotos(Long workshopId, List<MultipartFile> images) {
+        if (workshopId == null) throw new IllegalArgumentException("Missing workshop id");
+        if (images == null || images.isEmpty()) throw new IllegalArgumentException("Images are required");
+
+        Radionica r = radionicaRepository.findById(workshopId)
+                .orElseThrow(() -> new IllegalArgumentException("Workshop not found"));
+
+        java.util.ArrayList<String> urls = new java.util.ArrayList<>();
+        for (MultipartFile image : images) {
+            if (image == null || image.isEmpty()) continue;
+            byte[] bytes;
+            try {
+                bytes = image.getBytes();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid image");
+            }
+            String contentType = image.getContentType();
+            String publicUrl = fileStorageService.save(bytes, contentType);
+            Fotografija f = new Fotografija();
+            f.setFotoURL(publicUrl);
+            Fotografija savedFoto = fotografijaRepository.save(f);
+            fotoRadRepository.insertLink(savedFoto.getFotoId(), r.getIdRadionica());
+            urls.add(publicUrl);
+        }
+        return urls;
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> listPhotoUrls(Long workshopId) {
+        if (workshopId == null) throw new IllegalArgumentException("Missing workshop id");
+        return fotografijaRepository.findUrlsByRadionicaId(workshopId);
     }
 }
