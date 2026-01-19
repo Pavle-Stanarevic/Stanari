@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import { clearCart, getCart, removeCartItem, updateCartItemQty } from "../api/cart";
-import { createCheckoutFromCart } from "../api/checkout";
 import "../styles/kosarica.css";
 
 function formatPrice(price) {
@@ -19,6 +18,7 @@ export default function Kosarica() {
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [orderNote, setOrderNote] = useState("");
 
   const reload = async () => {
     setLoading(true);
@@ -62,6 +62,7 @@ export default function Kosarica() {
     try {
       await clearCart();
       setItems([]);
+      setOrderNote("");
     } catch (e) {
       alert(e.message || "Ne mogu očistiti košaricu.");
     }
@@ -82,18 +83,11 @@ export default function Kosarica() {
     setCheckoutLoading(true);
 
     try {
-      // pravi flow kad backend bude spreman
-      const data = await createCheckoutFromCart();
-      const checkoutId = data?.checkoutId || data?.id;
-      if (!checkoutId) throw new Error("Backend nije vratio checkoutId.");
-
-      navigate("/placanje", { state: { mode: "cart", checkoutId } });
+      await clearCart();
+      setItems([]);
+      setOrderNote("Narudžba je zaprimljena. Plaćanje trenutno nije potrebno.");
     } catch (e) {
-      // ✅ fallback bez backenda: pokaži stvarne stavke iz košarice
-      navigate("/placanje", { state: { mode: "cart", items } });
-
-      // Ako želiš ručni demo placeholder:
-      // navigate("/placanje?demoCart=1");
+      alert(e.message || "Ne mogu potvrditi narudžbu.");
     } finally {
       setCheckoutLoading(false);
     }
@@ -120,6 +114,7 @@ export default function Kosarica() {
 
         {loading && <div className="cart-info">Učitavanje…</div>}
         {!!err && !loading && <div className="cart-error">{err}</div>}
+        {!!orderNote && !loading && !err && <div className="cart-info">{orderNote}</div>}
 
         {!loading && !err && items.length === 0 && (
           <div className="cart-empty">
@@ -213,7 +208,7 @@ export default function Kosarica() {
               </div>
 
               <button className="primary" onClick={onCheckout} disabled={checkoutLoading}>
-                {checkoutLoading ? "Pokrećem naplatu..." : "Nastavi na plaćanje"}
+                {checkoutLoading ? "Potvrđujem..." : "Potvrdi narudžbu"}
               </button>
             </section>
           </>

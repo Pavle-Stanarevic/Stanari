@@ -41,6 +41,20 @@ public class ProductController {
         }
     }
 
+    @PostMapping("/{id}/buy")
+    public ResponseEntity<?> buy(@PathVariable("id") Long id, @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            if (body == null || body.get("userId") == null) return ResponseEntity.badRequest().body("Missing userId");
+            Long userId = ((Number) body.get("userId")).longValue();
+            if (!users.isPolaznik(userId)) return ResponseEntity.status(403).body("Only polaznik can buy products");
+            return ResponseEntity.ok(products.markPurchased(id, userId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createMultipart(
             @RequestParam("userId") Long userId,

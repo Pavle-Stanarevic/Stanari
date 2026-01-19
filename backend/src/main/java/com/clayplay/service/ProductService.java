@@ -2,9 +2,11 @@ package com.clayplay.service;
 
 import com.clayplay.dto.ProductResponse;
 import com.clayplay.model.Fotografija;
+import com.clayplay.model.Kupovina;
 import com.clayplay.model.Proizvod;
 import com.clayplay.repository.FotoProizvodRepository;
 import com.clayplay.repository.FotografijaRepository;
+import com.clayplay.repository.KupovinaRepository;
 import com.clayplay.repository.ProizvodRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,25 +21,53 @@ public class ProductService {
     private final ProizvodRepository proizvodRepository;
     private final FotografijaRepository fotografijaRepository;
     private final FotoProizvodRepository fotoProizvodRepository;
+    private final KupovinaRepository kupovinaRepository;
     private final FileStorageService storage;
 
     public ProductService(ProizvodRepository proizvodRepository,
                           FotografijaRepository fotografijaRepository,
                           FotoProizvodRepository fotoProizvodRepository,
+                          KupovinaRepository kupovinaRepository,
                           FileStorageService storage) {
         this.proizvodRepository = proizvodRepository;
         this.fotografijaRepository = fotografijaRepository;
         this.fotoProizvodRepository = fotoProizvodRepository;
+        this.kupovinaRepository = kupovinaRepository;
         this.storage = storage;
     }
 
     public List<ProductResponse> listAll() {
-        return proizvodRepository.findAll().stream().map(p -> toDto(p)).collect(Collectors.toList());
+        return proizvodRepository.findByKupljenFalseOrderByProizvodIdDesc()
+                .stream()
+                .map(p -> toDto(p))
+                .collect(Collectors.toList());
     }
 
     public ProductResponse getById(Long id) {
         Proizvod p = proizvodRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not found"));
         return toDto(p);
+    }
+
+    @Transactional
+    public ProductResponse markPurchased(Long id, Long userId) {
+        if (userId == null) throw new IllegalArgumentException("Missing userId");
+        Proizvod p = proizvodRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not found"));
+        if (Boolean.TRUE.equals(p.getKupljen())) {
+            throw new IllegalArgumentException("Proizvod je već kupljen.");
+        }
+        if (kupovinaRepository.existsByIdKorisnikAndProizvodId(userId, id)) {
+            throw new IllegalArgumentException("Proizvod je već kupljen.");
+        }
+
+        p.setKupljen(true);
+        Proizvod saved = proizvodRepository.save(p);
+
+        Kupovina k = new Kupovina();
+        k.setIdKorisnik(userId);
+        k.setProizvodId(id);
+        kupovinaRepository.save(k);
+
+        return toDto(saved);
     }
 
     @Transactional
@@ -67,6 +97,7 @@ public class ProductService {
         r.cijenaProizvod = p.getCijenaProizvod();
         r.kategorijaProizvod = p.getKategorijaProizvod();
         r.idKorisnik = p.getIdKorisnik();
+        r.kupljen = p.getKupljen();
         try {
             String url = fotoProizvodRepository.findFirstImageUrl(p.getProizvodId());
             r.imageUrl = url;

@@ -130,6 +130,7 @@ export default function Shop() {
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
+      if (p?.kupljen) return false;
       const okCategory = !category || p.kategorijaProizvod === category;
       const price = Number(p.cijenaProizvod);
       const okPrice = Number.isFinite(price) ? price <= maxPrice : true;

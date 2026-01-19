@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
-import { addProductToCart, getCart } from "../api/cart";
 import "../styles/detaljiProizvoda.css";
 
 async function fetchJson(url, options) {
@@ -32,7 +31,6 @@ export default function ProductPage() {
   const [error, setError] = useState("");
 
   const [adding, setAdding] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
     let alive = true;
@@ -60,38 +58,6 @@ export default function ProductPage() {
     };
   }, [proizvodId]);
 
-  useEffect(() => {
-    let alive = true;
-
-    const refresh = async () => {
-      try {
-        const data = await getCart();
-        const items = Array.isArray(data) ? data : data?.items || [];
-        if (alive) setCartItems(Array.isArray(items) ? items : []);
-      } catch {
-        if (alive) setCartItems([]);
-      }
-    };
-
-    refresh();
-    const onCartUpdated = (e) => {
-      const items = e?.detail?.items;
-      if (Array.isArray(items)) setCartItems(items);
-      else refresh();
-    };
-    const onStorage = (e) => {
-      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
-    };
-
-    window.addEventListener("cart:updated", onCartUpdated);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      alive = false;
-      window.removeEventListener("cart:updated", onCartUpdated);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, [user]);
-
   const displayName =
     product?.nazivProizvod || product?.kategorijaProizvod || "Proizvod";
 
@@ -103,36 +69,31 @@ export default function ProductPage() {
     product?.id ??
     proizvodId;
 
-  const isInCart = cartItems.some((item) => {
-    if (item?.type && item.type !== "product") return false;
-    if (item?.productId != null) return Number(item.productId) === Number(productIdResolved);
-    if (item?.meta?.productId != null) return Number(item.meta.productId) === Number(productIdResolved);
-    if (typeof item?.id === "string" && item.id.startsWith("product:")) {
-      return Number(item.id.split(":")[1]) === Number(productIdResolved);
-    }
-    return false;
-  });
+  const isPurchased = Boolean(product?.kupljen);
 
-  const onAddToCart = async () => {
+  const onBuyProduct = async () => {
     try {
-      if (!user) throw new Error("Prijavite se da biste mogli dodati proizvod u košaricu.");
+      if (!user) throw new Error("Prijavite se da biste mogli kupiti proizvod.");
       if (user?.userType !== "polaznik")
-        throw new Error("Samo polaznici mogu dodati proizvod u košaricu.");
+        throw new Error("Samo polaznici mogu kupiti proizvod.");
       if (!product) return;
 
       // ID fallback logika (za slučaj da backend vraća različito ime polja)
       const id = productIdResolved;
-      if (isInCart) throw new Error("Proizvod je već u košarici.");
+      if (isPurchased) throw new Error("Proizvod je već kupljen.");
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+      if (!userId) throw new Error("Nedostaje ID korisnika.");
 
       setAdding(true);
-      await addProductToCart(Number(id), 1, {
-        title: productTitle,
-        price: product?.cijenaProizvod,
-        category: product?.kategorijaProizvod,
+      const updated = await fetchJson(`/api/products/${id}/buy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
-      navigate("/kosarica");
+      setProduct(updated);
+      navigate("/shop");
     } catch (e) {
-      alert(e.message || "Nije moguće dodati u košaricu.");
+      alert(e.message || "Kupnja nije uspjela.");
     } finally {
       setAdding(false);
     }
@@ -170,27 +131,18 @@ export default function ProductPage() {
               <div className="product-actions">
                 <button
                   className="btn btn-primary"
-                  onClick={onAddToCart}
-                  disabled={adding || isInCart || !user}
+                  onClick={onBuyProduct}
+                  disabled={adding || isPurchased || !user}
                   title={!user ? "Odjavljeni ste" : ""}
                 >
                   {adding
-                    ? "Dodajem..."
+                    ? "Kupujem..."
                     : !user
                     ? "Odjavljeni ste"
-                    : isInCart
-                    ? "U košarici"
-                    : "Dodaj u košaricu"}
+                    : isPurchased
+                    ? "Kupljeno"
+                    : "Kupi"}
                 </button>
-                {user && (
-                  <button
-                    className="btn btn-ghost"
-                    type="button"
-                    onClick={() => navigate("/kosarica")}
-                  >
-                    Idi u košaricu
-                  </button>
-                )}
               </div>
 
               <div className="seller-note">

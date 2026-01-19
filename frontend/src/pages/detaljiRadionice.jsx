@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { listWorkshops, getReservedWorkshopIds } from "../api/workshops";
-import { addWorkshopToCart, getCart } from "../api/cart";
-import { getOrganizator } from "../api/organisers";
+import { applyToWorkshop, getReservedWorkshopIds, listWorkshops } from "../api/workshops";
+import { getCart } from "../api/cart";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
 
@@ -471,26 +470,20 @@ export default function DetaljiRadionice() {
       if (isInCart) throw new Error("Radionica je već u košarici.");
 
       if (user.userType !== "polaznik") {
-        throw new Error("Samo polaznici mogu dodati radionicu u košaricu.");
+        throw new Error("Samo polaznici se mogu prijaviti na radionicu.");
       }
 
       setAdding(true);
-
-      await addWorkshopToCart(workshop.id, 1, {
-        title: workshop.title,
-        price: workshop.price,
-        meta: {
-          workshopId: workshop.id,
-          dateISO: getWorkshopISO(workshop),
-          location: workshop.location,
-        },
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+      if (!userId) throw new Error("Nedostaje ID korisnika.");
+      await applyToWorkshop(workshop.id, userId);
+      setReservedSet((prev) => {
+        const next = new Set(prev);
+        next.add(Number(workshop.id));
+        return next;
       });
-
-      const data = await getCart();
-      const items = Array.isArray(data) ? data : data?.items || [];
-      setCartItems(Array.isArray(items) ? items : []);
     } catch (e) {
-      alert(e.message || "Nije moguće dodati u košaricu.");
+      alert(e.message || "Prijava nije uspjela.");
     } finally {
       setAdding(false);
     }
@@ -642,7 +635,7 @@ export default function DetaljiRadionice() {
                         ? "Prijavljen"
                         : isInCart
                         ? "U košarici"
-                        : "Prijavi se (u košaricu)"}
+                        : "Prijavi se"}
                     </button>
                   ) : (
                     <div className="wd-finishedNote">Radionica je završila.</div>
