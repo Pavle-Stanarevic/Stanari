@@ -668,7 +668,7 @@ export default function DetaljiRadionice() {
                 {endAt ? (
                   <>
                     {" "}
-                    · Kraj: <strong>{formatDateTime(endAt.toISOString())}</strong>
+                    <strong>{formatDateTime(endAt.toISOString())}</strong>
                   </>
                 ) : null}
               </p>

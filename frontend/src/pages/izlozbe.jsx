@@ -33,7 +33,9 @@ function getImages(x) {
     [];
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((v) => (typeof v === "string" ? v : v?.url ?? v?.imageUrl ?? v?.path ?? null))
+    .map((v) =>
+      typeof v === "string" ? v : v?.url ?? v?.imageUrl ?? v?.path ?? null
+    )
     .filter(Boolean);
 }
 
@@ -42,6 +44,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9001,
     title: "Plodovi Jeseni",
+    description: "Izložba keramičkih radova inspiriranih bojama i teksturama jeseni.",
     location: "Zagreb, Studio ClayPlay",
     startDateTime: "2026-02-11T18:00:00.000Z",
     images: [
@@ -52,6 +55,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9002,
     title: "Mediterranski valovi",
+    description: "Radovi inspirirani morem, solju i svjetlom mediteranskog podneblja.",
     location: "Rijeka, Galerija Mare",
     startDateTime: "2026-02-29T17:30:00.000Z",
     images: [
@@ -62,6 +66,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9003,
     title: "Tiha jutra",
+    description: "Minimalistički pristup, fokus na oblike i glazure u pastelnim tonovima.",
     location: "Split, Galerija Kamen",
     startDateTime: "2025-10-05T19:00:00.000Z",
     images: [
@@ -72,6 +77,7 @@ const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9004,
     title: "Glina i svjetlo",
+    description: "Igra refleksija i sjena kroz prozirne glazure i tanke stijenke.",
     location: "Osijek, Umjetnički paviljon",
     startDateTime: "2025-06-12T18:00:00.000Z",
     images: [
@@ -99,6 +105,10 @@ export default function Izlozbe() {
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [dateTime, setDateTime] = useState("");
+
+  // ✅ NEW: opis izložbe
+  const [description, setDescription] = useState("");
+
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
   const fileRef = useRef(null);
@@ -171,26 +181,41 @@ export default function Izlozbe() {
       if (!location.trim()) throw new Error("Unesi lokaciju.");
       if (!dateTime) throw new Error("Odaberi datum i vrijeme.");
 
+      // ✅ opis je opcionalan, ali ako želiš da bude obavezno, odkomentiraj:
+      // if (!description.trim()) throw new Error("Unesi opis izložbe.");
+
       const files = fileRef.current?.files ? Array.from(fileRef.current.files) : [];
-      if (!files.length) throw new Error("Dodaj barem jednu sliku radova.");
+
+      // ✅ više slika: dozvoli 1+ (već radi), samo tekst promijenjen
+      if (!files.length) throw new Error("Dodaj barem jednu sliku radova (može i više).");
 
       const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
       const bad = files.find((f) => !allowed.has(f.type));
       if (bad) throw new Error("Podržani formati: JPG, PNG, WEBP, GIF.");
 
       setCreating(true);
+      const organizerId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+      if (!organizerId) throw new Error("Niste prijavljeni kao organizator.");
+
       await createExhibition(
         {
           title: title.trim(),
           location: location.trim(),
           startDateTime: new Date(dateTime).toISOString(),
+          organizerId,
+
+          // ✅ NEW: opis (više naziva ključa za kompatibilnost)
+          description: description.trim(),
+          opis: description.trim(),
+          opisIzlozbe: description.trim(),
         },
-        files
+        files // ✅ array datoteka (1 ili više)
       );
 
       setTitle("");
       setLocation("");
       setDateTime("");
+      setDescription("");
       if (fileRef.current) fileRef.current.value = "";
       setFormOpen(false);
 
@@ -228,7 +253,7 @@ export default function Izlozbe() {
           <section className="exh-card">
             <div className="exh-cardTop">
               <h2>Kreiranje izložbe</h2>
-              <span className="exh-hint">Unesi podatke i dodaj slike radova.</span>
+              <span className="exh-hint">Unesi podatke i dodaj slike radova</span>
             </div>
 
             <form className="exh-form" onSubmit={onCreate}>
@@ -252,8 +277,19 @@ export default function Izlozbe() {
                   />
                 </div>
 
+                {/* ✅ NEW: opis */}
                 <div className="exh-field">
-                  <label>Slike radova</label>
+                  <label>Opis izložbe</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Npr. tema izložbe, inspiracija, broj radova, info za posjetitelje…"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="exh-field">
+                  <label>Slike radova (može više)</label>
                   <input ref={fileRef} type="file" accept="image/*" multiple />
                 </div>
               </div>
@@ -301,8 +337,7 @@ export default function Izlozbe() {
               const isReserved = reservedIds.has(exh.id);
 
               return (
-                <article className="exh-item" key={exh.id}>
-                  {/* ✅ Manje slika: samo cover */}
+                <article className="exh-item" key={exhId ?? exh.id}>
                   <button
                     type="button"
                     className="exh-coverOnly"
@@ -317,7 +352,20 @@ export default function Izlozbe() {
                   </button>
 
                   <div className="exh-body">
-                    <h3 className="exh-name">{exh.title || "Bez naziva"}</h3>
+                    <h3 className="exh-name">
+                      {exh.title || "Bez naziva"}
+                      {(() => {
+                        const ownerId2 =
+                          exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+                        const currentUserId2 =
+                          user?.id ?? user?.userId ?? user?.korisnikId ?? null;
+                        const isOwner2 =
+                          currentUserId2 != null &&
+                          ownerId2 != null &&
+                          Number(currentUserId2) === Number(ownerId2);
+                        return isOwner2 ? <span className="exh-owner">[Vaša izložba]</span> : null;
+                      })()}
+                    </h3>
 
                     <div className="exh-meta">
                       <span>{formatDate(getISO(exh))}</span>
