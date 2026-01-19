@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import useAuth from "../hooks/useAuth";
 import "../styles/shopProductAdd.css";
 import { PRODUCT_CATEGORIES } from "../data/productCategories";
-const DEV_FORCE_USER = true; // frontend test
+const DEV_FORCE_USER = false; // frontend test
 
 
 export default function ShopProductAdd({ open, onClose, onCreated }) {
@@ -37,9 +37,10 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
     try {
       const fd = new FormData();
 
-      if (!user?.id) throw new Error("Niste prijavljeni kao organizator.");
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+      if (!userId) throw new Error("Niste prijavljeni kao organizator.");
 
-      fd.append("userId", String(user.id));
+      fd.append("userId", String(userId));
       fd.append("opisProizvod", opisProizvod);
       fd.append("cijenaProizvod", String(Number(cijenaProizvod)));
       fd.append("kategorijaProizvod", kategorijaProizvod);
