@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { listWorkshops, getReservedWorkshopIds } from "../api/workshops";
 import { addWorkshopToCart, getCart } from "../api/cart";
+import { getOrganizator } from "../api/organisers";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
 
@@ -30,21 +31,18 @@ function formatDateTime(iso) {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
   const time = d.toTimeString().slice(0, 5);
-  return `${day}/${month}/${year} - ${time}h`;
+  return `${day}/${month}/${year} | ${time}h`;
 }
 
 function getWorkshopISO(w) {
-  return w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
+  // backend WorkshopResponse: startDateTime
+  return w?.startDateTime ?? null;
 }
 
 function getInitialImages(workshop) {
-  const raw =
-    workshop?.images ??
-    workshop?.imageUrls ??
-    workshop?.photos ??
-    workshop?.slike ??
-    workshop?.gallery ??
-    [];
+  // backend /api/workshops trenutno ne šalje slike,
+  // ali ostavljamo ako ih negdje kasnije dodate.
+  const raw = workshop?.images ?? workshop?.imageUrls ?? [];
   if (!Array.isArray(raw)) return [];
   return raw
     .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? x?.path ?? null))
@@ -75,39 +73,12 @@ function calcEndDate(workshop) {
   return new Date(start.getTime() + dur * 60 * 1000);
 }
 
-/* --- organizer helpers --- */
-function getOrganizerIdFromWorkshop(w) {
-  const v =
-    w?.organizerId ??
-    w?.organizatorId ??
-    w?.creatorId ??
-    w?.ownerId ??
-    w?.userId ??
-    w?.idOrganizator ??
-    null;
-
-  if (v == null) return null;
-  const n = Number(v);
-  return Number.isNaN(n) ? String(v) : n;
+function formatTimeOnly(d) {
+  if (!d) return "—";
+  return `${d.toTimeString().slice(0, 5)}h`;
 }
 
-function getOrganizerDisplayNameFromWorkshop(w) {
-  const first = w?.organizerFirstName ?? w?.organizatorIme ?? w?.firstName ?? "";
-  const last = w?.organizerLastName ?? w?.organizatorPrezime ?? w?.lastName ?? "";
-  const full = `${first} ${last}`.trim();
-
-  const studyName =
-    w?.organizerStudyName ??
-    w?.organizatorNazivStudija ??
-    w?.studyName ??
-    w?.organizerName ??
-    w?.organizatorNaziv ??
-    "";
-
-  return full || studyName || "Organizator";
-}
-
-/* ---------- extra photos API ---------- */
+/* ---------- extra photos API (NOTE: endpoint trenutno NE postoji u backendu zipa) ---------- */
 async function fetchExtraPhotos(workshopId) {
   const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/photos`, {
     credentials: "include",
@@ -138,7 +109,6 @@ async function uploadExtraPhotos(workshopId, files) {
     throw new Error(txt || `HTTP ${res.status}`);
   }
 
-  // optional JSON response
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
     const data = await res.json().catch(() => null);
@@ -175,7 +145,6 @@ function normalizeReviews(data) {
   const arr = Array.isArray(data) ? data : [];
   return arr.map((r) => {
     const fullName = `${r?.user?.firstName || ""} ${r?.user?.lastName || ""}`.trim();
-
     const author =
       (r?.author ?? r?.authorName ?? r?.userName ?? (fullName || "")) || "Korisnik";
 
@@ -197,9 +166,7 @@ async function fetchReviews(workshopId) {
     method: "GET",
     credentials: "include",
   });
-
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
   const data = await res.json().catch(() => []);
   return normalizeReviews(data);
 }
@@ -239,6 +206,10 @@ export default function DetaljiRadionice() {
 
   const [adding, setAdding] = useState(false);
 
+  // organizer (REAL: iz backenda /api/organizatori/{id})
+  const [organizer, setOrganizer] = useState(null);
+  const [organizerErr, setOrganizerErr] = useState("");
+
   // cart / reserved
   const [cartItems, setCartItems] = useState([]);
   const [reservedSet, setReservedSet] = useState(() => new Set());
@@ -261,18 +232,19 @@ export default function DetaljiRadionice() {
   const [reviewErr, setReviewErr] = useState("");
   const [postingReview, setPostingReview] = useState(false);
 
-  // 1) load workshop
+  /* 1) load workshop */
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setErr("");
+    setWorkshop(null);
 
     listWorkshops()
       .then((data) => {
         if (!alive) return;
         const arr = Array.isArray(data) ? data : [];
-        const found = arr.find((w) => Number(w.id) === workshopId);
-        setWorkshop(found || null);
+        const found = arr.find((w) => Number(w?.id) === Number(workshopId)) || null;
+        setWorkshop(found);
         if (!found) setErr("Radionica nije pronađena.");
       })
       .catch((e) => {
@@ -286,7 +258,33 @@ export default function DetaljiRadionice() {
     };
   }, [workshopId]);
 
-  // 2) reserved ids (polaznik)
+  /* 1b) load organizer (from backend, no local guessing) */
+  useEffect(() => {
+    let alive = true;
+    setOrganizer(null);
+    setOrganizerErr("");
+
+    const organizerId = workshop?.organizerId;
+    if (!organizerId) return () => (alive = false);
+
+    (async () => {
+      try {
+        const data = await getOrganizator(organizerId);
+        if (!alive) return;
+        setOrganizer(data || null);
+      } catch (e) {
+        if (!alive) return;
+        setOrganizerErr(e.message || "Ne mogu dohvatiti organizatora.");
+        setOrganizer(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [workshop?.organizerId]);
+
+  /* 2) reserved ids (polaznik) */
   useEffect(() => {
     let alive = true;
 
@@ -322,7 +320,7 @@ export default function DetaljiRadionice() {
     };
   }, [user]);
 
-  // 3) cart (simple refresh on load + after add)
+  /* cart */
   useEffect(() => {
     let alive = true;
 
@@ -347,15 +345,13 @@ export default function DetaljiRadionice() {
   const isFinished = useMemo(() => (endAt ? Date.now() > endAt.getTime() : false), [endAt]);
 
   const polaznik = user?.userType === "polaznik";
+  const organizerId = workshop?.organizerId ?? null;
 
-  const organizerId = useMemo(
-    () => (workshop ? getOrganizerIdFromWorkshop(workshop) : null),
-    [workshop]
-  );
-  const organizerName = useMemo(
-    () => (workshop ? getOrganizerDisplayNameFromWorkshop(workshop) : "Organizator"),
-    [workshop]
-  );
+  const organizerName = useMemo(() => {
+    if (!organizer) return "Organizator";
+    const full = `${organizer?.firstName || ""} ${organizer?.lastName || ""}`.trim();
+    return full || organizer?.studyName || organizer?.email || "Organizator";
+  }, [organizer]);
 
   const goToOrganizerProfile = () => {
     if (!organizerId) return;
@@ -364,18 +360,14 @@ export default function DetaljiRadionice() {
 
   const isOwnerOrganizer = useMemo(() => {
     const uid = user?.id ?? user?.userId ?? user?.korisnikId ?? null;
-    const orgId = workshop?.organizerId ?? workshop?.organizatorId ?? null;
-    return (
-      user?.userType === "organizator" &&
-      uid != null &&
-      orgId != null &&
-      Number(uid) === Number(orgId)
-    );
-  }, [user, workshop]);
+    return user?.userType === "organizator" && uid != null && organizerId != null
+      ? Number(uid) === Number(organizerId)
+      : false;
+  }, [user, organizerId]);
 
   const initialPhotos = useMemo(() => (workshop ? getInitialImages(workshop) : []), [workshop]);
 
-  // 4) extra photos after finish
+  /* 4) extra photos after finish */
   useEffect(() => {
     let alive = true;
     setExtraErr("");
@@ -409,7 +401,7 @@ export default function DetaljiRadionice() {
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
 
-  // 5) reviews after finish (fallback)
+  /* 5) reviews after finish (fallback) */
   useEffect(() => {
     let alive = true;
 
@@ -483,17 +475,17 @@ export default function DetaljiRadionice() {
       }
 
       setAdding(true);
+
       await addWorkshopToCart(workshop.id, 1, {
-        title: workshop.title || workshop.nazivRadionica,
-        price: workshop.price ?? workshop.cijenaRadionica,
+        title: workshop.title,
+        price: workshop.price,
         meta: {
           workshopId: workshop.id,
           dateISO: getWorkshopISO(workshop),
-          location: workshop.location || workshop.lokacijaRadionica,
+          location: workshop.location,
         },
       });
 
-      // refresh cart
       const data = await getCart();
       const items = Array.isArray(data) ? data : data?.items || [];
       setCartItems(Array.isArray(items) ? items : []);
@@ -574,11 +566,8 @@ export default function DetaljiRadionice() {
       setMyComment("");
       setMyRating(5);
     } catch {
-      // fallback lokalno (dok backend nije spojen)
       const author =
-        `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
-        user?.email ||
-        "Polaznik";
+        `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Polaznik";
 
       const local = {
         id: `local-${Date.now()}`,
@@ -672,12 +661,15 @@ export default function DetaljiRadionice() {
                 )}
               </div>
 
+              {organizerErr ? <div className="wd-muted">{organizerErr}</div> : null}
+
               <p className="wd-sub">
                 Datum: <strong>{formatDateTime(getWorkshopISO(workshop))}</strong>
+                {/* kraj: samo vrijeme */}
                 {endAt ? (
                   <>
                     {" "}
-                    · Kraj: <strong>{formatDateTime(endAt.toISOString())}</strong>
+                    – <strong>{formatTimeOnly(endAt)}</strong>
                   </>
                 ) : null}
               </p>
@@ -704,18 +696,14 @@ export default function DetaljiRadionice() {
 
             <section className="wd-section">
               <h2>Opis radionice</h2>
-              <p className="wd-desc">
-                {workshop.description || workshop.opis || workshop.desc || "Nema opisa."}
-              </p>
+              <p className="wd-desc">{workshop.description || "Nema opisa."}</p>
             </section>
 
             <section className="wd-section">
               <div className="wd-sectionTop">
                 <div className="wd-galleryTitle">
                   <h2>Galerija</h2>
-                  <div className="wd-chip">
-                    {isFinished ? "prošle + dodatne slike" : "slike radionice"}
-                  </div>
+                  <div className="wd-chip">{isFinished ? "prošle + dodatne slike" : "slike radionice"}</div>
                 </div>
 
                 {isFinished && isOwnerOrganizer ? (
