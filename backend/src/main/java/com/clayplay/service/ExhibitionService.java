@@ -38,7 +38,7 @@ public class ExhibitionService {
     }
 
     @Transactional
-    public Long create(Long organizerId, String title, String location, OffsetDateTime startDateTime, List<MultipartFile> images) {
+    public Long create(Long organizerId, String title, String location, String description, OffsetDateTime startDateTime, List<MultipartFile> images) {
         if (organizerId == null) throw new IllegalArgumentException("Missing organizerId");
         if (!organizatorRepository.existsByIdKorisnik(organizerId)) {
             throw new IllegalArgumentException("Organizer does not exist");
@@ -50,6 +50,7 @@ public class ExhibitionService {
         Izlozba iz = new Izlozba();
         iz.setNazivIzlozba(title);
         iz.setLokacijaIzlozba(location);
+        iz.setOpisIzlozba(description == null ? "" : description);
         iz.setDatVrIzlozba(startDateTime);
         iz.setIdKorisnik(organizerId);
         Izlozba saved = izlozbaRepository.save(iz);
@@ -83,6 +84,7 @@ public class ExhibitionService {
         ExhibitionResponse r = new ExhibitionResponse();
         r.id = iz.getIdIzlozba();
         r.title = iz.getNazivIzlozba();
+        r.description = iz.getOpisIzlozba();
         r.location = iz.getLokacijaIzlozba();
         r.startDateTime = iz.getDatVrIzlozba();
         r.organizerId = iz.getIdKorisnik();

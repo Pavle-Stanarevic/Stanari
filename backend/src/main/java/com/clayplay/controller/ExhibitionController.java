@@ -35,13 +35,14 @@ public class ExhibitionController {
     public ResponseEntity<?> create(
             @RequestParam("title") String title,
             @RequestParam("location") String location,
+            @RequestParam(value = "description", required = false) String description,
             @RequestParam("startDateTime") String startDateTime,
             @RequestParam("organizerId") Long organizerId,
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
         try {
             OffsetDateTime when = OffsetDateTime.parse(startDateTime);
-            Long id = exhibitions.create(organizerId, title, location, when, images);
+            Long id = exhibitions.create(organizerId, title, location, description, when, images);
             Map<String, Object> resp = new HashMap<>();
             resp.put("exhibitionId", id);
             return ResponseEntity.ok(resp);

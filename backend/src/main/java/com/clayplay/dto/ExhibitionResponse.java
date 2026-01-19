@@ -6,6 +6,7 @@ import java.util.List;
 public class ExhibitionResponse {
     public Long id;
     public String title;
+    public String description;
     public String location;
     public OffsetDateTime startDateTime;
     public Long organizerId;

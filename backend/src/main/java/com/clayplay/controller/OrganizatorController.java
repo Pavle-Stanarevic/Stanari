@@ -145,6 +145,7 @@ public class OrganizatorController {
             m.put("id", i.getIdIzlozba());
             m.put("exhibitionId", i.getIdIzlozba());
             m.put("title", i.getNazivIzlozba());
+            m.put("description", i.getOpisIzlozba());
             m.put("startDateTime", i.getDatVrIzlozba());
             m.put("location", i.getLokacijaIzlozba());
             return m;

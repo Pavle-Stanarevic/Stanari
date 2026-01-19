@@ -18,6 +18,9 @@ public class Izlozba {
     @Column(name = "lokacijaIzlozba", nullable = false, length = 100)
     private String lokacijaIzlozba;
 
+    @Column(name = "opisIzlozba", length = 1000)
+    private String opisIzlozba;
+
     @Column(name = "datVrIzlozba", nullable = false)
     private OffsetDateTime datVrIzlozba;
 
@@ -36,6 +39,9 @@ public class Izlozba {
 
     public String getLokacijaIzlozba() { return lokacijaIzlozba; }
     public void setLokacijaIzlozba(String lokacijaIzlozba) { this.lokacijaIzlozba = lokacijaIzlozba; }
+
+    public String getOpisIzlozba() { return opisIzlozba; }
+    public void setOpisIzlozba(String opisIzlozba) { this.opisIzlozba = opisIzlozba; }
 
     public OffsetDateTime getDatVrIzlozba() { return datVrIzlozba; }
     public void setDatVrIzlozba(OffsetDateTime datVrIzlozba) { this.datVrIzlozba = datVrIzlozba; }
