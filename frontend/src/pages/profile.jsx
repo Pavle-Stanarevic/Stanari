@@ -62,6 +62,42 @@ function pickId(obj) {
   return obj?.id ?? obj?.workshopId ?? obj?._id ?? obj?.exhibitionId ?? obj?.idIzlozba ?? obj?.productId;
 }
 
+function pickProductId(obj) {
+  return (
+    obj?.productId ??
+    obj?.product?.id ??
+    obj?.product?.productId ??
+    obj?.id ??
+    obj?._id ??
+    obj?.product?.idProizvod ??
+    obj?.idProizvod ??
+    null
+  );
+}
+
+function pickProductTitle(obj, fallback = "Proizvod") {
+  return (
+    obj?.title ||
+    obj?.productTitle ||
+    obj?.productName ||
+    obj?.product?.title ||
+    obj?.product?.name ||
+    obj?.product?.naziv ||
+    obj?.naziv ||
+    fallback
+  );
+}
+
+function pickProductPrice(obj) {
+  return obj?.price ?? obj?.unitPrice ?? obj?.product?.price ?? obj?.product?.cijena ?? null;
+}
+
+function pickProductQty(obj) {
+  const raw = obj?.qty ?? obj?.quantity ?? obj?.kolicina ?? obj?.productQty ?? 1;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 1;
+}
+
 function pickTitle(obj, fallback = "Stavka") {
   return obj?.title || obj?.name || obj?.naziv || obj?.productTitle || obj?.productName || fallback;
 }
@@ -140,12 +176,10 @@ export default function Profile() {
   useEffect(() => setLocalUser(user || null), [user]);
 
   const safeUser = useMemo(() => localUser || user, [localUser, user]);
-  const isOrganizator = safeUser?.userType === "organizator";
-  const isPolaznik = safeUser?.userType === "polaznik";
-  const isAdmin =
-    safeUser?.role === "ADMIN" ||
-    safeUser?.userType === "admin" ||
-    safeUser?.userType === "ADMIN";
+  const userType = String(safeUser?.userType || safeUser?.role || "").toLowerCase();
+  const isOrganizator = userType === "organizator";
+  const isPolaznik = userType === "polaznik";
+  const isAdmin = userType === "admin";
 
   // admin redirect
   useEffect(() => {
@@ -283,7 +317,7 @@ export default function Profile() {
           setBoughtItems([]);
         } else if (isPolaznik) {
           // kupljeni
-          const bought = await listMyPurchasedItems();
+          const bought = await listMyPurchasedItems(uid);
           if (!alive) return;
           setBoughtItems(Array.isArray(bought) ? bought : []);
           setActiveProducts([]);
@@ -919,10 +953,10 @@ export default function Profile() {
                               <li className="my-empty">Nema prodanih proizvoda.</li>
                             ) : (
                               soldItems.map((it, idx) => {
-                                const pid = it?.productId ?? it?.id ?? null;
-                                const title = it?.title || it?.productTitle || it?.productName || "Proizvod";
-                                const qty = Number(it?.qty ?? it?.quantity ?? 1);
-                                const price = it?.price ?? it?.unitPrice ?? null;
+                                const pid = pickProductId(it);
+                                const title = pickProductTitle(it);
+                                const qty = pickProductQty(it);
+                                const price = pickProductPrice(it);
                                 return (
                                   <li
                                     key={`sold-${pid ?? idx}`}
@@ -959,10 +993,10 @@ export default function Profile() {
                               <li className="my-empty">Nema kupljenih proizvoda.</li>
                             ) : (
                               boughtItems.map((it, idx) => {
-                                const pid = it?.productId ?? it?.id ?? null;
-                                const title = it?.title || it?.productTitle || it?.productName || "Proizvod";
-                                const qty = Number(it?.qty ?? it?.quantity ?? 1);
-                                const price = it?.price ?? it?.unitPrice ?? null;
+                                const pid = pickProductId(it);
+                                const title = pickProductTitle(it);
+                                const qty = pickProductQty(it);
+                                const price = pickProductPrice(it);
                                 return (
                                   <li
                                     key={`buy-${pid ?? idx}`}
