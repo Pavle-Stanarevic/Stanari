@@ -4,6 +4,7 @@ import com.clayplay.model.Kupovina;
 import com.clayplay.model.Proizvod;
 import com.clayplay.repository.KupovinaRepository;
 import com.clayplay.repository.ProizvodRepository;
+import com.clayplay.repository.RecenzijaRepository;
 import com.clayplay.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +24,13 @@ public class OrdersController {
 
     private final KupovinaRepository kupovinaRepository;
     private final ProizvodRepository proizvodRepository;
+    private final RecenzijaRepository recenzije;
     private final UserService userService;
 
-    public OrdersController(KupovinaRepository kupovinaRepository, ProizvodRepository proizvodRepository, UserService userService) {
+    public OrdersController(KupovinaRepository kupovinaRepository, ProizvodRepository proizvodRepository, RecenzijaRepository recenzije, UserService userService) {
         this.kupovinaRepository = kupovinaRepository;
         this.proizvodRepository = proizvodRepository;
+        this.recenzije = recenzije;
         this.userService = userService;
     }
 
@@ -46,8 +49,13 @@ public class OrdersController {
                     .stream()
                     .collect(Collectors.toMap(Proizvod::getProizvodId, p -> p));
 
-            List<Map<String, Object>> payload = list.stream()
-                    .map(k -> toItem(k, byId.get(k.getProizvodId())))
+                List<Map<String, Object>> payload = list.stream()
+                    .map(k -> {
+                    Map<String, Object> m = toItem(k, byId.get(k.getProizvodId()));
+                    boolean reviewed = recenzije.existsByProizvodIdAndIdKorisnik(k.getProizvodId(), k.getIdKorisnik());
+                    m.put("reviewed", reviewed);
+                    return m;
+                    })
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(payload);

@@ -264,7 +264,18 @@ export default function Shop() {
                 <div className="product-category">
                   {p.nazivProizvod || p.title || p.kategorijaProizvod || "Proizvod"}
                 </div>
-                
+                <div className="product-rating">
+                  <span className="product-rating-score">
+                    {Number.isFinite(Number(p.organizerAvgRating))
+                      ? Number(p.organizerAvgRating).toFixed(1)
+                      : "0.0"}
+                  </span>
+                  <span className="product-rating-stars" aria-label="Prosječna ocjena organizatora">
+                    {"★".repeat(Math.round(Number(p.organizerAvgRating || 0)))}
+                    {"☆".repeat(5 - Math.round(Number(p.organizerAvgRating || 0)))}
+                  </span>
+                  <span className="product-rating-count">({Number(p.organizerReviewCount || 0)})</span>
+                </div>
               </div>
             </Link>
           ))}

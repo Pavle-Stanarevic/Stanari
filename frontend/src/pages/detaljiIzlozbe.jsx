@@ -7,6 +7,8 @@ import {
   applyToExhibition,
   getReservedExhibitionIds,
   getExhibitionApplications,
+  listExhibitionComments,
+  createExhibitionComment,
 } from "../api/exhibitions";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -118,6 +120,13 @@ export default function DetaljiIzlozbe() {
   const [appStatus, setAppStatus] = useState("");
   const [applying, setApplying] = useState(false);
 
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [commentPosting, setCommentPosting] = useState(false);
+  const [commentError, setCommentError] = useState("");
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -138,6 +147,63 @@ export default function DetaljiIzlozbe() {
         alive && setLoading(false);
       }
     })();
+    return () => {
+      alive = false;
+    };
+  }, [exhId]);
+
+  const onSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!canComment) {
+      setCommentError("Komentar je moguć tek nakon završetka izložbe i ako ste se prijavili.");
+      return;
+    }
+
+    const text = String(commentText || "").trim();
+    if (!text) {
+      setCommentError("Unesite komentar.");
+      return;
+    }
+
+    const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+    if (!userId) {
+      setCommentError("Nedostaje ID korisnika.");
+      return;
+    }
+
+    setCommentPosting(true);
+    setCommentError("");
+    try {
+      const created = await createExhibitionComment(exhId, userId, text);
+      setComments((prev) => [created, ...prev]);
+      setCommentText("");
+    } catch (e2) {
+      setCommentError(e2?.message || "Ne mogu spremiti komentar.");
+    } finally {
+      setCommentPosting(false);
+    }
+  };
+
+  useEffect(() => {
+    let alive = true;
+    if (!exhId) return () => { alive = false; };
+
+    (async () => {
+      setCommentsLoading(true);
+      setCommentsError("");
+      try {
+        const data = await listExhibitionComments(exhId);
+        if (!alive) return;
+        setComments(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!alive) return;
+        setComments([]);
+        setCommentsError(e?.message || "Komentari trenutno nisu dostupni.");
+      } finally {
+        alive && setCommentsLoading(false);
+      }
+    })();
+
     return () => {
       alive = false;
     };
@@ -236,6 +302,7 @@ export default function DetaljiIzlozbe() {
   }, [exh, description]);
 
   const showCalendarBtn = isPolaznik && !isPast && (reserved || appStatus === "pending") && !!calendarUrl;
+  const canComment = Boolean(isPast && (reserved || appStatus) && user);
 
   return (
     <div className="ed-page">
@@ -343,6 +410,48 @@ export default function DetaljiIzlozbe() {
                     </div>
                   )}
                 </>
+              )}
+            </section>
+
+            <section className="ed-comments">
+              <h2 className="ed-comments-title">Komentari</h2>
+
+              <form className="ed-commentForm" onSubmit={onSubmitComment}>
+                <textarea
+                  className="ed-commentInput"
+                  rows={3}
+                  placeholder="Napišite komentar..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  disabled={!canComment}
+                />
+                {commentError ? <div className="ed-comments-error">{commentError}</div> : null}
+                <button className="ed-commentBtn" type="submit" disabled={commentPosting}>
+                  {commentPosting ? "Spremam..." : "Objavi komentar"}
+                </button>
+              </form>
+
+              {!canComment && (
+                <div className="ed-comments-info">
+                  Komentar je moguć tek nakon završetka izložbe i ako ste se prijavili.
+                </div>
+              )}
+
+              {commentsLoading && <div className="ed-comments-info">Učitavanje komentara…</div>}
+              {!commentsLoading && commentsError && (
+                <div className="ed-comments-error">{commentsError}</div>
+              )}
+
+              {!commentsLoading && !commentsError && comments.length === 0 && (
+                <div className="ed-comments-empty">Još nema komentara.</div>
+              )}
+
+              {!commentsLoading && !commentsError && comments.length > 0 && (
+                <ul className="ed-comments-list">
+                  {comments.map((c, i) => (
+                    <li key={c?.id ?? `c-${i}`}>{c?.text || ""}</li>
+                  ))}
+                </ul>
               )}
             </section>
           </>

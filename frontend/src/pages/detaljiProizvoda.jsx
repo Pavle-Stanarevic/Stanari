@@ -124,6 +124,19 @@ export default function ProductPage() {
               <h1 className="product-title">{productTitle}</h1>
               <p className="product-desc-full">{displayName}</p>
 
+              <div className="pd-rating">
+                <span className="pd-rating-score">
+                  {Number.isFinite(Number(product?.organizerAvgRating))
+                    ? Number(product.organizerAvgRating).toFixed(1)
+                    : "0.0"}
+                </span>
+                <span className="pd-rating-stars" aria-label="Prosječna ocjena organizatora">
+                  {"★".repeat(Math.round(Number(product?.organizerAvgRating || 0)))}
+                  {"☆".repeat(5 - Math.round(Number(product?.organizerAvgRating || 0)))}
+                </span>
+                <span className="pd-rating-count">({Number(product?.organizerReviewCount || 0)})</span>
+              </div>
+
               <div className="product-price">
                 {formatPriceEUR(product.cijenaProizvod)}
               </div>
@@ -151,7 +164,18 @@ export default function ProductPage() {
             </div>
           </section>
 
-          {/* Recenzije prodavača će doći kasnije kad API bude spreman */}
+          <section className="pd-comments">
+            <h2 className="pd-comments-title">Recenzije organizatora</h2>
+            {Array.isArray(product?.organizerReviewComments) && product.organizerReviewComments.length ? (
+              <ul className="pd-comments-list">
+                {product.organizerReviewComments.map((c, i) => (
+                  <li key={`${productIdResolved}-c-${i}`}>{c}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="pd-comments-empty">Još nema recenzija organizatora.</div>
+            )}
+          </section>
         </>
       )}
     </main>
