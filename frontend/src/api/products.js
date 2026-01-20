@@ -28,3 +28,14 @@ export async function listProductsBySeller(sellerId) {
 export async function listSoldItemsBySeller(sellerId) {
   return fetchJson(`/api/orders/sales?sellerId=${encodeURIComponent(sellerId)}`);
 }
+
+export async function listProductReviews(productId) {
+  return fetchJson(`/api/products/${encodeURIComponent(productId)}/reviews`);
+}
+
+export async function createProductReview(productId, payload) {
+  return fetchJson(`/api/products/${encodeURIComponent(productId)}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}

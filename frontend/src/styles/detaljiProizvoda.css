@@ -124,6 +124,31 @@
   margin: 0;
 }
 
+.pd-rating {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.pd-rating-score {
+  color: #111827;
+  font-weight: 900;
+}
+
+.pd-rating-stars {
+  color: #f59e0b;
+  letter-spacing: 0.5px;
+}
+
+.pd-rating-count {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .product-price {
   font-size: 18px;
   font-weight: 900;
@@ -168,6 +193,41 @@
   font-size: 12px;
   color: var(--muted);
   font-weight: 800;
+}
+
+.pd-comments {
+  margin-top: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  padding: 16px 18px;
+}
+
+.pd-comments-title {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.pd-comments-list {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.pd-comments-list li {
+  margin: 0 0 6px 0;
+  color: var(--muted);
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.pd-comments-empty {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 14px;
 }
 
 @media (max-width: 940px) {

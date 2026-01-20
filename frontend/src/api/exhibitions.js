@@ -57,3 +57,16 @@ export function getReservedExhibitionIds(userId) {
 export function getExhibitionApplications(userId) {
   return fetchJson(`/api/exhibitions/applications?userId=${encodeURIComponent(userId)}`);
 }
+
+// GET /api/exhibitions/:id/comments
+export function listExhibitionComments(id) {
+  return fetchJson(`/api/exhibitions/${id}/comments`);
+}
+
+// POST /api/exhibitions/:id/comments  body: { userId, text }
+export function createExhibitionComment(id, userId, text) {
+  return fetchJson(`/api/exhibitions/${id}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ userId, text }),
+  });
+}

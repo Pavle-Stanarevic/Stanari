@@ -10,4 +10,7 @@ public class ProductResponse {
     public Long idKorisnik;
     public Boolean kupljen;
     public String imageUrl;
+    public Double organizerAvgRating;
+    public Long organizerReviewCount;
+    public java.util.List<String> organizerReviewComments;
 }

@@ -159,76 +159,6 @@ async function uploadExtraPhotos(workshopId, files) {
   return null;
 }
 
-const FALLBACK_REVIEWS = [
-  {
-    id: "r1",
-    author: "Ana",
-    rating: 5,
-    comment: "Odlična radionica, super atmosfera i jasne upute!",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
-    _fallback: true,
-  },
-  {
-    id: "r2",
-    author: "Marko",
-    rating: 4,
-    comment: "Jako zabavno, možda bih dodao malo više vremena za glazuru.",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
-    _fallback: true,
-  },
-];
-
-function normalizeReviews(data) {
-  const arr = Array.isArray(data) ? data : [];
-  return arr.map((r) => {
-    const fullName = `${r?.user?.firstName || ""} ${r?.user?.lastName || ""}`.trim();
-    const author =
-      (r?.author ?? r?.authorName ?? r?.userName ?? (fullName || "")) || "Korisnik";
-
-    const ratingNum = Number(r?.rating ?? r?.ocjena ?? 0);
-    const rating = Number.isFinite(ratingNum) ? ratingNum : 0;
-
-    return {
-      id: r?.id ?? r?._id ?? `r-${Math.random().toString(16).slice(2)}`,
-      author,
-      rating,
-      comment: r?.comment ?? r?.komentar ?? r?.text ?? "",
-      createdAt: r?.createdAt ?? r?.created_at ?? r?.date ?? new Date().toISOString(),
-    };
-  });
-}
-
-async function fetchReviews(workshopId) {
-  const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/reviews`, {
-    method: "GET",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json().catch(() => []);
-  return normalizeReviews(data);
-}
-
-async function postReview(workshopId, payload) {
-  const res = await fetch(`${BASE_URL}/api/workshops/${workshopId}/reviews`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(txt || `HTTP ${res.status}`);
-  }
-
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) {
-    const data = await res.json().catch(() => null);
-    if (Array.isArray(data)) return normalizeReviews(data);
-    if (data) return normalizeReviews([data])[0];
-  }
-  return null;
-}
 
 export default function DetaljiRadionice() {
   const { id } = useParams();
@@ -256,13 +186,6 @@ export default function DetaljiRadionice() {
   const [uploadErr, setUploadErr] = useState("");
   const fileRef = useRef(null);
 
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsNote, setReviewsNote] = useState("");
-  const [myRating, setMyRating] = useState(5);
-  const [myComment, setMyComment] = useState("");
-  const [reviewErr, setReviewErr] = useState("");
-  const [postingReview, setPostingReview] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -433,44 +356,6 @@ export default function DetaljiRadionice() {
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
 
-  // recenzije nakon zavrsetka radionice
-  useEffect(() => {
-    let alive = true;
-
-    if (!isFinished) {
-      setReviews([]);
-      setReviewsNote("");
-      return () => {
-        alive = false;
-      };
-    }
-
-    setReviewsLoading(true);
-    setReviewsNote("");
-
-    fetchReviews(workshopId)
-      .then((arr) => {
-        if (!alive) return;
-        setReviews(arr);
-        setReviewsNote("");
-      })
-      .catch(() => {
-        if (!alive) return;
-        setReviews(normalizeReviews(FALLBACK_REVIEWS));
-        setReviewsNote("Recenzije su trenutno placeholder (backend još nije spojen).");
-      })
-      .finally(() => alive && setReviewsLoading(false));
-
-    return () => {
-      alive = false;
-    };
-  }, [isFinished, workshopId]);
-
-  const avgRating = useMemo(() => {
-    if (!reviews.length) return 0;
-    const sum = reviews.reduce((acc, r) => acc + Number(r.rating || 0), 0);
-    return sum / reviews.length;
-  }, [reviews]);
 
   const isReserved = useMemo(() => reservedSet.has(Number(workshopId)), [reservedSet, workshopId]);
 
@@ -487,11 +372,6 @@ export default function DetaljiRadionice() {
     });
   }, [cartItems, workshopId]);
 
-  const canReview = useMemo(() => {
-    if (!isFinished) return false;
-    if (!polaznik) return false;
-    return reservedSet.has(Number(workshopId));
-  }, [isFinished, polaznik, reservedSet, workshopId]);
 
   const onAddToCart = async () => {
     try {
@@ -557,62 +437,6 @@ export default function DetaljiRadionice() {
     }
   };
 
-  const onSubmitReview = async (e) => {
-    e.preventDefault();
-    setReviewErr("");
-
-    if (!canReview) {
-      setReviewErr("Samo polaznici koji su bili na radionici mogu ostaviti recenziju.");
-      return;
-    }
-
-    const comment = String(myComment || "").trim();
-    if (!comment) {
-      setReviewErr("Unesite komentar.");
-      return;
-    }
-
-    const ratingNum = Number(myRating);
-    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
-      setReviewErr("Ocjena mora biti između 1 i 5.");
-      return;
-    }
-
-    setPostingReview(true);
-    try {
-      const created = await postReview(workshopId, { rating: ratingNum, comment });
-
-      if (created) {
-        setReviews((prev) => [created, ...prev]);
-        setReviewsNote("");
-      } else {
-        const fresh = await fetchReviews(workshopId);
-        setReviews(fresh);
-        setReviewsNote("");
-      }
-
-      setMyComment("");
-      setMyRating(5);
-    } catch {
-      const author =
-        `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.email || "Polaznik";
-
-      const local = {
-        id: `local-${Date.now()}`,
-        author,
-        rating: ratingNum,
-        comment,
-        createdAt: new Date().toISOString(),
-      };
-
-      setReviews((prev) => [local, ...prev]);
-      setMyComment("");
-      setMyRating(5);
-      setReviewsNote("Recenzije su trenutno placeholder (backend još nije spojen) — spremljeno lokalno.");
-    } finally {
-      setPostingReview(false);
-    }
-  };
 
   /* ---------- calendar url (only useful when reserved + upcoming) ---------- */
   const calendarUrl = useMemo(() => {
@@ -801,93 +625,6 @@ export default function DetaljiRadionice() {
               )}
             </section>
 
-            {isFinished ? (
-              <section className="wd-section">
-                <div className="wd-revTop">
-                  <h2>Ocjene i recenzije</h2>
-                  <div className="wd-revSummary">
-                    <span className="wd-revAvg">{avgRating ? avgRating.toFixed(1) : "0.0"}</span>
-                    <span className="wd-revStars" aria-label="Prosječna ocjena">
-                      {"★".repeat(Math.round(avgRating || 0))}
-                      {"☆".repeat(5 - Math.round(avgRating || 0))}
-                    </span>
-                    <span className="wd-revCount">({reviews.length})</span>
-                  </div>
-                </div>
-
-                {reviewsLoading ? <div className="wd-muted">Učitavam recenzije…</div> : null}
-                {reviewsNote ? <div className="wd-muted">{reviewsNote}</div> : null}
-
-                <div className="wd-reviewBox">
-                  {polaznik && reservedLoading ? (
-                    <div className="wd-muted">Provjeravam prijavu na radionicu…</div>
-                  ) : canReview ? (
-                    <form className="wd-reviewForm" onSubmit={onSubmitReview}>
-                      <div className="wd-formRow">
-                        <label className="wd-formLabel">Ocjena</label>
-                        <select
-                          className="wd-select"
-                          value={myRating}
-                          onChange={(e) => setMyRating(Number(e.target.value))}
-                        >
-                          {[5, 4, 3, 2, 1].map((n) => (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="wd-formRow">
-                        <label className="wd-formLabel">Komentar</label>
-                        <textarea
-                          className="wd-textarea"
-                          rows={4}
-                          placeholder="Napiši svoje iskustvo…"
-                          value={myComment}
-                          onChange={(e) => setMyComment(e.target.value)}
-                        />
-                      </div>
-
-                      {reviewErr ? <div className="wd-errorSmall">{reviewErr}</div> : null}
-
-                      <button className="wd-secondary" type="submit" disabled={postingReview}>
-                        {postingReview ? "Objavljujem..." : "Objavi recenziju"}
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="wd-muted">
-                      {user?.userType !== "polaznik"
-                        ? "Samo polaznici mogu ostaviti recenziju."
-                        : "Recenziju mogu ostaviti samo polaznici koji su bili prijavljeni na ovu radionicu."}
-                    </div>
-                  )}
-                </div>
-
-                {!reviewsLoading && reviews.length === 0 ? (
-                  <div className="wd-emptyPhotos">Još nema recenzija.</div>
-                ) : (
-                  <ul className="wd-revList">
-                    {reviews.map((r) => (
-                      <li key={r.id} className="wd-revItem">
-                        <div className="wd-revHead">
-                          <div className="wd-revAuthor">{r.author}</div>
-                          <div className="wd-revMeta">
-                            <span className="wd-revStarsSmall">
-                              {"★".repeat(Number(r.rating || 0))}
-                              {"☆".repeat(5 - Number(r.rating || 0))}
-                            </span>
-                            <span className="wd-dot">•</span>
-                            <span>{formatDateTime(r.createdAt)}</span>
-                          </div>
-                        </div>
-                        <div className="wd-revComment">{r.comment}</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            ) : null}
           </>
         ) : null}
       </main>

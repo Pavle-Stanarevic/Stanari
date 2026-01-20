@@ -2,6 +2,11 @@ package com.clayplay.controller;
 
 import com.clayplay.dto.ExhibitionApplicationResponse;
 import com.clayplay.dto.ExhibitionResponse;
+import com.clayplay.model.Izlozba;
+import com.clayplay.model.Komentar;
+import com.clayplay.repository.IzlozbaRepository;
+import com.clayplay.repository.KomentarRepository;
+import com.clayplay.repository.PrijavaRepository;
 import com.clayplay.service.ExhibitionReservationService;
 import com.clayplay.service.ExhibitionService;
 import org.springframework.http.MediaType;
@@ -20,10 +25,16 @@ public class ExhibitionController {
 
     private final ExhibitionService exhibitions;
     private final ExhibitionReservationService reservations;
+    private final KomentarRepository komentari;
+    private final IzlozbaRepository izlozbe;
+    private final PrijavaRepository prijave;
 
-    public ExhibitionController(ExhibitionService exhibitions, ExhibitionReservationService reservations) {
+    public ExhibitionController(ExhibitionService exhibitions, ExhibitionReservationService reservations, KomentarRepository komentari, IzlozbaRepository izlozbe, PrijavaRepository prijave) {
         this.exhibitions = exhibitions;
         this.reservations = reservations;
+        this.komentari = komentari;
+        this.izlozbe = izlozbe;
+        this.prijave = prijave;
     }
 
     @GetMapping
@@ -86,6 +97,66 @@ public class ExhibitionController {
             return ResponseEntity.ok(apps);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<?> listComments(@PathVariable("id") Long exhibitionId) {
+        try {
+            List<Komentar> list = komentari.findByIdIzlozbaOrderByIdKomentarDesc(exhibitionId);
+            List<Map<String, Object>> payload = list.stream().map(k -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", k.getIdKomentar());
+                m.put("text", k.getTextKomentar());
+                m.put("userId", k.getIdKorisnik());
+                m.put("replyTo", k.getOdgovaraIdKomentar());
+                return m;
+            }).toList();
+            return ResponseEntity.ok(payload);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<?> createComment(@PathVariable("id") Long exhibitionId, @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            if (body == null) return ResponseEntity.badRequest().body("Missing payload");
+            Object userIdRaw = body.get("userId");
+            if (userIdRaw == null) return ResponseEntity.badRequest().body("Missing userId");
+            Long userId = ((Number) userIdRaw).longValue();
+
+            Izlozba iz = izlozbe.findById(exhibitionId).orElse(null);
+            if (iz == null) return ResponseEntity.status(404).body("Izložba nije pronađena");
+            if (iz.getDatVrIzlozba() == null || iz.getDatVrIzlozba().isAfter(java.time.OffsetDateTime.now())) {
+                return ResponseEntity.badRequest().body("Komentar je moguć tek nakon završetka izložbe");
+            }
+
+            if (prijave.findByIdKorisnikAndIdIzlozba(userId, exhibitionId).isEmpty()) {
+                return ResponseEntity.status(403).body("Komentar je dopušten samo za izložbe na koje ste se prijavili");
+            }
+
+            if (komentari.existsByIdIzlozbaAndIdKorisnik(exhibitionId, userId)) {
+                return ResponseEntity.badRequest().body("Već ste ostavili komentar za ovu izložbu");
+            }
+
+            String text = body.get("text") == null ? "" : String.valueOf(body.get("text")).trim();
+            if (text.isBlank()) return ResponseEntity.badRequest().body("Komentar je prazan");
+            if (text.length() > 1000) return ResponseEntity.badRequest().body("Komentar je predug");
+
+            Komentar k = new Komentar();
+            k.setIdIzlozba(exhibitionId);
+            k.setIdKorisnik(userId);
+            k.setTextKomentar(text);
+            Komentar saved = komentari.save(k);
+
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("id", saved.getIdKomentar());
+            resp.put("text", saved.getTextKomentar());
+            resp.put("userId", saved.getIdKorisnik());
+            return ResponseEntity.ok(resp);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Server error");
         }

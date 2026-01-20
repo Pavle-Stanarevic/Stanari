@@ -8,6 +8,7 @@ import com.clayplay.repository.FotoProizvodRepository;
 import com.clayplay.repository.FotografijaRepository;
 import com.clayplay.repository.KupovinaRepository;
 import com.clayplay.repository.ProizvodRepository;
+import com.clayplay.repository.RecenzijaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,17 +23,20 @@ public class ProductService {
     private final FotografijaRepository fotografijaRepository;
     private final FotoProizvodRepository fotoProizvodRepository;
     private final KupovinaRepository kupovinaRepository;
+    private final RecenzijaRepository recenzijaRepository;
     private final FileStorageService storage;
 
     public ProductService(ProizvodRepository proizvodRepository,
                           FotografijaRepository fotografijaRepository,
                           FotoProizvodRepository fotoProizvodRepository,
                           KupovinaRepository kupovinaRepository,
+                          RecenzijaRepository recenzijaRepository,
                           FileStorageService storage) {
         this.proizvodRepository = proizvodRepository;
         this.fotografijaRepository = fotografijaRepository;
         this.fotoProizvodRepository = fotoProizvodRepository;
         this.kupovinaRepository = kupovinaRepository;
+        this.recenzijaRepository = recenzijaRepository;
         this.storage = storage;
     }
 
@@ -98,6 +102,15 @@ public class ProductService {
         r.kategorijaProizvod = p.getKategorijaProizvod();
         r.idKorisnik = p.getIdKorisnik();
         r.kupljen = p.getKupljen();
+        try {
+            Long sellerId = p.getIdKorisnik();
+            Long productId = p.getProizvodId();
+            if (sellerId != null && productId != null) {
+                r.organizerAvgRating = recenzijaRepository.avgRatingForSellerExcluding(sellerId, productId);
+                r.organizerReviewCount = recenzijaRepository.countReviewsForSellerExcluding(sellerId, productId);
+                r.organizerReviewComments = recenzijaRepository.commentTextsForSellerExcluding(sellerId, productId);
+            }
+        } catch (Exception ignored) {}
         try {
             String url = fotoProizvodRepository.findFirstImageUrl(p.getProizvodId());
             r.imageUrl = url;

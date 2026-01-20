@@ -9,7 +9,7 @@ import { listWorkshops, getReservedWorkshopIds } from "../api/workshops.js";
 import { listExhibitions, getReservedExhibitionIds } from "../api/exhibitions.js";
 
 // ✅ NOVO (dodaješ fajlove ispod)
-import { listProductsBySeller, listSoldItemsBySeller } from "../api/products.js";
+import { listProductsBySeller, listSoldItemsBySeller, createProductReview } from "../api/products.js";
 import { listMyPurchasedItems } from "../api/orders.js";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -172,6 +172,14 @@ export default function Profile() {
   const [activeProducts, setActiveProducts] = useState([]);
   const [soldItems, setSoldItems] = useState([]);
   const [boughtItems, setBoughtItems] = useState([]);
+
+  // ✅ RECENZIJE ZA KUPLJENE PROIZVODE
+  const [reviewOpenId, setReviewOpenId] = useState(null);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewPosting, setReviewPosting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewDoneId, setReviewDoneId] = useState(null);
 
   useEffect(() => setLocalUser(user || null), [user]);
 
@@ -349,6 +357,59 @@ export default function Profile() {
       alive = false;
     };
   }, [safeUser?.id, isOrganizator, isPolaznik]);
+
+  const toggleReview = (pid) => {
+    if (!pid) return;
+    setReviewError("");
+    if (reviewOpenId === pid) {
+      setReviewOpenId(null);
+      return;
+    }
+    setReviewOpenId(pid);
+    setReviewText("");
+    setReviewRating(5);
+    setReviewDoneId(null);
+  };
+
+  const onSubmitProductReview = async (e, pid) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!pid) return;
+    if (!safeUser?.id) {
+      setReviewError("Niste prijavljeni.");
+      return;
+    }
+
+    const text = String(reviewText || "").trim();
+    if (!text) {
+      setReviewError("Unesite tekst recenzije.");
+      return;
+    }
+
+    const ratingNum = Number(reviewRating);
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      setReviewError("Ocjena mora biti između 1 i 5.");
+      return;
+    }
+
+    setReviewPosting(true);
+    setReviewError("");
+    try {
+      await createProductReview(pid, { userId: safeUser.id, rating: ratingNum, text });
+      setBoughtItems((prev) =>
+        prev.map((it) => (pickProductId(it) === pid ? { ...it, reviewed: true } : it))
+      );
+      setReviewDoneId(pid);
+      setReviewOpenId(null);
+      setReviewText("");
+      setReviewRating(5);
+    } catch (err) {
+      setReviewError(err?.message || "Ne mogu spremiti recenziju.");
+    } finally {
+      setReviewPosting(false);
+    }
+  };
 
   const startEditing = (field, value) => {
     setError("");
@@ -997,6 +1058,7 @@ export default function Profile() {
                                 const title = pickProductTitle(it);
                                 const qty = pickProductQty(it);
                                 const price = pickProductPrice(it);
+                                const reviewed = Boolean(it?.reviewed) || reviewDoneId === pid;
                                 return (
                                   <li
                                     key={`buy-${pid ?? idx}`}
@@ -1018,6 +1080,80 @@ export default function Profile() {
                                         {qty ? `Količina: ${qty}` : ""}
                                         {price != null ? ` • ${formatMoneyEUR(price)}` : ""}
                                       </div>
+                                      <div
+                                        style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onKeyDown={(e) => e.stopPropagation()}
+                                      >
+                                        {!reviewed ? (
+                                          <button
+                                            type="button"
+                                            className="my-tabBtn"
+                                            style={{ padding: "6px 10px" }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleReview(pid);
+                                            }}
+                                          >
+                                            {reviewOpenId === pid ? "Zatvori" : "Ostavi recenziju"}
+                                          </button>
+                                        ) : (
+                                          <div className="my-sub" style={{ color: "#15803d", fontWeight: 600 }}>
+                                            Recenzija je već ostavljena.
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {reviewOpenId === pid && !reviewed && (
+                                        <form
+                                          style={{ marginTop: 10 }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onKeyDown={(e) => e.stopPropagation()}
+                                          onSubmit={(e) => onSubmitProductReview(e, pid)}
+                                        >
+                                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                            <label className="my-sub" htmlFor={`rating-${pid}`}>Ocjena:</label>
+                                            <select
+                                              id={`rating-${pid}`}
+                                              value={reviewRating}
+                                              onChange={(e) => setReviewRating(Number(e.target.value))}
+                                              onKeyDown={(e) => e.stopPropagation()}
+                                            >
+                                              {[5, 4, 3, 2, 1].map((v) => (
+                                                <option key={v} value={v}>
+                                                  {v}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+
+                                          <textarea
+                                            className="edit-input"
+                                            style={{ marginTop: 8 }}
+                                            rows={3}
+                                            placeholder="Napišite recenziju..."
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                          />
+
+                                          {reviewError ? (
+                                            <div className="my-sub" style={{ color: "#b91c1c", fontWeight: 600 }}>
+                                              {reviewError}
+                                            </div>
+                                          ) : null}
+
+                                          <div style={{ marginTop: 8 }}>
+                                            <button
+                                              type="submit"
+                                              className="my-tabBtn active"
+                                              disabled={reviewPosting}
+                                            >
+                                              {reviewPosting ? "Spremam..." : "Spremi recenziju"}
+                                            </button>
+                                          </div>
+                                        </form>
+                                      )}
                                     </div>
                                   </li>
                                 );
