@@ -239,3 +239,38 @@
     grid-template-columns: 1fr;
   }
 }
+
+.ed-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ed-calendarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+  color: inherit;
+
+  transition: transform 0.08s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.ed-calendarBtn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.ed-calendarBtn:active {
+  transform: translateY(0px);
+}

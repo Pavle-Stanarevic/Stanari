@@ -8,6 +8,39 @@ import "../styles/detaljiRadionice.css";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
+/* ---------- calendar helpers ---------- */
+function toGoogleCalDateUtc(date) {
+  // Google expects UTC format: YYYYMMDDTHHMMSSZ
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    date.getUTCFullYear() +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    "T" +
+    pad(date.getUTCHours()) +
+    pad(date.getUTCMinutes()) +
+    pad(date.getUTCSeconds()) +
+    "Z"
+  );
+}
+
+function buildGoogleCalendarUrl({ title, details, location, start, end }) {
+  if (!start || !end) return null;
+
+  const dates = `${toGoogleCalDateUtc(start)}/${toGoogleCalDateUtc(end)}`;
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title || "Radionica",
+    details: details || "",
+    location: location || "",
+    dates,
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/* ---------- helpers ---------- */
 function resolvePhotoUrl(raw) {
   if (!raw) return "";
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
@@ -581,6 +614,28 @@ export default function DetaljiRadionice() {
     }
   };
 
+  /* ---------- calendar url (only useful when reserved + upcoming) ---------- */
+  const calendarUrl = useMemo(() => {
+    if (!workshop) return null;
+
+    const startIso = getWorkshopISO(workshop);
+    if (!startIso) return null;
+
+    const start = new Date(startIso);
+    if (Number.isNaN(start.getTime())) return null;
+
+    const end = calcEndDate(workshop) || start;
+    const title = workshop.title || "Radionica";
+    const location = workshop.location || "";
+    const details =
+      `Radionica: ${title}\n` +
+      `Vrijeme: ${formatDateTime(startIso)}${end ? ` - ${formatTimeOnly(end)}` : ""}\n` +
+      (location ? `Lokacija: ${location}\n` : "") +
+      (workshop.description ? `\n${workshop.description}` : "");
+
+    return buildGoogleCalendarUrl({ title, details, location, start, end });
+  }, [workshop]);
+
   return (
     <div className="wd-page">
       <div className="wd-topbar">
@@ -607,38 +662,53 @@ export default function DetaljiRadionice() {
 
                 <div className="wd-actions">
                   {!isFinished ? (
-                    <button
-                      className="wd-primary"
-                      disabled={
-                        adding ||
-                        !user ||
-                        isFinished ||
-                        isReserved ||
-                        isInCart ||
-                        isOwnerOrganizer ||
-                        (workshop.capacity || 0) <= 0
-                      }
-                      onClick={onAddToCart}
-                      title={
-                        !user
+                    <>
+                      <button
+                        className="wd-primary"
+                        disabled={
+                          adding ||
+                          !user ||
+                          isFinished ||
+                          isReserved ||
+                          isInCart ||
+                          isOwnerOrganizer ||
+                          (workshop.capacity || 0) <= 0
+                        }
+                        onClick={onAddToCart}
+                        title={
+                          !user
+                            ? "Odjavljeni ste"
+                            : (workshop.capacity || 0) <= 0
+                            ? "Radionica je popunjena"
+                            : ""
+                        }
+                      >
+                        {adding
+                          ? "Dodajem..."
+                          : !user
                           ? "Odjavljeni ste"
-                          : (workshop.capacity || 0) <= 0
-                          ? "Radionica je popunjena"
-                          : ""
-                      }
-                    >
-                      {adding
-                        ? "Dodajem..."
-                        : !user
-                        ? "Odjavljeni ste"
-                        : isOwnerOrganizer
-                        ? "Vaša radionica"
-                        : isReserved
-                        ? "Prijavljen"
-                        : isInCart
-                        ? "U košarici"
-                        : "Prijavi se"}
-                    </button>
+                          : isOwnerOrganizer
+                          ? "Vaša radionica"
+                          : isReserved
+                          ? "Prijavljen"
+                          : isInCart
+                          ? "U košarici"
+                          : "Prijavi se"}
+                      </button>
+
+                      {/* NEW: show only when polaznik is reserved */}
+                      {polaznik && isReserved && calendarUrl ? (
+                        <a
+                          className="wd-calendarBtn"
+                          href={calendarUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Otvori Google Kalendar i dodaj događaj"
+                        >
+                          + Dodaj u kalendar
+                        </a>
+                      ) : null}
+                    </>
                   ) : (
                     <div className="wd-finishedNote">Radionica je završila.</div>
                   )}

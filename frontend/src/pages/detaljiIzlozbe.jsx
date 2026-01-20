@@ -11,6 +11,38 @@ import {
 
 const API = import.meta.env.VITE_API_URL || "";
 
+/* ---------- calendar helpers ---------- */
+function toGoogleCalDateUtc(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    date.getUTCFullYear() +
+    pad(date.getUTCMonth() + 1) +
+    pad(date.getUTCDate()) +
+    "T" +
+    pad(date.getUTCHours()) +
+    pad(date.getUTCMinutes()) +
+    pad(date.getUTCSeconds()) +
+    "Z"
+  );
+}
+
+function buildGoogleCalendarUrl({ title, details, location, start, end }) {
+  if (!start || !end) return null;
+
+  const dates = `${toGoogleCalDateUtc(start)}/${toGoogleCalDateUtc(end)}`;
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title || "Izložba",
+    details: details || "",
+    location: location || "",
+    dates,
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/* ---------- existing helpers ---------- */
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -47,10 +79,28 @@ function getImages(x) {
     .filter(Boolean);
 }
 
-// ✅ opis samo iz backenda (exh objekta)
 function getDescription(x) {
   const v = x?.description ?? x?.opis ?? x?.opisIzlozbe ?? "";
   return typeof v === "string" ? v.trim() : "";
+}
+
+/* NEW: end time calc (if no duration, default 2h) */
+function calcEndDate(exh) {
+  const startIso = getISO(exh);
+  if (!startIso) return null;
+  const start = new Date(startIso);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const durMin =
+    Number(exh?.durationMinutes ?? exh?.duration ?? exh?.trajanjeMinuta ?? 0) || 0;
+
+  const minutes = durMin > 0 ? durMin : 120; // default 2h if missing
+  return new Date(start.getTime() + minutes * 60 * 1000);
+}
+
+function formatTimeOnly(d) {
+  if (!d) return "—";
+  return `${d.toTimeString().slice(0, 5)}h`;
 }
 
 export default function DetaljiIzlozbe() {
@@ -110,6 +160,7 @@ export default function DetaljiIzlozbe() {
         const ids = await getReservedExhibitionIds(userId);
         if (!alive) return;
         setReserved(Array.isArray(ids) ? ids.map(Number).includes(Number(exhId)) : false);
+
         const apps = await getExhibitionApplications(userId);
         if (!alive) return;
         const found = Array.isArray(apps)
@@ -137,7 +188,6 @@ export default function DetaljiIzlozbe() {
       if (isPast) throw new Error("Ne možeš se prijaviti na prošlu izložbu.");
       if (!exh) return;
 
-      // demo blok (ostavljeno kako si imala)
       if (String(exh.id).startsWith("900")) {
         throw new Error("Ovo je demo izložba (placeholder) — prijava nije dostupna.");
       }
@@ -145,7 +195,10 @@ export default function DetaljiIzlozbe() {
       const userId = user.id ?? user.idKorisnik ?? user.userId;
       setApplying(true);
       await applyToExhibition(exh.id, userId);
+
+      // local optimistic state
       setReserved(true);
+      setAppStatus("pending");
     } catch (e) {
       alert(e.message || "Neuspješna prijava.");
     } finally {
@@ -158,6 +211,31 @@ export default function DetaljiIzlozbe() {
   const rest = imgs.slice(1);
 
   const description = getDescription(exh);
+
+  /* NEW: calendar url (show only when applied/reserved & upcoming) */
+  const calendarUrl = useMemo(() => {
+    if (!exh) return null;
+    const startIso = getISO(exh);
+    if (!startIso) return null;
+
+    const start = new Date(startIso);
+    if (Number.isNaN(start.getTime())) return null;
+
+    const end = calcEndDate(exh) || start;
+
+    const title = exh.title || "Izložba";
+    const location = exh.location || "";
+
+    const details =
+      `Izložba: ${title}\n` +
+      `Vrijeme: ${formatDateTime(startIso)}${end ? ` - ${formatTimeOnly(end)}` : ""}\n` +
+      (location ? `Lokacija: ${location}\n` : "") +
+      (description ? `\n${description}` : "");
+
+    return buildGoogleCalendarUrl({ title, details, location, start, end });
+  }, [exh, description]);
+
+  const showCalendarBtn = isPolaznik && !isPast && (reserved || appStatus === "pending") && !!calendarUrl;
 
   return (
     <div className="ed-page">
@@ -184,27 +262,41 @@ export default function DetaljiIzlozbe() {
                 <h1 className="ed-title">{exh.title || "Bez naziva"}</h1>
 
                 {isPolaznik && (
-                  <button
-                    className={`ed-primary ${appStatus === "pending" ? "is-pending" : ""}`}
-                    disabled={reserved || isPast || applying}
-                    onClick={onApply}
-                    title={isPast ? "Izložba je prošla." : ""}
-                  >
-                    {(() => {
-                      const ownerId2 =
-                        exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
-                      const currentUserId2 = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
-                      const isOwner2 =
-                        currentUserId2 != null &&
-                        ownerId2 != null &&
-                        Number(currentUserId2) === Number(ownerId2);
-                      if (isOwner2) return "Vaša izložba";
-                      if (isPast) return "Izložba završena";
-                      if (appStatus === "pending" || reserved) return "Prijava se obrađuje";
-                      if (applying) return "Prijavljujem...";
-                      return "Prijava";
-                    })()}
-                  </button>
+                  <div className="ed-actions">
+                    <button
+                      className={`ed-primary ${appStatus === "pending" ? "is-pending" : ""}`}
+                      disabled={reserved || isPast || applying}
+                      onClick={onApply}
+                      title={isPast ? "Izložba je prošla." : ""}
+                    >
+                      {(() => {
+                        const ownerId2 =
+                          exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+                        const currentUserId2 = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+                        const isOwner2 =
+                          currentUserId2 != null &&
+                          ownerId2 != null &&
+                          Number(currentUserId2) === Number(ownerId2);
+                        if (isOwner2) return "Vaša izložba";
+                        if (isPast) return "Izložba završena";
+                        if (appStatus === "pending" || reserved) return "Prijava se obrađuje";
+                        if (applying) return "Prijavljujem...";
+                        return "Prijava";
+                      })()}
+                    </button>
+
+                    {showCalendarBtn ? (
+                      <a
+                        className="ed-calendarBtn"
+                        href={calendarUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Otvori Google Kalendar i dodaj događaj"
+                      >
+                        + Dodaj u kalendar
+                      </a>
+                    ) : null}
+                  </div>
                 )}
               </div>
 
@@ -218,7 +310,6 @@ export default function DetaljiIzlozbe() {
                 </span>
               </div>
 
-              {/* ✅ OPIS: samo iz backenda */}
               {description ? (
                 <section className="ed-desc">
                   <h2 className="ed-descTitle">Opis izložbe</h2>
