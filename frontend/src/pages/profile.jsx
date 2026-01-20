@@ -4,7 +4,13 @@ import useAuth from "../hooks/useAuth.js";
 import "../styles/profile.css";
 import { Edit, Check, X } from "lucide-react";
 import { updateProfile, me } from "../api/auth.js";
-import { listWorkshops } from "../api/workshops.js";
+
+import { listWorkshops, getReservedWorkshopIds } from "../api/workshops.js";
+import { listExhibitions, getReservedExhibitionIds } from "../api/exhibitions.js";
+
+// ✅ NOVO (dodaješ fajlove ispod)
+import { listProductsBySeller, listSoldItemsBySeller } from "../api/products.js";
+import { listMyPurchasedItems } from "../api/orders.js";
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -29,18 +35,65 @@ function getCookie(name = "XSRF-TOKEN") {
     ?.split("=")[1];
 }
 
-const ALLOWED_FIELDS = new Set([
-  "firstName",
-  "lastName",
-  "contact",
-  "studyName",
-  "address",
-]);
+const ALLOWED_FIELDS = new Set(["firstName", "lastName", "contact", "studyName", "address"]);
 
 function isStrongEnoughPassword(pw) {
   const v = String(pw || "");
   return v.length >= 8;
 }
+
+/** -------- helpers -------- */
+function parseDateAny(x) {
+  if (!x) return null;
+  const d = new Date(x);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function getISO_Workshop(w) {
+  return w?.startDateTime ?? w?.dateISO ?? w?.date ?? null;
+}
+
+function getISO_Exh(x) {
+  return x?.startDateTime ?? x?.dateTime ?? x?.date ?? x?.start ?? null;
+}
+
+function pickId(obj) {
+  return obj?.id ?? obj?.workshopId ?? obj?._id ?? obj?.exhibitionId ?? obj?.idIzlozba ?? obj?.productId;
+}
+
+function pickTitle(obj, fallback = "Stavka") {
+  return obj?.title || obj?.name || obj?.naziv || obj?.productTitle || obj?.productName || fallback;
+}
+
+function pickSubWorkshop(w) {
+  const d = parseDateAny(getISO_Workshop(w));
+  const dateLabel = d ? d.toLocaleDateString("hr-HR") : "";
+  const loc = w?.location || "";
+  const parts = [dateLabel, loc].filter(Boolean);
+  return parts.length ? parts.join(" • ") : "—";
+}
+
+function pickSubExh(x) {
+  const d = parseDateAny(getISO_Exh(x));
+  const dateLabel = d ? d.toLocaleDateString("hr-HR") : "";
+  const loc = x?.location || "";
+  const parts = [dateLabel, loc].filter(Boolean);
+  return parts.length ? parts.join(" • ") : "—";
+}
+
+function formatMoneyEUR(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "";
+  return `${n.toFixed(2)}€`;
+}
+
+/** -------- rute iz tvog projekta -------- */
+const ROUTES = {
+  workshopDetails: (id) => `/radionica/${id}`,
+  exhibitionDetails: (id) => `/izlozbe/${id}`,
+  productDetails: (id) => `/shop/${id}`, // ako ti je drugačije, promijeni samo ovu liniju
+};
 
 export default function Profile() {
   const { user, signIn } = useAuth();
@@ -66,22 +119,35 @@ export default function Profile() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
 
-  // radionice
-  const [workshops, setWorkshops] = useState([]);
-  const [wsLoading, setWsLoading] = useState(false);
-  const [wsError, setWsError] = useState("");
+  // ✅ MOJE (radionice + izložbe)
+  const [myLoading, setMyLoading] = useState(false);
+  const [myError, setMyError] = useState("");
 
-  useEffect(() => {
-    setLocalUser(user || null);
-  }, [user]);
+  const [myUpcomingWorkshops, setMyUpcomingWorkshops] = useState([]);
+  const [myPastWorkshops, setMyPastWorkshops] = useState([]);
+
+  const [myUpcomingExhibitions, setMyUpcomingExhibitions] = useState([]);
+  const [myPastExhibitions, setMyPastExhibitions] = useState([]);
+
+  // ✅ PROIZVODI (organizator: aktivni/prodani, polaznik: kupljeni)
+  const [prodTab, setProdTab] = useState("active"); // active | sold | bought
+  const [prodLoading, setProdLoading] = useState(false);
+  const [prodError, setProdError] = useState("");
+  const [activeProducts, setActiveProducts] = useState([]);
+  const [soldItems, setSoldItems] = useState([]);
+  const [boughtItems, setBoughtItems] = useState([]);
+
+  useEffect(() => setLocalUser(user || null), [user]);
 
   const safeUser = useMemo(() => localUser || user, [localUser, user]);
   const isOrganizator = safeUser?.userType === "organizator";
+  const isPolaznik = safeUser?.userType === "polaznik";
   const isAdmin =
     safeUser?.role === "ADMIN" ||
     safeUser?.userType === "admin" ||
     safeUser?.userType === "ADMIN";
 
+  // admin redirect
   useEffect(() => {
     if (!safeUser) return;
     if (isAdmin) navigate("/admin", { replace: true });
@@ -98,33 +164,157 @@ export default function Profile() {
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  // ✅ dohvat radionica: uzmi SVE pa filtriraj po organizerId (radi i ako backend ignorira query)
+  // ✅ Učitavanje radionica + izložbi (polaznik/organizator)
   useEffect(() => {
-    const load = async () => {
-      if (!safeUser?.id || !isOrganizator) return;
+    if (!safeUser?.id) return;
+    let alive = true;
 
-      setWsError("");
-      setWsLoading(true);
+    const uid = safeUser.id;
+
+    const load = async () => {
+      setMyLoading(true);
+      setMyError("");
 
       try {
-        const data = await listWorkshops(); // GET /api/workshops
+        // radionice
+        const wsAll = await listWorkshops();
+        const wsArr = Array.isArray(wsAll) ? wsAll : [];
 
-        const all = Array.isArray(data) ? data : data?.items || [];
+        let wsMine = [];
+        if (isPolaznik) {
+          const ids = await getReservedWorkshopIds(uid);
+          const set = new Set((Array.isArray(ids) ? ids : []).map((x) => Number(x)));
+          wsMine = wsArr.filter((w) => set.has(Number(w?.id)));
+        } else if (isOrganizator) {
+          wsMine = wsArr.filter((w) => Number(w?.organizerId) === Number(uid));
+        }
 
-        const mine = all.filter(
-          (w) => String(w?.organizerId) === String(safeUser.id)
-        );
+        // izložbe
+        const exAll = await listExhibitions();
+        const exArr = Array.isArray(exAll) ? exAll : [];
 
-        setWorkshops(mine);
+        let exMine = [];
+        if (isPolaznik) {
+          const ids = await getReservedExhibitionIds(uid);
+          const set = new Set((Array.isArray(ids) ? ids : []).map((x) => Number(x)));
+          exMine = exArr.filter((e) => set.has(Number(e?.id)));
+        } else if (isOrganizator) {
+          exMine = exArr.filter((e) => Number(e?.organizerId) === Number(uid));
+        }
+
+        const now = new Date();
+
+        const wsUpcoming = wsMine
+          .filter((w) => {
+            const d = parseDateAny(getISO_Workshop(w));
+            return d ? d >= now : false;
+          })
+          .sort((a, b) => new Date(getISO_Workshop(a)) - new Date(getISO_Workshop(b)));
+
+        const wsPast = wsMine
+          .filter((w) => {
+            const d = parseDateAny(getISO_Workshop(w));
+            return d ? d < now : false;
+          })
+          .sort((a, b) => new Date(getISO_Workshop(b)) - new Date(getISO_Workshop(a)));
+
+        const exUpcoming = exMine
+          .filter((e) => {
+            const d = parseDateAny(getISO_Exh(e));
+            return d ? d >= now : false;
+          })
+          .sort((a, b) => new Date(getISO_Exh(a)) - new Date(getISO_Exh(b)));
+
+        const exPast = exMine
+          .filter((e) => {
+            const d = parseDateAny(getISO_Exh(e));
+            return d ? d < now : false;
+          })
+          .sort((a, b) => new Date(getISO_Exh(b)) - new Date(getISO_Exh(a)));
+
+        if (!alive) return;
+        setMyUpcomingWorkshops(wsUpcoming);
+        setMyPastWorkshops(wsPast);
+        setMyUpcomingExhibitions(exUpcoming);
+        setMyPastExhibitions(exPast);
       } catch (e) {
-        setWsError(e?.message || "Ne mogu dohvatiti radionice.");
+        if (!alive) return;
+        setMyError(e?.message || "Ne mogu dohvatiti vaše aktivnosti.");
+        setMyUpcomingWorkshops([]);
+        setMyPastWorkshops([]);
+        setMyUpcomingExhibitions([]);
+        setMyPastExhibitions([]);
       } finally {
-        setWsLoading(false);
+        if (!alive) return;
+        setMyLoading(false);
       }
     };
 
     load();
-  }, [safeUser?.id, isOrganizator]);
+    return () => {
+      alive = false;
+    };
+  }, [safeUser?.id, isPolaznik, isOrganizator]);
+
+  // ✅ Učitavanje proizvoda (organizator: aktivni/prodani, polaznik: kupljeni)
+  useEffect(() => {
+    if (!safeUser?.id) return;
+    let alive = true;
+
+    const uid = safeUser.id;
+
+    // default tab po userType
+    if (isOrganizator) setProdTab("active");
+    if (isPolaznik) setProdTab("bought");
+
+    const loadProducts = async () => {
+      setProdLoading(true);
+      setProdError("");
+
+      try {
+        if (isOrganizator) {
+          // aktivni + prodani
+          const act = await listProductsBySeller(uid);
+          const sold = await listSoldItemsBySeller(uid);
+
+          if (!alive) return;
+          setActiveProducts(Array.isArray(act) ? act : []);
+          setSoldItems(Array.isArray(sold) ? sold : []);
+          setBoughtItems([]);
+        } else if (isPolaznik) {
+          // kupljeni
+          const bought = await listMyPurchasedItems();
+          if (!alive) return;
+          setBoughtItems(Array.isArray(bought) ? bought : []);
+          setActiveProducts([]);
+          setSoldItems([]);
+        } else {
+          if (!alive) return;
+          setActiveProducts([]);
+          setSoldItems([]);
+          setBoughtItems([]);
+        }
+      } catch (e) {
+        if (!alive) return;
+        // kad backend još nema endpoint -> poruka, ali UI ostaje
+        setProdError(
+          e?.message ||
+            "Proizvodi trenutno nisu dostupni (backend endpoint još nije spojen)."
+        );
+        setActiveProducts([]);
+        setSoldItems([]);
+        setBoughtItems([]);
+      } finally {
+        if (!alive) return;
+        setProdLoading(false);
+      }
+    };
+
+    loadProducts();
+    return () => {
+      alive = false;
+    };
+  }, [safeUser?.id, isOrganizator, isPolaznik]);
 
   const startEditing = (field, value) => {
     setError("");
@@ -151,8 +341,7 @@ export default function Profile() {
       return;
     }
 
-    const valueTrimmed =
-      typeof tempValue === "string" ? tempValue.trim() : tempValue;
+    const valueTrimmed = typeof tempValue === "string" ? tempValue.trim() : tempValue;
 
     if (
       (editingField === "firstName" || editingField === "lastName") &&
@@ -316,7 +505,9 @@ export default function Profile() {
     );
   }
 
-  const displayName = `${safeUser.firstName || ""} ${safeUser.lastName || ""}`.trim();
+  const headerTitle = isOrganizator
+    ? "Moje radionice, izložbe i proizvodi"
+    : "Moje prijave i kupnje";
 
   return (
     <div>
@@ -329,6 +520,7 @@ export default function Profile() {
           </p>
         )}
 
+        {/* ===== PROFILNA SLIKA ===== */}
         <div className="profile-avatar">
           <div className="avatar-img">
             <img
@@ -366,16 +558,12 @@ export default function Profile() {
 
         <div className="divider" />
 
+        {/* ===== PODACI ===== */}
         <p className="label">Ime:</p>
         {editingField === "firstName" ? (
           <>
             <p className="value">
-              <input
-                className="edit-input"
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
-                disabled={saving}
-              />
+              <input className="edit-input" value={tempValue} onChange={(e) => setTempValue(e.target.value)} disabled={saving} />
             </p>
             <div className="actions">
               <Check className="icon save" onClick={saving ? undefined : handleSave} />
@@ -393,12 +581,7 @@ export default function Profile() {
         {editingField === "lastName" ? (
           <>
             <p className="value">
-              <input
-                className="edit-input"
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
-                disabled={saving}
-              />
+              <input className="edit-input" value={tempValue} onChange={(e) => setTempValue(e.target.value)} disabled={saving} />
             </p>
             <div className="actions">
               <Check className="icon save" onClick={saving ? undefined : handleSave} />
@@ -422,12 +605,7 @@ export default function Profile() {
         {editingField === "contact" ? (
           <>
             <p className="value">
-              <input
-                className="edit-input"
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
-                disabled={saving}
-              />
+              <input className="edit-input" value={tempValue} onChange={(e) => setTempValue(e.target.value)} disabled={saving} />
             </p>
             <div className="actions">
               <Check className="icon save" onClick={saving ? undefined : handleSave} />
@@ -447,13 +625,7 @@ export default function Profile() {
             {editingField === "address" ? (
               <>
                 <p className="value">
-                  <input
-                    className="edit-input"
-                    value={tempValue}
-                    onChange={(e) => setTempValue(e.target.value)}
-                    disabled={saving}
-                    placeholder="Unesite adresu"
-                  />
+                  <input className="edit-input" value={tempValue} onChange={(e) => setTempValue(e.target.value)} disabled={saving} placeholder="Unesite adresu" />
                 </p>
                 <div className="actions">
                   <Check className="icon save" onClick={saving ? undefined : handleSave} />
@@ -471,12 +643,7 @@ export default function Profile() {
             {editingField === "studyName" ? (
               <>
                 <p className="value">
-                  <input
-                    className="edit-input"
-                    value={tempValue}
-                    onChange={(e) => setTempValue(e.target.value)}
-                    disabled={saving}
-                  />
+                  <input className="edit-input" value={tempValue} onChange={(e) => setTempValue(e.target.value)} disabled={saving} />
                 </p>
                 <div className="actions">
                   <Check className="icon save" onClick={saving ? undefined : handleSave} />
@@ -494,35 +661,18 @@ export default function Profile() {
 
         <div className="divider" />
 
+        {/* ===== PROMJENA LOZINKE ===== */}
         <div className="password-box">
           <p className="section-title">Promjena lozinke</p>
 
           <label className="pw-label">Trenutna lozinka</label>
-          <input
-            className="edit-input"
-            type="password"
-            value={pwCurrent}
-            onChange={(e) => setPwCurrent(e.target.value)}
-            disabled={pwSaving}
-          />
+          <input className="edit-input" type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} disabled={pwSaving} />
 
           <label className="pw-label">Nova lozinka</label>
-          <input
-            className="edit-input"
-            type="password"
-            value={pwNew}
-            onChange={(e) => setPwNew(e.target.value)}
-            disabled={pwSaving}
-          />
+          <input className="edit-input" type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} disabled={pwSaving} />
 
           <label className="pw-label">Ponovi novu lozinku</label>
-          <input
-            className="edit-input"
-            type="password"
-            value={pwRepeat}
-            onChange={(e) => setPwRepeat(e.target.value)}
-            disabled={pwSaving}
-          />
+          <input className="edit-input" type="password" value={pwRepeat} onChange={(e) => setPwRepeat(e.target.value)} disabled={pwSaving} />
 
           <button className="btn-primary" type="button" onClick={handleChangePassword} disabled={pwSaving}>
             {pwSaving ? "Spremanje..." : "Promijeni lozinku"}
@@ -531,40 +681,321 @@ export default function Profile() {
           {pwMsg && <p className={pwMsg.includes("uspješno") ? "success" : "error"}>{pwMsg}</p>}
         </div>
 
-        {isOrganizator && (
+        {/* ===== MOJE (isti UI, drugačiji naslov + data) ===== */}
+        {(isPolaznik || isOrganizator) && (
           <>
             <div className="divider" />
-            <div className="workshops-box">
-              <p className="section-title">Radionice organizatora: {displayName || "Organizator"}</p>
 
-              {wsLoading && <p className="muted">Učitavanje radionica...</p>}
-              {wsError && <p className="error">{wsError}</p>}
+            <div className="my-activity">
+              <div className="my-activity-header">
+                <p className="section-title">{headerTitle}</p>
+                <p className="muted" style={{ margin: 0, padding: 0, border: "none" }}>
+                  Klikni na stavku za odlazak na detalje.
+                </p>
+              </div>
 
-              {!wsLoading && !wsError && (
-                <ul className="workshops-list">
-                  {workshops.length === 0 ? (
-                    <li className="muted">Nema radionica za prikaz.</li>
-                  ) : (
-                    workshops.map((w) => (
-                      <li key={w.id || w.workshopId || w._id} className="workshop-item">
-                        <div className="workshop-title">{w.title || w.name || "Radionica"}</div>
-                        <div className="workshop-meta">
-                          {w.startDateTime ? (
-                            <span>{String(w.startDateTime).slice(0, 10)}</span>
-                          ) : (
-                            <span className="muted">Bez datuma</span>
-                          )}
-                          {w.location ? <span> • {w.location}</span> : null}
-                        </div>
-                      </li>
-                    ))
-                  )}
-                </ul>
+              {myLoading && <div className="my-state">Učitavanje…</div>}
+              {!myLoading && myError && <div className="my-state error">⚠ {myError}</div>}
+
+              {!myLoading && !myError && (
+                <div className="my-grid">
+                  {/* RADIONICE */}
+                  <div className="my-col">
+                    <div className="my-col-title">Radionice</div>
+
+                    <div className="my-subtitle">Nadolazeće</div>
+                    <ul className="my-list">
+                      {myUpcomingWorkshops.length === 0 ? (
+                        <li className="my-empty">Nema nadolazećih radionica.</li>
+                      ) : (
+                        myUpcomingWorkshops.map((w) => {
+                          const id = pickId(w);
+                          return (
+                            <li
+                              key={`up-ws-${id}`}
+                              className="my-item my-itemClickable"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => id && navigate(ROUTES.workshopDetails(id))}
+                              onKeyDown={(e) => {
+                                if ((e.key === "Enter" || e.key === " ") && id) {
+                                  e.preventDefault();
+                                  navigate(ROUTES.workshopDetails(id));
+                                }
+                              }}
+                            >
+                              <div className="my-dot" />
+                              <div className="my-info">
+                                <div className="my-name">{pickTitle(w, "Radionica")}</div>
+                                <div className="my-sub">{pickSubWorkshop(w)}</div>
+                              </div>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+
+                    <div className="my-subtitle">Prošle</div>
+                    <ul className="my-list">
+                      {myPastWorkshops.length === 0 ? (
+                        <li className="my-empty">Nema prošlih radionica.</li>
+                      ) : (
+                        myPastWorkshops.map((w) => {
+                          const id = pickId(w);
+                          return (
+                            <li
+                              key={`past-ws-${id}`}
+                              className="my-item my-itemClickable"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => id && navigate(ROUTES.workshopDetails(id))}
+                              onKeyDown={(e) => {
+                                if ((e.key === "Enter" || e.key === " ") && id) {
+                                  e.preventDefault();
+                                  navigate(ROUTES.workshopDetails(id));
+                                }
+                              }}
+                            >
+                              <div className="my-dot my-dotPast" />
+                              <div className="my-info">
+                                <div className="my-name">{pickTitle(w, "Radionica")}</div>
+                                <div className="my-sub">{pickSubWorkshop(w)}</div>
+                              </div>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* IZLOŽBE */}
+                  <div className="my-col">
+                    <div className="my-col-title">Izložbe</div>
+
+                    <div className="my-subtitle">Nadolazeće</div>
+                    <ul className="my-list">
+                      {myUpcomingExhibitions.length === 0 ? (
+                        <li className="my-empty">Nema nadolazećih izložbi.</li>
+                      ) : (
+                        myUpcomingExhibitions.map((x) => {
+                          const id = pickId(x);
+                          return (
+                            <li
+                              key={`up-ex-${id}`}
+                              className="my-item my-itemClickable"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => id && navigate(ROUTES.exhibitionDetails(id))}
+                              onKeyDown={(e) => {
+                                if ((e.key === "Enter" || e.key === " ") && id) {
+                                  e.preventDefault();
+                                  navigate(ROUTES.exhibitionDetails(id));
+                                }
+                              }}
+                            >
+                              <div className="my-dot" />
+                              <div className="my-info">
+                                <div className="my-name">{pickTitle(x, "Izložba")}</div>
+                                <div className="my-sub">{pickSubExh(x)}</div>
+                              </div>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+
+                    <div className="my-subtitle">Prošle</div>
+                    <ul className="my-list">
+                      {myPastExhibitions.length === 0 ? (
+                        <li className="my-empty">Nema prošlih izložbi.</li>
+                      ) : (
+                        myPastExhibitions.map((x) => {
+                          const id = pickId(x);
+                          return (
+                            <li
+                              key={`past-ex-${id}`}
+                              className="my-item my-itemClickable"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => id && navigate(ROUTES.exhibitionDetails(id))}
+                              onKeyDown={(e) => {
+                                if ((e.key === "Enter" || e.key === " ") && id) {
+                                  e.preventDefault();
+                                  navigate(ROUTES.exhibitionDetails(id));
+                                }
+                              }}
+                            >
+                              <div className="my-dot my-dotPast" />
+                              <div className="my-info">
+                                <div className="my-name">{pickTitle(x, "Izložba")}</div>
+                                <div className="my-sub">{pickSubExh(x)}</div>
+                              </div>
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  </div>
+
+                  {/* PROIZVODI */}
+                  <div className="my-col">
+                    <div className="my-col-title">Proizvodi</div>
+
+                    {/* tabs samo kad ima smisla */}
+                    <div className="my-tabs">
+                      {isOrganizator ? (
+                        <>
+                          <button
+                            type="button"
+                            className={`my-tabBtn ${prodTab === "active" ? "active" : ""}`}
+                            onClick={() => setProdTab("active")}
+                          >
+                            Aktivni
+                          </button>
+                          <button
+                            type="button"
+                            className={`my-tabBtn ${prodTab === "sold" ? "active" : ""}`}
+                            onClick={() => setProdTab("sold")}
+                          >
+                            Prodani
+                          </button>
+                        </>
+                      ) : isPolaznik ? (
+                        <button type="button" className={`my-tabBtn active`} onClick={() => setProdTab("bought")}>
+                          Kupljeni
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {prodLoading && <div className="my-state" style={{ marginTop: 10 }}>Učitavanje proizvoda…</div>}
+                    {!prodLoading && prodError && (
+                      <div className="my-state error" style={{ marginTop: 10 }}>
+                        ⚠ {prodError}
+                      </div>
+                    )}
+
+                    {!prodLoading && !prodError && (
+                      <>
+                        {/* ORGANIZATOR: aktivni */}
+                        {isOrganizator && prodTab === "active" && (
+                          <ul className="my-list" style={{ marginTop: 10 }}>
+                            {activeProducts.length === 0 ? (
+                              <li className="my-empty">Nema aktivnih proizvoda.</li>
+                            ) : (
+                              activeProducts.map((p) => {
+                                const id = pickId(p);
+                                return (
+                                  <li
+                                    key={`act-p-${id}`}
+                                    className="my-item my-itemClickable"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => id && navigate(ROUTES.productDetails(id))}
+                                    onKeyDown={(e) => {
+                                      if ((e.key === "Enter" || e.key === " ") && id) {
+                                        e.preventDefault();
+                                        navigate(ROUTES.productDetails(id));
+                                      }
+                                    }}
+                                  >
+                                    <div className="my-dot my-dotBuy" />
+                                    <div className="my-info">
+                                      <div className="my-name">{pickTitle(p, "Proizvod")}</div>
+                                      <div className="my-sub">
+                                        {p?.price != null ? formatMoneyEUR(p.price) : "—"}
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })
+                            )}
+                          </ul>
+                        )}
+
+                        {/* ORGANIZATOR: prodani */}
+                        {isOrganizator && prodTab === "sold" && (
+                          <ul className="my-list" style={{ marginTop: 10 }}>
+                            {soldItems.length === 0 ? (
+                              <li className="my-empty">Nema prodanih proizvoda.</li>
+                            ) : (
+                              soldItems.map((it, idx) => {
+                                const pid = it?.productId ?? it?.id ?? null;
+                                const title = it?.title || it?.productTitle || it?.productName || "Proizvod";
+                                const qty = Number(it?.qty ?? it?.quantity ?? 1);
+                                const price = it?.price ?? it?.unitPrice ?? null;
+                                return (
+                                  <li
+                                    key={`sold-${pid ?? idx}`}
+                                    className="my-item my-itemClickable"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => pid && navigate(ROUTES.productDetails(pid))}
+                                    onKeyDown={(e) => {
+                                      if ((e.key === "Enter" || e.key === " ") && pid) {
+                                        e.preventDefault();
+                                        navigate(ROUTES.productDetails(pid));
+                                      }
+                                    }}
+                                  >
+                                    <div className="my-dot my-dotPast" />
+                                    <div className="my-info">
+                                      <div className="my-name">{title}</div>
+                                      <div className="my-sub">
+                                        {qty ? `Količina: ${qty}` : ""}
+                                        {price != null ? ` • ${formatMoneyEUR(price)}` : ""}
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })
+                            )}
+                          </ul>
+                        )}
+
+                        {/* POLAZNIK: kupljeni */}
+                        {isPolaznik && (
+                          <ul className="my-list" style={{ marginTop: 10 }}>
+                            {boughtItems.length === 0 ? (
+                              <li className="my-empty">Nema kupljenih proizvoda.</li>
+                            ) : (
+                              boughtItems.map((it, idx) => {
+                                const pid = it?.productId ?? it?.id ?? null;
+                                const title = it?.title || it?.productTitle || it?.productName || "Proizvod";
+                                const qty = Number(it?.qty ?? it?.quantity ?? 1);
+                                const price = it?.price ?? it?.unitPrice ?? null;
+                                return (
+                                  <li
+                                    key={`buy-${pid ?? idx}`}
+                                    className="my-item my-itemClickable"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => pid && navigate(ROUTES.productDetails(pid))}
+                                    onKeyDown={(e) => {
+                                      if ((e.key === "Enter" || e.key === " ") && pid) {
+                                        e.preventDefault();
+                                        navigate(ROUTES.productDetails(pid));
+                                      }
+                                    }}
+                                  >
+                                    <div className="my-dot my-dotBuy" />
+                                    <div className="my-info">
+                                      <div className="my-name">{title}</div>
+                                      <div className="my-sub">
+                                        {qty ? `Količina: ${qty}` : ""}
+                                        {price != null ? ` • ${formatMoneyEUR(price)}` : ""}
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })
+                            )}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
-
-              <p className="hint">
-                (Frontend filtrira po <code>organizerId === user.id</code>)
-              </p>
             </div>
           </>
         )}

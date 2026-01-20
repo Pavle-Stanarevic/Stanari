@@ -90,10 +90,9 @@ p.value {
 .muted {
   color: #64748b;
   font-size: 0.95rem;
-  align-self: end;
-  padding-bottom: 10px;
+  justify-self: start;
+  transform: translateX(8px); 
 }
-
 .divider {
   grid-column: 1 / -1;
   height: 1px;
@@ -230,4 +229,335 @@ p.value {
   .avatar-actions {
     align-items: center;
   }
+}
+
+/* =========================
+   Moje prijave i kupnje
+   (stil kao "Tim organizatora")
+   ========================= */
+
+.my-activity {
+  grid-column: 1 / -1;
+}
+
+.my-activity-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.my-state {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.my-state.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
+/* 3 stupca -> na mobitelu 1 stupac */
+.my-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.my-col {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.my-col-title {
+  font-weight: 800;
+  color: #111827;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.my-subtitle {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.my-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-empty {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+  font-size: 14px;
+}
+
+.my-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.my-itemClickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.my-itemClickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
+.my-itemClickable:focus {
+  outline: none;
+}
+
+.my-itemClickable:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+}
+
+.my-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #3b82f6; /* plavo */
+  flex: 0 0 10px;
+}
+
+.my-dotPast {
+  background: #94a3b8; /* sivo */
+}
+
+.my-dotBuy {
+  background: #22c55e; /* zeleno */
+}
+
+.my-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.my-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.my-sub {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.2;
+  margin-top: 3px;
+}
+
+/* mobile */
+@media (max-width: 900px) {
+  .my-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   Moje prijave i kupnje
+   (stil kao "Tim organizatora")
+   ========================= */
+
+.my-activity {
+  grid-column: 1 / -1;
+}
+
+.my-activity-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.my-state {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.my-state.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
+/* 3 stupca -> na mobitelu 1 stupac */
+.my-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.my-col {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.my-col-title {
+  font-weight: 800;
+  color: #111827;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.my-subtitle {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.my-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-empty {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+  font-size: 14px;
+}
+
+.my-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.my-itemClickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.my-itemClickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
+.my-itemClickable:focus {
+  outline: none;
+}
+
+.my-itemClickable:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+}
+
+.my-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #3b82f6; /* plavo */
+  flex: 0 0 10px;
+}
+
+.my-dotPast {
+  background: #94a3b8; /* sivo */
+}
+
+.my-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.my-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.my-sub {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.2;
+  margin-top: 3px;
+}
+
+/* mobile */
+@media (max-width: 900px) {
+  .my-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.my-dotBuy {
+  background: #22c55e;
+}
+
+.my-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.my-tabBtn {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+}
+
+.my-tabBtn.active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
 }
