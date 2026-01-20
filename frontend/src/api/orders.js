@@ -21,8 +21,9 @@ async function fetchJson(path, options = {}) {
   return data;
 }
 
-export async function listMyPurchasedItems() {
-  const data = await fetchJson(`/api/orders/my`);
+export async function listMyPurchasedItems(userId) {
+  if (!userId) throw new Error("Missing userId");
+  const data = await fetchJson(`/api/orders/my?userId=${encodeURIComponent(userId)}`);
   const arr = Array.isArray(data) ? data : [];
 
   const flat = [];
