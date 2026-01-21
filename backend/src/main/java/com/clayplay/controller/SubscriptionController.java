@@ -22,35 +22,37 @@ public class SubscriptionController {
 
     @PostMapping
     public ResponseEntity<?> createSubscription(@RequestBody Map<String, Object> data) {
+        String billing = (String) data.get("billing");
         Map<String, Object> response = new HashMap<>(data);
         response.put("subscriptionId", UUID.randomUUID().toString());
         
-        if (!response.containsKey("title")) {
-            response.put("title", "Basic Plan");
-        }
+        String title = "monthly".equalsIgnoreCase(billing) ? "Basic mjesečni plan" : "Basic godišnji plan";
+        response.put("title", title);
         
-        String billing = (String) data.get("billing");
         BigDecimal amount = clanarinaRepository.findByTipClanarine(billing)
                 .map(Clanarina::getIznosEUR)
                 .orElse("monthly".equals(billing) ? new BigDecimal("5.00") : new BigDecimal("50.00"));
         
         response.put("amount", amount);
+        response.put("billing", billing);
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getSubscription(@PathVariable String id) {
+    public ResponseEntity<?> getSubscription(@PathVariable String id, @RequestParam(value = "billing", defaultValue = "monthly") String billing) {
         Map<String, Object> response = new HashMap<>();
         response.put("subscriptionId", id);
-        response.put("title", "Basic Plan");
         
-        BigDecimal amount = clanarinaRepository.findByTipClanarine("monthly")
+        String title = "monthly".equalsIgnoreCase(billing) ? "Basic mjesečni plan" : "Basic godišnji plan";
+        response.put("title", title);
+        
+        BigDecimal amount = clanarinaRepository.findByTipClanarine(billing)
                 .map(Clanarina::getIznosEUR)
-                .orElse(new BigDecimal("5.00"));
+                .orElse("monthly".equals(billing) ? new BigDecimal("5.00") : new BigDecimal("50.00"));
                 
         response.put("amount", amount);
-        response.put("billing", "monthly");
+        response.put("billing", billing);
         return ResponseEntity.ok(response);
     }
 }

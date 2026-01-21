@@ -9,7 +9,7 @@ import { confirmPaymentSuccess } from "../api/subscriptions";
 import useAuth from "../hooks/useAuth";
 import { me } from "../api/auth";
 
-export default function CheckoutForm({ clientSecret, paymentIntentId, userId, onCancel }) {
+export default function CheckoutForm({ clientSecret, paymentIntentId, userId, billing, onCancel }) {
   const stripe = useStripe();
   const elements = useElements();
   const { setUser } = useAuth();
@@ -31,7 +31,7 @@ export default function CheckoutForm({ clientSecret, paymentIntentId, userId, on
         case "succeeded":
           if (userId && paymentIntent.id) {
             try { 
-              await confirmPaymentSuccess({ userId, paymentIntentId: paymentIntent.id }); 
+              await confirmPaymentSuccess({ userId, paymentIntentId: paymentIntent.id, billing }); 
               await new Promise(resolve => setTimeout(resolve, 500));
               const u = await me();
               if (u) {
@@ -66,7 +66,7 @@ export default function CheckoutForm({ clientSecret, paymentIntentId, userId, on
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: window.location.origin + "/placanje-uspjeh?userId=" + userId + "&paymentIntentId=" + paymentIntentId,
+        return_url: window.location.origin + "/placanje-uspjeh?userId=" + userId + "&paymentIntentId=" + paymentIntentId + (billing ? "&billing=" + billing : ""),
       },
     });
 

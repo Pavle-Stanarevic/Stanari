@@ -6,6 +6,8 @@ import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.service.UserService;
 import com.clayplay.model.Organizator;
 import com.clayplay.repository.OrganizatorRepository;
+import com.clayplay.model.Placa;
+import com.clayplay.repository.PlacaRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +22,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,6 +35,7 @@ public class AuthController {
     private final UserService userService;
     private final KorisnikRepository korisnikRepository;
     private final OrganizatorRepository organizatorRepository;
+    private final PlacaRepository placaRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${google.clientId:}")
@@ -39,11 +44,13 @@ public class AuthController {
     public AuthController(
         UserService userService,
         KorisnikRepository korisnikRepository,
-        OrganizatorRepository organizatorRepository
+        OrganizatorRepository organizatorRepository,
+        PlacaRepository placaRepository
     ) {
         this.userService = userService;
         this.korisnikRepository = korisnikRepository;
         this.organizatorRepository = organizatorRepository;
+        this.placaRepository = placaRepository;
     }
 
     @PostMapping(path = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -236,7 +243,6 @@ public class AuthController {
             System.out.println("[DEBUG_LOG] AuthController.me: Fetching fresh user data for " + finalEmail);
             return korisnikRepository.findByEmail(finalEmail)
                     .map(u -> {
-                        System.out.println("[DEBUG_LOG] AuthController.me: User found in DB, isSubscribed=" + u.isSubscribed());
                         return ResponseEntity.ok(buildUserMap(u));
                     })
                     .orElseGet(() -> {
@@ -250,7 +256,7 @@ public class AuthController {
     }
 
     private Map<String, Object> buildUserMap(Korisnik u) {
-        System.out.println("[DEBUG_LOG] Building UserMap for " + u.getEmail() + ", isSubscribed=" + u.isSubscribed());
+        System.out.println("[DEBUG_LOG] Building UserMap for " + u.getEmail());
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("id", u.getIdKorisnik());
         userMap.put("email", u.getEmail());
@@ -259,7 +265,17 @@ public class AuthController {
         userMap.put("contact", u.getBrojTelefona());
         userMap.put("address", u.getAdresa());
         userMap.put("status", u.getStatus());
-        userMap.put("isSubscribed", u.isSubscribed());
+
+        List<Placa> activeSubs = placaRepository.findActiveSubscriptions(u.getIdKorisnik(), OffsetDateTime.now());
+        boolean isSubscribed = !activeSubs.isEmpty();
+        userMap.put("isSubscribed", isSubscribed);
+        
+        if (isSubscribed) {
+            userMap.put("subscriptionEndDate", activeSubs.get(0).getDatvrKrajClanarine());
+        } else {
+            placaRepository.findFirstByIdKorisnikOrderByDatvrKrajClanarineDesc(u.getIdKorisnik())
+                .ifPresent(p -> userMap.put("subscriptionEndDate", p.getDatvrKrajClanarine()));
+        }
 
         userMap.put("photoUrl", userService.resolvePhotoUrl(u));
 

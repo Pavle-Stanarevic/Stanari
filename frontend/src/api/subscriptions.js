@@ -10,8 +10,9 @@ export async function createSubscription({ userId, planId, billing }) {
 }
 
 // GET /api/subscriptions/:id
-export async function getSubscription(subscriptionId) {
-  return requestJson(`/api/subscriptions/${subscriptionId}`, { method: "GET" });
+export async function getSubscription(subscriptionId, billing) {
+  const url = `/api/subscriptions/${subscriptionId}${billing ? `?billing=${billing}` : ""}`;
+  return requestJson(url, { method: "GET" });
 }
 
 // POST /api/subscriptions/:id/activate
@@ -29,18 +30,18 @@ export async function activateSubscription({
 }
 
 // POST /api/payments/create-payment-intent
-export async function createPaymentIntent({ userId, amount }) {
+export async function createPaymentIntent({ userId, amount, billing }) {
   return requestJson(`/api/payments/create-payment-intent`, {
     method: "POST",
-    data: { userId, amount },
+    data: { userId, amount, billing },
   });
 }
 
 // POST /api/payments/confirm-success
-export async function confirmPaymentSuccess({ userId, paymentIntentId }) {
+export async function confirmPaymentSuccess({ userId, paymentIntentId, billing }) {
   return requestJson(`/api/payments/confirm-success`, {
     method: "POST",
-    data: { userId, paymentIntentId },
+    data: { userId, paymentIntentId, billing },
   });
 }
 

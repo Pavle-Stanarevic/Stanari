@@ -29,11 +29,12 @@ export default function PlacanjeUspjeh() {
     const userId = params.get("userId");
     const paymentIntentId = params.get("payment_intent") || params.get("paymentIntentId");
     const redirectStatus = params.get("redirect_status");
+    const billing = params.get("billing");
 
-    console.log("PlacanjeUspjeh: status=", redirectStatus, "userId=", userId, "PI=", paymentIntentId);
+    console.log("PlacanjeUspjeh: status=", redirectStatus, "userId=", userId, "PI=", paymentIntentId, "billing=", billing);
 
     if (redirectStatus === "succeeded" && userId) {
-      confirmPaymentSuccess({ userId, paymentIntentId })
+      confirmPaymentSuccess({ userId, paymentIntentId, billing })
         .then(async () => {
           console.log("Payment confirmed successfully");
           await new Promise(resolve => setTimeout(resolve, 500));

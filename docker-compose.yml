@@ -21,6 +21,8 @@ services:
       - m2_repo:/root/.m2
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/stanari
       SPRING_DATASOURCE_USERNAME: stanari
@@ -28,9 +30,6 @@ services:
       SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 5MB
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 6MB
       SERVER_TOMCAT_MAX_SWALLOW_SIZE: 6MB
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     ports:
       - "8080:8080"
 
@@ -43,10 +42,10 @@ services:
     ports:
       - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    env_file:
+      - .env
     environment:
       CHOKIDAR_USEPOLLING: "true"
-      VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY}
-      VITE_API_URL: ${VITE_API_URL}
     depends_on:
       - backend
 

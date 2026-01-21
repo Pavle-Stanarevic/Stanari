@@ -32,9 +32,6 @@ public class Korisnik {
     @Column(name = "status", nullable = false)
     private String status = "ACTIVE";
 
-    @Column(name = "is_subscribed", nullable = false)
-    private boolean isSubscribed = false;
-
     @Column(name = "fotoid")
     private Long fotoId;
 
@@ -65,9 +62,6 @@ public class Korisnik {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
-    public boolean isSubscribed() { return isSubscribed; }
-    public void setSubscribed(boolean subscribed) { isSubscribed = subscribed; }
 
     public Long getFotoId() { return fotoId; }
     public void setFotoId(Long fotoId) { this.fotoId = fotoId; }

@@ -2,8 +2,10 @@ package com.clayplay.controller;
 
 import com.clayplay.model.Clanarina;
 import com.clayplay.model.Korisnik;
+import com.clayplay.model.Placa;
 import com.clayplay.repository.ClanarinaRepository;
 import com.clayplay.repository.KorisnikRepository;
+import com.clayplay.repository.PlacaRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -28,10 +31,12 @@ public class PaymentController {
 
     private final KorisnikRepository korisnikRepository;
     private final ClanarinaRepository clanarinaRepository;
+    private final PlacaRepository placaRepository;
 
-    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository) {
+    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository) {
         this.korisnikRepository = korisnikRepository;
         this.clanarinaRepository = clanarinaRepository;
+        this.placaRepository = placaRepository;
     }
 
     @PostConstruct
@@ -56,7 +61,7 @@ public class PaymentController {
                 amount = monthlyPrice.multiply(new BigDecimal("100")).longValue();
             }
             
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+            PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                     .setAmount(amount)
                     .setCurrency("eur")
                     .setAutomaticPaymentMethods(
@@ -65,10 +70,13 @@ public class PaymentController {
                                     .build()
                     )
                     .putMetadata("userId", String.valueOf(userId))
-                    .setReceiptEmail(korisnikRepository.findById(userId).map(Korisnik::getEmail).orElse(null))
-                    .build();
+                    .setReceiptEmail(korisnikRepository.findById(userId).map(Korisnik::getEmail).orElse(null));
 
-            PaymentIntent intent = PaymentIntent.create(params);
+            if (data.containsKey("billing")) {
+                paramsBuilder.putMetadata("billing", (String) data.get("billing"));
+            }
+
+            PaymentIntent intent = PaymentIntent.create(paramsBuilder.build());
 
             Map<String, String> responseData = new HashMap<>();
             responseData.put("clientSecret", intent.getClientSecret());
@@ -102,11 +110,42 @@ public class PaymentController {
 
             Optional<Korisnik> userOpt = korisnikRepository.findById(userId);
             if (userOpt.isPresent()) {
-                Korisnik user = userOpt.get();
-                user.setSubscribed(true);
-                korisnikRepository.saveAndFlush(user);
-                System.out.println("[DEBUG_LOG] User " + userId + " marked as subscribed via manual confirmation.");
-                return ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true));
+                String billing = (String) data.getOrDefault("billing", "monthly");
+                
+                Optional<Clanarina> clanarinaOpt = clanarinaRepository.findByTipClanarine(billing);
+                if (clanarinaOpt.isPresent()) {
+                    Clanarina clanarina = clanarinaOpt.get();
+                    
+                    if (paymentIntentId != null && placaRepository.existsByStripePaymentIntentId(paymentIntentId)) {
+                        System.out.println("[DEBUG_LOG] Payment " + paymentIntentId + " already processed, skipping manual confirmation.");
+
+                        return placaRepository.findFirstByIdKorisnikOrderByDatvrKrajClanarineDesc(userId)
+                            .map(p -> ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true, "subscriptionEndDate", p.getDatvrKrajClanarine())))
+                            .orElse(ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true)));
+                    }
+
+                    Placa placa = new Placa();
+                    placa.setIdKorisnik(userId);
+                    placa.setIdClanarina(clanarina.getIdClanarina());
+                    placa.setStripePaymentIntentId(paymentIntentId);
+                    
+                    OffsetDateTime now = OffsetDateTime.now();
+                    placa.setDatvrPocetakClanarine(now);
+                    
+                    if ("monthly".equalsIgnoreCase(billing)) {
+                        placa.setDatvrKrajClanarine(now.plusMonths(1));
+                    } else if ("yearly".equalsIgnoreCase(billing)) {
+                        placa.setDatvrKrajClanarine(now.plusYears(1));
+                    } else {
+                        placa.setDatvrKrajClanarine(now.plusMonths(1));
+                    }
+                    
+                    placaRepository.save(placa);
+                    System.out.println("[DEBUG_LOG] User " + userId + " marked as subscribed via manual confirmation (plan: " + billing + ").");
+                    return ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true, "subscriptionEndDate", placa.getDatvrKrajClanarine()));
+                } else {
+                    return ResponseEntity.status(400).body("Clanarina type not found");
+                }
             }
             return ResponseEntity.status(404).body("User not found");
         } catch (Exception e) {

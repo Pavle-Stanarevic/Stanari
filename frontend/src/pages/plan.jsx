@@ -32,13 +32,17 @@ export default function Plan() {
   }, [user?.isSubscribed, isSubscribedSession]);
 
   const subscribedUntil = useMemo(() => {
+    if (effectiveIsSubscribed && user?.subscriptionEndDate) {
+      const d = new Date(user.subscriptionEndDate);
+      return d.toLocaleDateString("hr-HR");
+    }
     if (effectiveIsSubscribed) {
       const d = new Date();
       d.setDate(d.getDate() + 30);
       return d.toLocaleDateString("hr-HR");
     }
     return null;
-  }, [effectiveIsSubscribed]);
+  }, [effectiveIsSubscribed, user?.subscriptionEndDate]);
 
   useEffect(() => {
     let isMounted = true;

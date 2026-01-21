@@ -63,7 +63,8 @@ export default function PlacanjeKartica() {
 
       const data = await createPaymentIntent({ 
         userId: user.id || user.idKorisnik,
-        amount: Math.round(amount * 100) 
+        amount: Math.round(amount * 100),
+        billing: mode === "cart" ? null : subscription?.billing
       });
 
       if (!data?.clientSecret) throw new Error("Backend nije vratio clientSecret.");
@@ -138,6 +139,7 @@ export default function PlacanjeKartica() {
               clientSecret={clientSecret} 
               paymentIntentId={paymentIntentId}
               userId={user.id || user.idKorisnik}
+              billing={mode === "cart" ? null : subscription?.billing}
               onCancel={() => setClientSecret("")} 
             />
           </Elements>
