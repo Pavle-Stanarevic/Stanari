@@ -8,7 +8,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "../components/CheckoutForm";
 import { AuthContext } from "../contexts/AuthContext";
 
-const stripePromise = loadStripe("pk_test_51Srz930MLuw9qpqbQceWSxoAve1Ydm0fR9heKUuIszdymTR6m3AAiRSr4h0YXtBHqgDzYDa9zo1r0QzchxW6PBKw00Kvcszxqq");
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 function formatBilling(billing) {
   if (!billing) return "";
