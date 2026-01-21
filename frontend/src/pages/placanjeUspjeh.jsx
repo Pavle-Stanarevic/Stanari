@@ -33,25 +33,85 @@ export default function PlacanjeUspjeh() {
 
     console.log("PlacanjeUspjeh: status=", redirectStatus, "userId=", userId, "PI=", paymentIntentId, "billing=", billing);
 
-    if (redirectStatus === "succeeded" && userId) {
-      confirmPaymentSuccess({ userId, paymentIntentId, billing })
-        .then(async () => {
-          console.log("Payment confirmed successfully");
-          await new Promise(resolve => setTimeout(resolve, 500));
+    let cancelled = false;
+
+    async function handleSuccess() {
+      if (!(redirectStatus === "succeeded" && userId)) return;
+
+      console.log("[DEBUG_LOG] PlacanjeUspjeh: Succeeded status detected, confirming...");
+
+      try {
+        await confirmPaymentSuccess({ userId, paymentIntentId, billing });
+        console.log("[DEBUG_LOG] PlacanjeUspjeh: Payment confirmed successfully.");
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const normalize = (raw) => (raw && raw.user) ? raw.user : raw;
+
+        const hasSubscription = (usr) => {
+          if (!usr) return false;
+          const organizator = usr.organizator ?? usr;
           try {
-            console.log("PlacanjeUspjeh: Fetching updated user data...");
-            const u = await me();
-            console.log("PlacanjeUspjeh: New user data:", u);
-            if (u) {
-              setUser(u);
-              sessionStorage.setItem("user", JSON.stringify(u));
+            if (Array.isArray(organizator.placa) && organizator.placa.length > 0) return true;
+            if (Array.isArray(usr.placa) && usr.placa.length > 0) return true;
+            if (organizator.subscriptionEnd || organizator.subscription_end) return true;
+            if (organizator.pretplata || organizator.subscription || usr.subscription) return true;
+          } catch (e) {
+          }
+          return false;
+        };
+
+        let lastFetched = null;
+        try {
+          const initial = normalize(await me());
+          console.log("[DEBUG_LOG] PlacanjeUspjeh: initial me() returned:", initial);
+          lastFetched = initial;
+          if (!cancelled && hasSubscription(initial)) {
+            setUser(initial);
+            try { sessionStorage.setItem("user", JSON.stringify(initial)); } catch (e) { /* ignore */ }
+            console.log("[DEBUG_LOG] PlacanjeUspjeh: Subscription found on initial fetch, updated auth.");
+            return;
+          }
+        } catch (err) {
+          console.error("[DEBUG_LOG] PlacanjeUspjeh: Error on initial me():", err);
+        }
+
+        const maxAttempts = 8;
+        for (let i = 0; i < maxAttempts && !cancelled; i++) {
+          await new Promise((r) => setTimeout(r, 1000));
+          try {
+            const raw = await me();
+            const u = normalize(raw);
+            console.log("[DEBUG_LOG] PlacanjeUspjeh: Poll attempt", i + 1, "me() returned:", u);
+            lastFetched = u;
+            if (hasSubscription(u)) {
+              if (!cancelled) {
+                setUser(u);
+                try { sessionStorage.setItem("user", JSON.stringify(u)); } catch (e) { /* ignore */ }
+              }
+              console.log("[DEBUG_LOG] PlacanjeUspjeh: Subscription detected after polling.");
+              return;
             }
           } catch (err) {
-            console.error("Error refreshing user data after payment", err);
+            console.error("[DEBUG_LOG] PlacanjeUspjeh: Error fetching me during polling:", err);
           }
-        })
-        .catch(err => console.error("Error confirming payment:", err));
+        }
+
+        if (!cancelled && lastFetched) {
+          setUser(lastFetched);
+          try { sessionStorage.setItem("user", JSON.stringify(lastFetched)); } catch (e) { /* ignore */ }
+          console.log("[DEBUG_LOG] PlacanjeUspjeh: Updated auth with last fetched user (fallback).", lastFetched);
+        }
+      } catch (err) {
+        console.error("[DEBUG_LOG] PlacanjeUspjeh: Error confirming payment:", err);
+      }
     }
+
+    handleSuccess();
+
+    return () => {
+      cancelled = true;
+    };
   }, [location, setUser]);
 
   const subscription = location.state?.subscription;

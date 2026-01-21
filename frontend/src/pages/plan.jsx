@@ -3,22 +3,23 @@ import { useLocation, useNavigate } from "react-router-dom";
 import PlanCard from "../components/planCard";
 import "../styles/plan.css";
 import plans from "../data/plans";
-import { createSubscription } from "../api/subscriptions";
+import { createSubscription, getPricing } from "../api/subscriptions";
 import useAuth from "../hooks/useAuth";
 import { me } from "../api/auth";
 
 export default function Plan() {
   const [billing, setBilling] = useState("monthly");
   const [loading, setLoading] = useState(false);
+  const [prices, setPrices] = useState(null);
+  const [pricesLoading, setPricesLoading] = useState(true);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, setUser } = useAuth();
+  const { user, setUser, isSubscribed: authIsSubscribed } = useAuth();
 
   const isSubscribed = !!user?.isSubscribed;
   
-  // Dodatna provjera za isSubscribed iz sessionStorage ako context još nije sinkroniziran
   const isSubscribedSession = useMemo(() => {
     try {
       const raw = sessionStorage.getItem("user");
@@ -28,8 +29,8 @@ export default function Plan() {
   }, []);
 
   const effectiveIsSubscribed = useMemo(() => {
-    return !!(user?.isSubscribed || isSubscribedSession);
-  }, [user?.isSubscribed, isSubscribedSession]);
+    return !!(user?.isSubscribed || isSubscribedSession || authIsSubscribed);
+  }, [user?.isSubscribed, isSubscribedSession, authIsSubscribed]);
 
   const subscribedUntil = useMemo(() => {
     if (effectiveIsSubscribed && user?.subscriptionEndDate) {
@@ -45,21 +46,45 @@ export default function Plan() {
   }, [effectiveIsSubscribed, user?.subscriptionEndDate]);
 
   useEffect(() => {
+    (async () => {
+      setPricesLoading(true);
+      try {
+        const data = await getPricing();
+        console.log("[DEBUG_LOG] Plan.jsx: Received pricing data:", data);
+        if (data && data.monthly !== undefined) {
+          setPrices({
+            monthly: data.monthly,
+            yearly: data.yearly
+          });
+        }
+      } catch (err) {
+        console.error("[DEBUG_LOG] Plan.jsx: Error fetching pricing", err);
+      } finally {
+        setPricesLoading(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
     (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const shouldForce = params.get("refreshed");
+
+      if (user && !shouldForce) {
+        console.log("[DEBUG_LOG] Plan.jsx: User already in context, skipping extra me() call.");
+        return;
+      }
       try {
-        console.log("Plan.jsx: Fetching user data via me()...");
-        const u = await me();
-        console.log("Plan.jsx: User data received:", u);
+        console.log("[DEBUG_LOG] Plan.jsx: Fetching fresh user data via me()...");
+        const u = await me(!!shouldForce);
+        console.log("[DEBUG_LOG] Plan.jsx: User data received:", u);
         if (u && isMounted) {
-          if (u.isSubscribed !== user?.isSubscribed) {
-            console.log("Plan.jsx: Subscription status change detected!", u.isSubscribed);
-          }
           setUser(u);
           sessionStorage.setItem("user", JSON.stringify(u));
         }
       } catch (err) {
-        console.error("Plan.jsx: Error fetching user data", err);
+        console.error("[DEBUG_LOG] Plan.jsx: Error fetching user data", err);
       }
     })();
     
@@ -77,7 +102,7 @@ export default function Plan() {
       isMounted = false; 
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [setUser]); // Namjerno maknuto user?.isSubscribed kako bi se izbjegao loop ako setUser ne promijeni referencu savršeno
+  }, [setUser]);
 
   const isOrganizer =
     user?.userType === "organizator" ||
@@ -88,11 +113,13 @@ export default function Plan() {
   const plan = useMemo(() => plans?.[0], []);
 
   const getPrice = (p) => {
-    if (!p) return 0;
-    return billing === "monthly" ? p.priceMonthly : p.priceYearly;
+    if (pricesLoading) return "...";
+    if (!prices) return billing === "monthly" ? 5 : 50;
+    const val = billing === "monthly" ? prices.monthly : prices.yearly;
+    return val !== undefined ? val : (billing === "monthly" ? 5 : 50);
   };
 
-  console.log("Plan.jsx: Rendering", { 
+  console.log("[DEBUG_LOG] Plan.jsx: Rendering", { 
     user, 
     isOrganizer, 
     isSubscribed, 
@@ -157,6 +184,12 @@ export default function Plan() {
     try {
       setLoading(true);
       setError("");
+
+      if (effectiveIsSubscribed) {
+        setError("Već imate aktivnu subskripciju.");
+        setLoading(false);
+        return;
+      }
 
       const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
       if (!userId) throw new Error("Ne mogu pronaći ID korisnika.");
@@ -237,7 +270,7 @@ export default function Plan() {
       </div>
 
       <div className="button-container">
-        {effectiveIsSubscribed ? (
+        {effectiveIsSubscribed && !error ? (
           <button className="continue-btn" onClick={() => navigate("/")}>
             Povratak na početnu
           </button>

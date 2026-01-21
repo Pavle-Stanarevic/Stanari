@@ -6,6 +6,7 @@ import com.clayplay.model.Placa;
 import com.clayplay.repository.ClanarinaRepository;
 import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.repository.PlacaRepository;
+import com.clayplay.service.SubscriptionService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -32,11 +33,13 @@ public class PaymentController {
     private final KorisnikRepository korisnikRepository;
     private final ClanarinaRepository clanarinaRepository;
     private final PlacaRepository placaRepository;
+    private final SubscriptionService subscriptionService;
 
-    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository) {
+    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository, SubscriptionService subscriptionService) {
         this.korisnikRepository = korisnikRepository;
         this.clanarinaRepository = clanarinaRepository;
         this.placaRepository = placaRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @PostConstruct
@@ -90,7 +93,6 @@ public class PaymentController {
     }
 
     @PostMapping("/confirm-success")
-    @Transactional
     public ResponseEntity<?> confirmSuccess(@RequestBody Map<String, Object> data) {
         try {
             Long userId = null;
@@ -112,39 +114,16 @@ public class PaymentController {
             if (userOpt.isPresent()) {
                 String billing = (String) data.getOrDefault("billing", "monthly");
                 
-                Optional<Clanarina> clanarinaOpt = clanarinaRepository.findByTipClanarine(billing);
-                if (clanarinaOpt.isPresent()) {
-                    Clanarina clanarina = clanarinaOpt.get();
-                    
-                    if (paymentIntentId != null && placaRepository.existsByStripePaymentIntentId(paymentIntentId)) {
-                        System.out.println("[DEBUG_LOG] Payment " + paymentIntentId + " already processed, skipping manual confirmation.");
-
-                        return placaRepository.findFirstByIdKorisnikOrderByDatvrKrajClanarineDesc(userId)
-                            .map(p -> ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true, "subscriptionEndDate", p.getDatvrKrajClanarine())))
-                            .orElse(ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true)));
-                    }
-
-                    Placa placa = new Placa();
-                    placa.setIdKorisnik(userId);
-                    placa.setIdClanarina(clanarina.getIdClanarina());
-                    placa.setStripePaymentIntentId(paymentIntentId);
-                    
-                    OffsetDateTime now = OffsetDateTime.now();
-                    placa.setDatvrPocetakClanarine(now);
-                    
-                    if ("monthly".equalsIgnoreCase(billing)) {
-                        placa.setDatvrKrajClanarine(now.plusMonths(1));
-                    } else if ("yearly".equalsIgnoreCase(billing)) {
-                        placa.setDatvrKrajClanarine(now.plusYears(1));
-                    } else {
-                        placa.setDatvrKrajClanarine(now.plusMonths(1));
-                    }
-                    
-                    placaRepository.save(placa);
-                    System.out.println("[DEBUG_LOG] User " + userId + " marked as subscribed via manual confirmation (plan: " + billing + ").");
-                    return ResponseEntity.ok(Map.of("status", "success", "isSubscribed", true, "subscriptionEndDate", placa.getDatvrKrajClanarine()));
+                Optional<Placa> result = subscriptionService.activateSubscription(userId, billing, paymentIntentId);
+                if (result.isPresent()) {
+                    System.out.println("[DEBUG_LOG] User " + userId + " subscription confirmed via manual call.");
+                    return ResponseEntity.ok(Map.of(
+                        "status", "success", 
+                        "isSubscribed", true, 
+                        "subscriptionEndDate", result.get().getDatvrKrajClanarine()
+                    ));
                 } else {
-                    return ResponseEntity.status(400).body("Clanarina type not found");
+                    return ResponseEntity.status(400).body("Could not activate subscription");
                 }
             }
             return ResponseEntity.status(404).body("User not found");

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 import "../styles/placanje.css";
 
 import cardIcon from "../assets/images/credit-card.svg";
-import paypalIcon from "../assets/images/pay-pal.png";
 import { getCheckout } from "../api/checkout";
 import { getSubscription } from "../api/subscriptions";
 
@@ -77,6 +77,15 @@ export default function Placanje() {
 
   const [loading, setLoading] = useState(!initialSubscription && mode === "subscription" ? true : mode === "cart");
   const [error, setError] = useState("");
+
+  const { user: currentUser, isSubscribed: authIsSubscribed } = useAuth();
+  const effectiveIsSubscribed = !!(currentUser?.isSubscribed || authIsSubscribed);
+
+  useEffect(() => {
+    if (mode === "subscription" && effectiveIsSubscribed) {
+      navigate("/plan");
+    }
+  }, [mode, effectiveIsSubscribed, navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -170,7 +179,6 @@ export default function Placanje() {
 
     const routeMap = {
       card: "/placanje/kartica",
-      paypal: "/placanje/paypal",
     };
 
     const payload =
@@ -277,17 +285,6 @@ export default function Placanje() {
               <span className="payment-label">Kreditna ili debitna kartica</span>
               <span className="payment-right">
                 <img className="payment-icon" src={cardIcon} alt="" />
-              </span>
-            </button>
-
-            <button
-              className={`payment-row ${paymentMethod === "paypal" ? "selected" : ""}`}
-              type="button"
-              onClick={() => setPaymentMethod("paypal")}
-            >
-              <span className="payment-label">PayPal</span>
-              <span className="payment-right">
-                <img className="payment-icon" src={paypalIcon} alt="PayPal" />
               </span>
             </button>
           </div>

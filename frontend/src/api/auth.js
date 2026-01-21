@@ -118,6 +118,7 @@ async function postMultipartWithCsrf(path, formData) {
 
 export async function login(email, password) {
   try {
+    console.log(`[DEBUG_LOG] login: Attempting login for ${email}`);
     const r = await fetch(`${API}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -126,6 +127,7 @@ export async function login(email, password) {
     });
     if (r.ok) {
       const data = await r.json().catch(() => ({}));
+      console.log(`[DEBUG_LOG] login: Success. Cookie after login: ${document.cookie}`);
       return { mode: "jwt", data }; 
     }
     if (r.status !== 404) throw new Error("Invalid credentials");
@@ -145,14 +147,14 @@ export async function login(email, password) {
   throw new Error("Invalid credentials");
 }
 
-export async function me() {
+export async function me(force = false) {
   try {
-    const url = `${API}/api/auth/me?t=${Date.now()}`;
+    const url = `${API}/api/auth/me?t=${Date.now()}${force ? '&f=1' : ''}`;
     console.log(`[DEBUG_LOG] me: Fetching ${url}`);
     const res = await fetch(url, { credentials: "include" });
     console.log(`[DEBUG_LOG] me: Response status: ${res.status}`);
     if (res.status === 401) {
-      console.log(`[DEBUG_LOG] me: Not authenticated (401)`);
+      console.log(`[DEBUG_LOG] me: Not authenticated (401). Cookie: ${document.cookie}`);
       return null;
     }
     if (res.status === 404) {
@@ -161,7 +163,7 @@ export async function me() {
     }
     if (res.ok) {
       const data = await res.json().catch(() => null);
-      console.log(`[DEBUG_LOG] me: Success:`, data);
+      console.log(`[DEBUG_LOG] me: Success (status ${res.status}):`, data);
       return data?.user ?? data; // ✅ ako backend vrati {user, token}, uzmi user
     }
     console.log(`[DEBUG_LOG] me: Request failed with status ${res.status}`);
@@ -175,7 +177,7 @@ export async function me() {
 
 export async function logout() {
   const csrf = getCookie();
-  return fetch(`${API}/logout`, {
+  return fetch(`${API}/api/auth/logout`, {
     method: "POST",
     credentials: "include",
     headers: csrf ? { "X-XSRF-TOKEN": csrf } : {},

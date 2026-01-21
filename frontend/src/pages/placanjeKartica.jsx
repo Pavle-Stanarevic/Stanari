@@ -1,12 +1,12 @@
-import { useMemo, useState, useContext } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 import "../styles/placanjeKartica.css";
-import { createStripeCheckoutSession, createPaymentIntent } from "../api/subscriptions";
+import { createPaymentIntent } from "../api/subscriptions";
 import { createStripeCartCheckoutSession } from "../api/checkout";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "../components/CheckoutForm";
-import { AuthContext } from "../contexts/AuthContext";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -18,9 +18,16 @@ function formatBilling(billing) {
 export default function PlacanjeKartica() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useContext(AuthContext);
+  const { user, isSubscribed: authIsSubscribed } = useAuth();
 
   const mode = location.state?.mode || "subscription";
+  const effectiveIsSubscribed = !!(user?.isSubscribed || authIsSubscribed);
+
+  useEffect(() => {
+    if (mode === "subscription" && effectiveIsSubscribed) {
+      navigate("/plan");
+    }
+  }, [mode, effectiveIsSubscribed, navigate]);
 
   const subscription = location.state?.subscription || null;
   const subscriptionId =

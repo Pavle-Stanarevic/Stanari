@@ -20,6 +20,24 @@ public class SubscriptionController {
         this.clanarinaRepository = clanarinaRepository;
     }
 
+    @GetMapping("/pricing")
+    public ResponseEntity<?> getPricing() {
+        System.out.println("[DEBUG_LOG] SubscriptionController.getPricing called");
+        BigDecimal monthly = clanarinaRepository.findByTipClanarine("monthly")
+                .map(Clanarina::getIznosEUR)
+                .orElse(new BigDecimal("5.00"));
+        BigDecimal yearly = clanarinaRepository.findByTipClanarine("yearly")
+                .map(Clanarina::getIznosEUR)
+                .orElse(new BigDecimal("50.00"));
+
+        System.out.println("[DEBUG_LOG] getPricing returning: monthly=" + monthly + ", yearly=" + yearly);
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("monthly", monthly);
+        resp.put("yearly", yearly);
+        resp.put("currency", "EUR");
+        return ResponseEntity.ok(resp);
+    }
+
     @PostMapping
     public ResponseEntity<?> createSubscription(@RequestBody Map<String, Object> data) {
         String billing = (String) data.get("billing");
@@ -33,6 +51,7 @@ public class SubscriptionController {
                 .map(Clanarina::getIznosEUR)
                 .orElse("monthly".equals(billing) ? new BigDecimal("5.00") : new BigDecimal("50.00"));
         
+        System.out.println("[DEBUG_LOG] createSubscription: billing=" + billing + ", amount=" + amount);
         response.put("amount", amount);
         response.put("billing", billing);
 

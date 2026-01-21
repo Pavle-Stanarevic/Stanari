@@ -128,7 +128,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody(required = false) Map<String, String> body, jakarta.servlet.http.HttpSession session) {
+    public ResponseEntity<?> login(@RequestBody(required = false) Map<String, String> body, jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpSession session) {
         try {
             if (body == null) return ResponseEntity.badRequest().body("Missing credentials");
             String email = body.get("email");
@@ -143,9 +143,13 @@ public class AuthController {
 
                 // Spremamo email u sesiju umjesto cijelog objekta koji može postati zastario
                 session.setAttribute("userEmail", u.getEmail());
-                // Zadržavamo "user" radi kompatibilnosti ako se negdje drugdje koristi, ali "userEmail" je primaran za /me
                 session.setAttribute("user", u);
-
+                session.setMaxInactiveInterval(30 * 60); // 30 minutes
+                System.out.println("[DEBUG_LOG] AuthController.login: Set userEmail in session: " + u.getEmail() + ", SessionID: " + session.getId());
+                
+                // Force session persistence
+                request.changeSessionId(); 
+                
                 Map<String, Object> resp = new HashMap<>();
                 resp.put("user", userMap);
                 resp.put("token", "dev-token");
@@ -159,7 +163,7 @@ public class AuthController {
     }
 
     @PostMapping("/google")
-    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> body, jakarta.servlet.http.HttpSession session) {
+    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> body, jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpSession session) {
         try {
             String idToken = body.get("idToken");
             if (idToken == null || idToken.isBlank()) {
@@ -191,6 +195,8 @@ public class AuthController {
             // Spremamo email u sesiju umjesto cijelog objekta koji može postati zastario
             session.setAttribute("userEmail", u.getEmail());
             session.setAttribute("user", u);
+            session.setMaxInactiveInterval(30 * 60); // 30 minutes
+            request.changeSessionId();
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("user", userMap);
@@ -219,7 +225,10 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<?> me(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpSession session) {
+        System.out.println("[DEBUG_LOG] AuthController.me: SessionID: " + session.getId());
+        System.out.println("[DEBUG_LOG] AuthController.me: Cookie Header: " + request.getHeader("Cookie"));
         // U pravom sustavu ovdje bismo dohvatili korisnika iz SecurityContext-a (Principal)
         // Za ovaj demo, budući da nemamo puni JWT filter, ali frontend očekuje info o korisniku,
         // možemo iskoristiti cinjenicu da je korisnik vec prijavljen.
@@ -237,6 +246,7 @@ public class AuthController {
                 System.out.println("[DEBUG_LOG] AuthController.me: Found userEmail in session: " + email);
             } else {
                 Object userFromSession = session.getAttribute("user");
+                System.out.println("[DEBUG_LOG] AuthController.me: user attribute in session: " + userFromSession);
                 if (userFromSession instanceof Korisnik) {
                     email = ((Korisnik) userFromSession).getEmail();
                     System.out.println("[DEBUG_LOG] AuthController.me: Found user in session (Korisnik): " + email);
@@ -244,6 +254,19 @@ public class AuthController {
                     email = (String) ((Map<?, ?>) userFromSession).get("email");
                     System.out.println("[DEBUG_LOG] AuthController.me: Found user in session (Map): " + email);
                 }
+            }
+            if (email == null) {
+                System.out.println("[DEBUG_LOG] AuthController.me: Session is " + (session.isNew() ? "NEW" : "OLD") + ", id=" + session.getId());
+                java.util.Enumeration<String> attrNames = session.getAttributeNames();
+                System.out.print("[DEBUG_LOG] AuthController.me: Session attributes: ");
+                while(attrNames.hasMoreElements()) {
+                    String name = attrNames.nextElement();
+                    System.out.print(name + "=" + session.getAttribute(name) + " ");
+                }
+                System.out.println();
+                
+                // FINAL FALLBACK: If we have an OLD session but NO attributes, maybe it's a cross-site issue.
+                // We could potentially use a short-lived token passed in URL, but let's see if SameSite=None fixes it.
             }
         }
 
@@ -260,8 +283,15 @@ public class AuthController {
                     });
         }
         
-        System.out.println("[DEBUG_LOG] AuthController.me: Not authenticated (Principal and Session empty)");
+        // Smanjujemo buku u logovima za neautentificirane zahtjeve
         return ResponseEntity.status(401).body("Not authenticated");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(jakarta.servlet.http.HttpSession session) {
+        System.out.println("[DEBUG_LOG] AuthController.logout: Invalidating session " + session.getId());
+        session.invalidate();
+        return ResponseEntity.ok().body("Logged out");
     }
 
     private Map<String, Object> buildUserMap(Korisnik u) {

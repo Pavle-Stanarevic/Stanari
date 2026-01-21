@@ -31,14 +31,19 @@ export default function CheckoutForm({ clientSecret, paymentIntentId, userId, bi
         case "succeeded":
           if (userId && paymentIntent.id) {
             try { 
-              await confirmPaymentSuccess({ userId, paymentIntentId: paymentIntent.id, billing }); 
-              await new Promise(resolve => setTimeout(resolve, 500));
+              console.log("[DEBUG_LOG] CheckoutForm: Payment succeeded. Confirming on backend...");
+              const res = await confirmPaymentSuccess({ userId, paymentIntentId: paymentIntent.id, billing }); 
+              console.log("[DEBUG_LOG] CheckoutForm: Confirm response:", res);
+              await new Promise(resolve => setTimeout(resolve, 800));
+              console.log("[DEBUG_LOG] CheckoutForm: Fetching fresh user data...");
               const u = await me();
+              console.log("[DEBUG_LOG] CheckoutForm: New user data:", u);
               if (u) {
                 setUser(u);
                 sessionStorage.setItem("user", JSON.stringify(u));
+                console.log("[DEBUG_LOG] CheckoutForm: User state updated in context and storage.");
               }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("[DEBUG_LOG] CheckoutForm error:", err); }
           }
           setMessage("Payment succeeded!");
           break;

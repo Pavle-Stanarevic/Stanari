@@ -1,6 +1,11 @@
 // src/api/subscriptions.js
 import { requestJson } from "./http";
 
+// GET /api/subscriptions/pricing
+export async function getPricing() {
+  return requestJson(`/api/subscriptions/pricing`, { method: "GET" });
+}
+
 // POST /api/subscriptions
 export async function createSubscription({ userId, planId, billing }) {
   return requestJson(`/api/subscriptions`, {
