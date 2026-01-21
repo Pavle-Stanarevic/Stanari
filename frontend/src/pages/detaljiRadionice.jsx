@@ -6,7 +6,7 @@ import { getOrganizator } from "../api/organisers";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 /* ---------- calendar helpers ---------- */
 function toGoogleCalDateUtc(date) {

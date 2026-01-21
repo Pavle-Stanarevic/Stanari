@@ -32,9 +32,12 @@ export default function TimOrganizatora() {
       setError("");
 
       try {
-        const res = await fetch(`${API}/api/organizatori`, {
+        const url = `${API}/api/organizatori`;
+        console.log(`[DEBUG_LOG] TimOrganizatora: Fetching ${url}`);
+        const res = await fetch(url, {
           credentials: "include",
         });
+        console.log(`[DEBUG_LOG] TimOrganizatora: Response status: ${res.status}`);
 
         if (!res.ok) throw new Error("Backend endpoint nije dostupan.");
 
@@ -44,6 +47,7 @@ export default function TimOrganizatora() {
         setOrganizatori(Array.isArray(data) && data.length ? data : []);
       } catch (e) {
         if (!alive) return;
+        console.error(`[DEBUG_LOG] TimOrganizatora: Error:`, e);
         setError(e.message || "Greška pri dohvaćanju organizatora.");
         setOrganizatori([]);
       } finally {

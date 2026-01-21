@@ -36,6 +36,7 @@ function AdminRoute({ children }) {
 }
 
 export default function App() {
+  console.log("[DEBUG_LOG] App component mounting. Version: 2026-01-21-19:40");
   return (
     <Router>
       <Header />

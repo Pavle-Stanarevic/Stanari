@@ -55,6 +55,7 @@ public class AuthController {
 
     @PostMapping(path = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> register(@RequestBody RegistrationRequest req) {
+        System.out.println("[DEBUG_LOG] AuthController.register (JSON) called with email: " + (req != null ? req.email : "null"));
         try {
             Korisnik created = userService.register(req);
             Map<String, Object> userMap = buildUserMap(created);
@@ -64,8 +65,10 @@ public class AuthController {
             resp.put("token", "dev-token");
             return ResponseEntity.ok().body(resp);
         } catch (IllegalArgumentException e) {
+            System.err.println("[DEBUG_LOG] AuthController.register (JSON) IllegalArgumentException: " + e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
+            System.err.println("[DEBUG_LOG] AuthController.register (JSON) Exception:");
             e.printStackTrace();
             return ResponseEntity.status(500).body("Server error: " + e.getMessage());
         }
@@ -84,6 +87,7 @@ public class AuthController {
             @RequestParam(value = "studyName", required = false) String studyName,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
+        System.out.println("[DEBUG_LOG] AuthController.registerMultipart called with email: " + email + ", userType: " + userType);
         try {
             RegistrationRequest req = new RegistrationRequest();
             req.firstName = firstName;
@@ -99,8 +103,11 @@ public class AuthController {
             byte[] bytes = null;
             String contentType = null;
             if (image != null && !image.isEmpty()) {
+                System.out.println("[DEBUG_LOG] Received image: " + image.getOriginalFilename() + " (" + image.getSize() + " bytes)");
                 try { bytes = image.getBytes(); } catch (IOException ignored) {}
                 contentType = image.getContentType();
+            } else {
+                System.out.println("[DEBUG_LOG] No image received in multipart request");
             }
 
             Korisnik created = userService.register(req, bytes, contentType);
@@ -111,8 +118,10 @@ public class AuthController {
             resp.put("token", "dev-token");
             return ResponseEntity.ok().body(resp);
         } catch (IllegalArgumentException e) {
+            System.err.println("[DEBUG_LOG] AuthController.registerMultipart IllegalArgumentException: " + e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
+            System.err.println("[DEBUG_LOG] AuthController.registerMultipart Exception:");
             e.printStackTrace();
             return ResponseEntity.status(500).body("Server error: " + e.getMessage());
         }

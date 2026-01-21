@@ -1,6 +1,7 @@
 
 
-const API = import.meta.env.VITE_API_URL; 
+const API = import.meta.env.VITE_API_URL || ""; 
+console.log(`[DEBUG_LOG] auth.js initialized. API URL: "${API}"`);
 
 
 function getCookie(name = "XSRF-TOKEN") {
@@ -12,58 +13,106 @@ function getCookie(name = "XSRF-TOKEN") {
 
 async function postJsonWithCsrf(path, data) {
   const csrf = getCookie();
-  const res = await fetch(`${API}${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
-    },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    let msg = "";
-    try { msg = (await res.text()) || res.statusText; } catch {}
-    throw new Error(msg || "Request failed");
+  const url = `${API}${path}`;
+  console.log(`[DEBUG_LOG] postJsonWithCsrf: Fetching ${url}`, { data });
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+    console.log(`[DEBUG_LOG] postJsonWithCsrf: Response status: ${res.status}`);
+    if (!res.ok) {
+      let msg = "";
+      try { msg = (await res.text()) || res.statusText; } catch {}
+      console.error(`[DEBUG_LOG] postJsonWithCsrf: Request failed with status ${res.status}: ${msg}`);
+      throw new Error(msg || "Request failed");
+    }
+    try {
+      const json = await res.json();
+      console.log(`[DEBUG_LOG] postJsonWithCsrf: Success JSON:`, json);
+      return json;
+    } catch {
+      console.log(`[DEBUG_LOG] postJsonWithCsrf: Success (no JSON body)`);
+      return {};
+    }
+  } catch (error) {
+    console.error(`[DEBUG_LOG] postJsonWithCsrf: FETCH ERROR:`, error);
+    throw error;
   }
-  try { return await res.json(); } catch { return {}; }
 }
 
 async function putJsonWithCsrf(path, data) {
   const csrf = getCookie();
-  const res = await fetch(`${API}${path}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
-    },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    let msg = "";
-    try { msg = (await res.text()) || res.statusText; } catch {}
-    throw new Error(msg || "Request failed");
+  const url = `${API}${path}`;
+  console.log(`[DEBUG_LOG] putJsonWithCsrf: Fetching ${url}`, { data });
+  try {
+    const res = await fetch(url, {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
+      },
+      body: JSON.stringify(data),
+    });
+    console.log(`[DEBUG_LOG] putJsonWithCsrf: Response status: ${res.status}`);
+    if (!res.ok) {
+      let msg = "";
+      try { msg = (await res.text()) || res.statusText; } catch {}
+      console.error(`[DEBUG_LOG] putJsonWithCsrf: Request failed with status ${res.status}: ${msg}`);
+      throw new Error(msg || "Request failed");
+    }
+    try {
+      const json = await res.json();
+      console.log(`[DEBUG_LOG] putJsonWithCsrf: Success JSON:`, json);
+      return json;
+    } catch {
+      console.log(`[DEBUG_LOG] putJsonWithCsrf: Success (no JSON body)`);
+      return {};
+    }
+  } catch (error) {
+    console.error(`[DEBUG_LOG] putJsonWithCsrf: FETCH ERROR:`, error);
+    throw error;
   }
-  try { return await res.json(); } catch { return {}; }
 }
 
 async function postMultipartWithCsrf(path, formData) {
   const csrf = getCookie();
-  const res = await fetch(`${API}${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
-    },
-    body: formData,
-  });
-  if (!res.ok) {
-    let msg = "";
-    try { msg = (await res.text()) || res.statusText; } catch {}
-    throw new Error(msg || "Request failed");
+  const url = `${API}${path}`;
+  console.log(`[DEBUG_LOG] postMultipartWithCsrf: Fetching ${url}`);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
+      },
+      body: formData,
+    });
+    console.log(`[DEBUG_LOG] postMultipartWithCsrf: Response status: ${res.status}`);
+    if (!res.ok) {
+      let msg = "";
+      try { msg = (await res.text()) || res.statusText; } catch {}
+      console.error(`[DEBUG_LOG] postMultipartWithCsrf: Request failed with status ${res.status}: ${msg}`);
+      throw new Error(msg || "Request failed");
+    }
+    try {
+      const json = await res.json();
+      console.log(`[DEBUG_LOG] postMultipartWithCsrf: Success JSON:`, json);
+      return json;
+    } catch {
+      console.log(`[DEBUG_LOG] postMultipartWithCsrf: Success (no JSON body)`);
+      return {};
+    }
+  } catch (error) {
+    console.error(`[DEBUG_LOG] postMultipartWithCsrf: FETCH ERROR:`, error);
+    throw error;
   }
-  try { return await res.json(); } catch { return {}; }
 }
 
 
@@ -98,14 +147,29 @@ export async function login(email, password) {
 
 export async function me() {
   try {
-    const res = await fetch(`${API}/api/auth/me?t=${Date.now()}`, { credentials: "include" });
-    if (res.status === 404) return null;
+    const url = `${API}/api/auth/me?t=${Date.now()}`;
+    console.log(`[DEBUG_LOG] me: Fetching ${url}`);
+    const res = await fetch(url, { credentials: "include" });
+    console.log(`[DEBUG_LOG] me: Response status: ${res.status}`);
+    if (res.status === 401) {
+      console.log(`[DEBUG_LOG] me: Not authenticated (401)`);
+      return null;
+    }
+    if (res.status === 404) {
+      console.log(`[DEBUG_LOG] me: Not found (404)`);
+      return null;
+    }
     if (res.ok) {
       const data = await res.json().catch(() => null);
+      console.log(`[DEBUG_LOG] me: Success:`, data);
       return data?.user ?? data; // ✅ ako backend vrati {user, token}, uzmi user
-  }
+    }
+    console.log(`[DEBUG_LOG] me: Request failed with status ${res.status}`);
     return null;
-  } catch { return null; }
+  } catch (error) {
+    console.error(`[DEBUG_LOG] me: FETCH ERROR:`, error);
+    return null;
+  }
 }
 
 
@@ -120,6 +184,7 @@ export async function logout() {
 
 
 export async function register(data, imageFile) {
+  console.log(`[DEBUG_LOG] register called. data:`, data, `imageFile:`, imageFile);
   if (imageFile) {
     const fd = new FormData();
     Object.entries(data || {}).forEach(([k, v]) => {
@@ -133,10 +198,12 @@ export async function register(data, imageFile) {
 
 
 export async function registerPolaznik(data) {
-  return postJsonWithCsrf(`/api/auth/registerPolaznik`, data);
+  console.log("[DEBUG_LOG] registerPolaznik called", { data });
+  return postJsonWithCsrf(`/api/auth/register`, { ...data, userType: "polaznik" });
 }
 export async function registerOrganizator(data) {
-  return postJsonWithCsrf(`/api/auth/registerOrganizator`, data);
+  console.log("[DEBUG_LOG] registerOrganizator called", { data });
+  return postJsonWithCsrf(`/api/auth/register`, { ...data, userType: "organizator" });
 }
 
 export async function updateProfile(id, data) {
