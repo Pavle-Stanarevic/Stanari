@@ -3,10 +3,10 @@ BEGIN TRANSACTION;
 CREATE OR REPLACE FUNCTION rezervacija_cancel()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.statusRez = 'canceled' AND OLD.statusRez <> 'canceled' THEN
-       IF CURRENT_TIMESTAMP <= (SELECT datVrRadionica - INTERVAL '48 hours' 
+    IF NEW.statusrez = 'canceled' AND OLD.statusrez <> 'canceled' THEN
+       IF CURRENT_TIMESTAMP <= (SELECT datvrradionica - INTERVAL '48 hours' 
                                       FROM RADIONICA 
-                                      WHERE idRadionica = NEW.idRadionica) THEN
+                                      WHERE idradionica = NEW.idradionica) THEN
            RETURN NEW;
        ELSE
            RAISE EXCEPTION 'Rezervaciju nije moguće otkazati manje od 2 dana prije početka radionice.';
@@ -17,7 +17,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trig_rezervacija_cancel
-BEFORE UPDATE OF statusRez ON REZERVACIJA
+BEFORE UPDATE OF statusrez ON REZERVACIJA
 FOR EACH ROW
 EXECUTE FUNCTION rezervacija_cancel();
 
@@ -25,35 +25,35 @@ EXECUTE FUNCTION rezervacija_cancel();
 CREATE OR REPLACE FUNCTION broj_slobodnih_mjesta()
 RETURNS TRIGGER AS $$
 DECLARE
-    brSlob INT;
+    br_slob INT;
 BEGIN
-    SELECT brSlobMjesta INTO brSlob
+    SELECT brslobmjesta INTO br_slob
     FROM RADIONICA
-    WHERE idRadionica = NEW.idRadionica
+    WHERE idradionica = NEW.idradionica
     FOR UPDATE;
 
     IF TG_OP = 'INSERT' THEN
-        IF brSlob > 0 THEN
+        IF br_slob > 0 THEN
             UPDATE RADIONICA
-            SET brSlobMjesta = brSlobMjesta - 1
-            WHERE idRadionica = NEW.idRadionica;
+            SET brslobmjesta = brslobmjesta - 1
+            WHERE idradionica = NEW.idradionica;
             RETURN NEW;
         ELSE
             RAISE EXCEPTION 'Nema slobodnih mjesta za ovu radionicu.';
         END IF;
     
     ELSIF TG_OP = 'UPDATE' THEN
-        IF NEW.statusRez = 'canceled' AND OLD.statusRez <> 'canceled' THEN
+        IF NEW.statusrez = 'canceled' AND OLD.statusrez <> 'canceled' THEN
             UPDATE RADIONICA
-            SET brSlobMjesta = brSlobMjesta + 1
-            WHERE idRadionica = NEW.idRadionica;
+            SET brslobmjesta = brslobmjesta + 1
+            WHERE idradionica = NEW.idradionica;
             RETURN NEW;
 
-        ELSIF NEW.statusRez = 'reserved' AND OLD.statusRez <> 'reserved' THEN
-            IF brSlob > 0 THEN
+        ELSIF NEW.statusrez = 'reserved' AND OLD.statusrez <> 'reserved' THEN
+            IF br_slob > 0 THEN
                 UPDATE RADIONICA
-                SET brSlobMjesta = brSlobMjesta - 1
-                WHERE idRadionica = NEW.idRadionica;
+                SET brslobmjesta = brslobmjesta - 1
+                WHERE idradionica = NEW.idradionica;
                 RETURN NEW;
             ELSE
                 RAISE EXCEPTION 'Nema slobodnih mjesta za ovu radionicu.';
@@ -65,7 +65,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trig_broj_slobodnih_mjesta
-BEFORE INSERT OR UPDATE OF statusRez ON REZERVACIJA
+BEFORE INSERT OR UPDATE OF statusrez ON REZERVACIJA
 FOR EACH ROW
 EXECUTE FUNCTION broj_slobodnih_mjesta();
 
@@ -79,7 +79,7 @@ BEGIN
     SELECT k.ime, k.prezime
     INTO v_ime, v_prezime
     FROM KORISNIK k
-    WHERE k.idKorisnik = NEW.idKorisnik;
+    WHERE k.idkorisnik = NEW.idkorisnik;
 
     IF v_ime IS NULL OR v_prezime IS NULL THEN
         RAISE EXCEPTION 'Polaznik mora imati unijeta ime i prezime prije rezervacije radionice.';
@@ -101,17 +101,17 @@ DECLARE
     v_ime VARCHAR(50);
     v_prezime VARCHAR(50);
     v_adresa VARCHAR(100);
-    v_brojTelefona VARCHAR(15);
-    v_fotoId BIGINT;
+    v_brojtelefona VARCHAR(15);
+    v_fotoid BIGINT;
 BEGIN
-    SELECT k.ime, k.prezime, k.adresa, k.brojTelefona, k.fotoId
-    INTO v_ime, v_prezime, v_adresa, v_brojTelefona, v_fotoId
+    SELECT k.ime, k.prezime, k.adresa, k.brojtelefona, k.fotoid
+    INTO v_ime, v_prezime, v_adresa, v_brojtelefona, v_fotoid
     FROM KORISNIK k
-    WHERE k.idKorisnik = NEW.idKorisnik;
+    WHERE k.idkorisnik = NEW.idkorisnik;
 
-    IF v_adresa IS NULL OR v_brojTelefona IS NULL OR v_fotoId IS NULL THEN
+    IF v_adresa IS NULL OR v_brojtelefona IS NULL OR v_fotoid IS NULL THEN
         RAISE EXCEPTION 'Organizator mora imati unijeta adresu, broj telefona i fotografiju prije kreiranja radionice.';
-    ELSIF NEW.imeStudija IS NULL AND (v_ime IS NULL OR v_prezime IS NULL) THEN
+    ELSIF NEW.imestudija IS NULL AND (v_ime IS NULL OR v_prezime IS NULL) THEN
         RAISE EXCEPTION 'Organizator mora imati unijeta ime i prezime ili ime studija prije kreiranja radionice.';
     END IF;
 
@@ -128,16 +128,16 @@ EXECUTE FUNCTION organizator_obavezni_podaci();
 CREATE OR REPLACE FUNCTION korisnik_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.idKorisnik IN (SELECT idKorisnik FROM POLAZNIK) THEN
+    IF NEW.idkorisnik IN (SELECT idkorisnik FROM POLAZNIK) THEN
         IF NEW.ime IS NULL OR NEW.prezime IS NULL THEN
             RAISE EXCEPTION 'Polaznik mora imati unijeta ime i prezime prije rezervacije radionice.';
         END IF;
 
-    ELSIF NEW.idKorisnik IN (SELECT idKorisnik FROM ORGANIZATOR) THEN
-        IF NEW.adresa IS NULL OR NEW.brojTelefona IS NULL OR NEW.fotoId IS NULL THEN
+    ELSIF NEW.idkorisnik IN (SELECT idkorisnik FROM ORGANIZATOR) THEN
+        IF NEW.adresa IS NULL OR NEW.brojtelefona IS NULL OR NEW.fotoid IS NULL THEN
             RAISE EXCEPTION 'Organizator mora imati unijeta adresu, broj telefona i fotografiju prije kreiranja radionice.';
         ELSIF (
-            SELECT o.imeStudija FROM ORGANIZATOR o WHERE o.idKorisnik = NEW.idKorisnik
+            SELECT o.imestudija FROM ORGANIZATOR o WHERE o.idkorisnik = NEW.idkorisnik
         ) IS NULL AND (NEW.ime IS NULL OR NEW.prezime IS NULL) THEN
             RAISE EXCEPTION 'Organizator mora imati unijeta ime i prezime ili ime studija prije kreiranja radionice.';
         END IF;

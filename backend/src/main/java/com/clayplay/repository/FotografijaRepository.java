@@ -13,6 +13,6 @@ import java.util.List;
 public interface FotografijaRepository extends JpaRepository<Fotografija, Long> {
     Optional<Fotografija> findByFotoURL(String fotoURL);
 
-    @Query(value = "select f.fotoURL from fotografija f join fotorad fr on fr.fotoId = f.fotoId where fr.idRadionica = :id", nativeQuery = true)
+    @Query(value = "select f.fotourl from fotografija f join fotorad fr on fr.fotoid = f.fotoid where fr.idradionica = :id", nativeQuery = true)
     List<String> findUrlsByRadionicaId(@Param("id") Long id);
 }

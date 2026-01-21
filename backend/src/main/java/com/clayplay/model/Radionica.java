@@ -13,36 +13,36 @@ public class Radionica {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idRadionica")
+    @Column(name = "idradionica")
     private Long idRadionica;
 
-    @Column(name = "nazivRadionica", nullable = false, length = 50)
+    @Column(name = "nazivradionica", nullable = false, length = 50)
     private String nazivRadionica;
 
-    @Column(name = "opisRadionica", nullable = false, length = 1000)
+    @Column(name = "opisradionica", nullable = false, length = 1000)
     private String opisRadionica;
 
     @JdbcTypeCode(SqlTypes.INTERVAL_SECOND)
     @Column(name = "trajanje", nullable = false)
     private Duration trajanje;
 
-    @Column(name = "datVrRadionica", nullable = false)
+    @Column(name = "datvrradionica", nullable = false)
     private OffsetDateTime datVrRadionica;
 
-    @Column(name = "lokacijaRadionica", nullable = false, length = 100)
+    @Column(name = "lokacijaradionica", nullable = false, length = 100)
     private String lokacijaRadionica;
 
-    @Column(name = "brSlobMjesta", nullable = false)
+    @Column(name = "brslobmjesta", nullable = false)
     private Integer brSlobMjesta;
 
-    @Column(name = "cijenaRadionica", nullable = false)
+    @Column(name = "cijenaradionica", nullable = false)
     private BigDecimal cijenaRadionica;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idKorisnik", referencedColumnName = "idKorisnik", insertable = false, updatable = false)
+    @JoinColumn(name = "idkorisnik", referencedColumnName = "idkorisnik", insertable = false, updatable = false)
     private Organizator organizator;
 
     public Long getIdRadionica() { return idRadionica; }

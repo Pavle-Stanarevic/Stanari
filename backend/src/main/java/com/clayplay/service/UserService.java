@@ -54,6 +54,10 @@ public class UserService {
             throw new IllegalArgumentException("Email already registered");
         }
 
+        if (req.contact != null && korisnikRepository.existsByBrojTelefona(req.contact)) {
+            throw new IllegalArgumentException("Phone number already registered");
+        }
+
         boolean isOrg = "organizator".equalsIgnoreCase(req.userType);
         if (isOrg && (imageBytes == null || imageBytes.length == 0)) {
             throw new IllegalArgumentException("Image is required for organizator");
@@ -128,7 +132,12 @@ public class UserService {
         if (req.firstName != null) u.setIme(req.firstName);
         if (req.lastName != null) u.setPrezime(req.lastName);
         if (req.address != null) u.setAdresa(req.address);
-        if (req.contact != null) u.setBrojTelefona(req.contact);
+        if (req.contact != null && !req.contact.equals(u.getBrojTelefona())) {
+            if (korisnikRepository.existsByBrojTelefona(req.contact)) {
+                throw new IllegalArgumentException("Phone number already registered");
+            }
+            u.setBrojTelefona(req.contact);
+        }
 
         if (req.email != null && !req.email.equals(u.getEmail())) {
             Optional<Korisnik> exists = korisnikRepository.findByEmail(req.email);

@@ -8,19 +8,19 @@ public class Komentar {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idKomentar")
+    @Column(name = "idkomentar")
     private Long idKomentar;
 
-    @Column(name = "textKomentar", nullable = false, length = 1000)
+    @Column(name = "textkomentar", nullable = false, length = 1000)
     private String textKomentar;
 
-    @Column(name = "idIzlozba", nullable = false)
+    @Column(name = "idizlozba", nullable = false)
     private Long idIzlozba;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
-    @Column(name = "odgovara_idKomentar")
+    @Column(name = "odgovaraidkomentar")
     private Long odgovaraIdKomentar;
 
     public Long getIdKomentar() { return idKomentar; }

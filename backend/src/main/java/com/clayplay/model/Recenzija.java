@@ -3,24 +3,24 @@ package com.clayplay.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "RECENZIJA", uniqueConstraints = @UniqueConstraint(columnNames = {"proizvodId", "idKorisnik"}))
+@Table(name = "RECENZIJA", uniqueConstraints = @UniqueConstraint(columnNames = {"proizvodid", "idkorisnik"}))
 public class Recenzija {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idRecenzija")
+    @Column(name = "idrecenzija")
     private Long idRecenzija;
 
     @Column(name = "ocjena", nullable = false)
     private Integer ocjena;
 
-    @Column(name = "textRecenzija", length = 1000)
+    @Column(name = "textrecenzija", length = 1000)
     private String textRecenzija;
 
-    @Column(name = "proizvodId", nullable = false)
+    @Column(name = "proizvodid", nullable = false)
     private Long proizvodId;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
     public Long getIdRecenzija() { return idRecenzija; }

@@ -9,26 +9,26 @@ public class Izlozba {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idIzlozba")
+    @Column(name = "idizlozba")
     private Long idIzlozba;
 
-    @Column(name = "nazivIzlozba", nullable = false, length = 50)
+    @Column(name = "nazivizlozba", nullable = false, length = 50)
     private String nazivIzlozba;
 
-    @Column(name = "lokacijaIzlozba", nullable = false, length = 100)
+    @Column(name = "lokacijaizlozba", nullable = false, length = 100)
     private String lokacijaIzlozba;
 
-    @Column(name = "opisIzlozba", length = 1000)
+    @Column(name = "opisizlozba", length = 1000)
     private String opisIzlozba;
 
-    @Column(name = "datVrIzlozba", nullable = false)
+    @Column(name = "datvrizlozba", nullable = false)
     private OffsetDateTime datVrIzlozba;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idKorisnik", referencedColumnName = "idKorisnik", insertable = false, updatable = false)
+    @JoinColumn(name = "idkorisnik", referencedColumnName = "idkorisnik", insertable = false, updatable = false)
     private Organizator organizator;
 
     public Long getIdIzlozba() { return idIzlozba; }

@@ -9,26 +9,26 @@ public class Proizvod {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "proizvodId")
+    @Column(name = "proizvodid")
     private Long proizvodId;
 
-    @Column(name = "opisProizvod")
+    @Column(name = "opisproizvod")
     private String opisProizvod;
 
-    @Column(name = "cijenaProizvod", nullable = false)
+    @Column(name = "cijenaproizvod", nullable = false)
     private BigDecimal cijenaProizvod;
 
-    @Column(name = "kategorijaProizvod", nullable = false)
+    @Column(name = "kategorijaproizvod", nullable = false)
     private String kategorijaProizvod;
 
     @Column(name = "kupljen", nullable = false)
     private Boolean kupljen = false;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idKorisnik", referencedColumnName = "idKorisnik", insertable = false, updatable = false)
+    @JoinColumn(name = "idkorisnik", referencedColumnName = "idkorisnik", insertable = false, updatable = false)
     private Organizator organizator;
 
     public Long getProizvodId() { return proizvodId; }

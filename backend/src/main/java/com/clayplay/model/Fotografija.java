@@ -8,10 +8,10 @@ public class Fotografija {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "fotoId")
+    @Column(name = "fotoid")
     private Long fotoId;
 
-    @Column(name = "fotoURL", nullable = false, unique = true)
+    @Column(name = "fotourl", nullable = false, unique = true)
     private String fotoURL;
 
     public Long getFotoId() { return fotoId; }

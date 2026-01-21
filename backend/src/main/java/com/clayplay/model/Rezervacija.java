@@ -4,21 +4,21 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "REZERVACIJA",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"idKorisnik", "idRadionica"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"idkorisnik", "idradionica"}))
 public class Rezervacija {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idRezervacija")
+    @Column(name = "idrezervacija")
     private Long idRezervacija;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
-    @Column(name = "idRadionica", nullable = false)
+    @Column(name = "idradionica", nullable = false)
     private Long idRadionica;
 
-    @Column(name = "statusRez", nullable = false)
+    @Column(name = "statusrez", nullable = false)
     private String statusRez = "reserved";
 
     public Long getIdRezervacija() { return idRezervacija; }

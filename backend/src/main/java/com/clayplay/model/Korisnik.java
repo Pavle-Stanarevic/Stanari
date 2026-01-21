@@ -8,7 +8,7 @@ public class Korisnik {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idKorisnik")
+    @Column(name = "idkorisnik")
     private Long idKorisnik;
 
     @Column(name = "ime")
@@ -20,7 +20,7 @@ public class Korisnik {
     @Column(name = "adresa")
     private String adresa;
 
-    @Column(name = "brojTelefona")
+    @Column(name = "brojtelefona")
     private String brojTelefona;
 
     @Column(name = "email", nullable = false, unique = true)
@@ -32,11 +32,11 @@ public class Korisnik {
     @Column(name = "status", nullable = false)
     private String status = "ACTIVE";
 
-    @Column(name = "fotoId")
+    @Column(name = "fotoid")
     private Long fotoId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fotoId", referencedColumnName = "fotoId", insertable = false, updatable = false)
+    @JoinColumn(name = "fotoid", referencedColumnName = "fotoid", insertable = false, updatable = false)
     private Fotografija fotografija;
 
     public Long getIdKorisnik() { return idKorisnik; }

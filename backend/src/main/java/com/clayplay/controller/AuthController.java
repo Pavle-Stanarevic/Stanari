@@ -59,7 +59,8 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Server error");
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Server error: " + e.getMessage());
         }
     }
 
@@ -105,7 +106,8 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Server error");
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Server error: " + e.getMessage());
         }
     }
 

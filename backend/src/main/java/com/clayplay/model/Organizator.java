@@ -7,16 +7,16 @@ import jakarta.persistence.*;
 public class Organizator {
 
     @Id
-    @Column(name = "idKorisnik")
+    @Column(name = "idkorisnik")
     private Long idKorisnik;
 
-    @Column(name = "imeStudija")
+    @Column(name = "imestudija")
     private String imeStudija; // nullable in DB, optional here
-    @Column(name = "statusOrganizator", nullable = false)
+    @Column(name = "status_organizator", nullable = false)
     private String statusOrganizator = "APPROVED";
 
     @OneToOne(optional = false)
-    @JoinColumn(name = "idKorisnik", referencedColumnName = "idKorisnik", insertable = false, updatable = false)
+    @JoinColumn(name = "idkorisnik", referencedColumnName = "idkorisnik", insertable = false, updatable = false)
     private Korisnik korisnik;
 
     public Long getIdKorisnik() { return idKorisnik; }

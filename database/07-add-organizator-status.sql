@@ -1,6 +1,6 @@
 ALTER TABLE ORGANIZATOR
-ADD COLUMN IF NOT EXISTS statusOrganizator TEXT NOT NULL DEFAULT 'APPROVED';
+ADD COLUMN IF NOT EXISTS status_organizator TEXT NOT NULL DEFAULT 'APPROVED';
 
 UPDATE ORGANIZATOR
-SET statusOrganizator = 'APPROVED'
-WHERE statusOrganizator IS NULL;
+SET status_organizator = 'APPROVED'
+WHERE status_organizator IS NULL;

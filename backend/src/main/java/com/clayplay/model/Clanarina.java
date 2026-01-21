@@ -9,13 +9,13 @@ public class Clanarina {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idClanarina")
+    @Column(name = "idclanarina")
     private Long idClanarina;
 
-    @Column(name = "iznosEUR", nullable = false)
+    @Column(name = "iznoseur", nullable = false)
     private BigDecimal iznosEUR;
 
-    @Column(name = "tipClanarine", nullable = false)
+    @Column(name = "tipclanarine", nullable = false)
     private String tipClanarine;
 
     public Long getIdClanarina() { return idClanarina; }

@@ -4,21 +4,21 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "KUPOVINA", uniqueConstraints = @UniqueConstraint(columnNames = {"idKorisnik", "proizvodId"}))
+@Table(name = "KUPOVINA", uniqueConstraints = @UniqueConstraint(columnNames = {"idkorisnik", "proizvodid"}))
 public class Kupovina {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idKupovina")
+    @Column(name = "idkupovina")
     private Long idKupovina;
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
-    @Column(name = "proizvodId", nullable = false)
+    @Column(name = "proizvodid", nullable = false)
     private Long proizvodId;
 
-    @Column(name = "datKupnje", nullable = false)
+    @Column(name = "datkupnje", nullable = false)
     private OffsetDateTime datKupnje;
 
     @PrePersist

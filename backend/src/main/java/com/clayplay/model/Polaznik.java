@@ -7,14 +7,14 @@ import jakarta.persistence.*;
 public class Polaznik {
 
     @Id
-    @Column(name = "idKorisnik")
+    @Column(name = "idkorisnik")
     private Long idKorisnik;
 
-    @Column(name = "zeliObavijesti", nullable = false)
+    @Column(name = "zeliobavijesti", nullable = false)
     private boolean zeliObavijesti = false;
 
     @OneToOne(optional = false)
-    @JoinColumn(name = "idKorisnik", referencedColumnName = "idKorisnik", insertable = false, updatable = false)
+    @JoinColumn(name = "idkorisnik", referencedColumnName = "idkorisnik", insertable = false, updatable = false)
     private Korisnik korisnik;
 
     public Long getIdKorisnik() { return idKorisnik; }

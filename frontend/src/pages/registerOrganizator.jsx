@@ -24,7 +24,7 @@ export default function RegisterOrganizator() {
 
   // ✅ obavezna polja za organizatora (plus image se provjerava posebno jer nije u values)
   const requiredKeys = useMemo(
-    () => ["firstName", "lastName", "email", "password", "studyName"],
+    () => ["firstName", "lastName", "contact", "email", "password", "confirmPassword", "studyName"],
     []
   );
 
@@ -32,8 +32,10 @@ export default function RegisterOrganizator() {
     () => ({
       firstName: "ime",
       lastName: "prezime",
+      contact: "kontakt",
       email: "e-mail",
       password: "lozinka",
+      confirmPassword: "ponovljena lozinka",
       studyName: "naziv studija",
       image: "slika profila",
     }),
@@ -50,6 +52,11 @@ export default function RegisterOrganizator() {
 
     if (missing.length) {
       setFormError(buildMissingMessage(missing, labels));
+      return;
+    }
+
+    if (values.password !== values.confirmPassword) {
+      setFormError("Lozinke se ne podudaraju.");
       return;
     }
 

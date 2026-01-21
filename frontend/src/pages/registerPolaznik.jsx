@@ -23,12 +23,13 @@ export default function RegisterPolaznik() {
   const navigate = useNavigate();
 
   // obavezna polja za polaznika (usklađuj ako ti se key-evi razlikuju u RegisterFormBase)
-  const requiredKeys = useMemo(() => ["firstName", "lastName", "email", "password"], []);
+  const requiredKeys = useMemo(() => ["firstName", "lastName", "contact", "email", "password"], []);
 
   const labels = useMemo(
     () => ({
       firstName: "ime",
       lastName: "prezime",
+      contact: "kontakt",
       email: "e-mail",
       password: "lozinka",
     }),

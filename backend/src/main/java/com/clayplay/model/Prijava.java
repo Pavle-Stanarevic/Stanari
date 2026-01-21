@@ -4,21 +4,21 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "PRIJAVA",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"idKorisnik", "idIzlozba"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"idkorisnik", "idizlozba"}))
 public class Prijava {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idPrijava")
+    @Column(name = "idprijava")
     private Long idPrijava;
 
-    @Column(name = "statusIzlozba", nullable = false)
+    @Column(name = "statusizlozba", nullable = false)
     private String statusIzlozba = "pending";
 
-    @Column(name = "idKorisnik", nullable = false)
+    @Column(name = "idkorisnik", nullable = false)
     private Long idKorisnik;
 
-    @Column(name = "idIzlozba", nullable = false)
+    @Column(name = "idizlozba", nullable = false)
     private Long idIzlozba;
 
     public Long getIdPrijava() { return idPrijava; }

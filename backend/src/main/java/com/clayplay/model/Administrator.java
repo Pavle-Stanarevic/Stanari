@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 public class Administrator {
 
     @Id
-    @Column(name = "idKorisnik")
+    @Column(name = "idkorisnik")
     private Long idKorisnik;
 
     public Long getIdKorisnik() { return idKorisnik; }
