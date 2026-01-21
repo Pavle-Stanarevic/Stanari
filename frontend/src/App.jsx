@@ -67,6 +67,7 @@ export default function App() {
         <Route path="/placanje/kartica" element={<PlacanjeKartica />} />
         <Route path="/placanje/paypal" element={<PlacanjePayPal />} /> 
         <Route path="/placanje/stripe-redirect" element={<PlacanjeStripeRedirect />} />
+        <Route path="/placanje-uspjeh" element={<PlacanjeUspjeh />} />
         <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
         <Route path="/admin" element={
           <AdminRoute>

@@ -98,7 +98,7 @@ export async function login(email, password) {
 
 export async function me() {
   try {
-    const res = await fetch(`${API}/api/auth/me`, { credentials: "include" });
+    const res = await fetch(`${API}/api/auth/me?t=${Date.now()}`, { credentials: "include" });
     if (res.status === 404) return null;
     if (res.ok) {
       const data = await res.json().catch(() => null);

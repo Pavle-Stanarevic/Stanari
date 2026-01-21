@@ -112,7 +112,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody(required = false) Map<String, String> body) {
+    public ResponseEntity<?> login(@RequestBody(required = false) Map<String, String> body, jakarta.servlet.http.HttpSession session) {
         try {
             if (body == null) return ResponseEntity.badRequest().body("Missing credentials");
             String email = body.get("email");
@@ -124,6 +124,11 @@ public class AuthController {
                     return ResponseEntity.status(403).body("User is blocked");
                 }
                 Map<String, Object> userMap = buildUserMap(u);
+
+                // Spremamo email u sesiju umjesto cijelog objekta koji može postati zastario
+                session.setAttribute("userEmail", u.getEmail());
+                // Zadržavamo "user" radi kompatibilnosti ako se negdje drugdje koristi, ali "userEmail" je primaran za /me
+                session.setAttribute("user", u);
 
                 Map<String, Object> resp = new HashMap<>();
                 resp.put("user", userMap);
@@ -138,7 +143,7 @@ public class AuthController {
     }
 
     @PostMapping("/google")
-    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> loginWithGoogle(@RequestBody Map<String, String> body, jakarta.servlet.http.HttpSession session) {
         try {
             String idToken = body.get("idToken");
             if (idToken == null || idToken.isBlank()) {
@@ -167,6 +172,10 @@ public class AuthController {
             }
             Map<String, Object> userMap = buildUserMap(u);
 
+            // Spremamo email u sesiju umjesto cijelog objekta koji može postati zastario
+            session.setAttribute("userEmail", u.getEmail());
+            session.setAttribute("user", u);
+
             Map<String, Object> resp = new HashMap<>();
             resp.put("user", userMap);
             resp.put("token", "dev-token");
@@ -193,7 +202,55 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<?> me(jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpSession session) {
+        // U pravom sustavu ovdje bismo dohvatili korisnika iz SecurityContext-a (Principal)
+        // Za ovaj demo, budući da nemamo puni JWT filter, ali frontend očekuje info o korisniku,
+        // možemo iskoristiti cinjenicu da je korisnik vec prijavljen.
+        
+        // Za demo svrhe, ako nemamo Principal, pokušat ćemo vratiti korisnika iz sesije ako postoji.
+        java.security.Principal principal = request.getUserPrincipal();
+        String email = null;
+        if (principal != null) {
+            email = principal.getName();
+            System.out.println("[DEBUG_LOG] AuthController.me: Found principal with name: " + email);
+        } else {
+            // Provjera sesije kao fallback za demo
+            email = (String) session.getAttribute("userEmail");
+            if (email != null) {
+                System.out.println("[DEBUG_LOG] AuthController.me: Found userEmail in session: " + email);
+            } else {
+                Object userFromSession = session.getAttribute("user");
+                if (userFromSession instanceof Korisnik) {
+                    email = ((Korisnik) userFromSession).getEmail();
+                    System.out.println("[DEBUG_LOG] AuthController.me: Found user in session (Korisnik): " + email);
+                } else if (userFromSession instanceof Map) {
+                    email = (String) ((Map<?, ?>) userFromSession).get("email");
+                    System.out.println("[DEBUG_LOG] AuthController.me: Found user in session (Map): " + email);
+                }
+            }
+        }
+
+        if (email != null) {
+            final String finalEmail = email;
+            System.out.println("[DEBUG_LOG] AuthController.me: Fetching fresh user data for " + finalEmail);
+            return korisnikRepository.findByEmail(finalEmail)
+                    .map(u -> {
+                        System.out.println("[DEBUG_LOG] AuthController.me: User found in DB, isSubscribed=" + u.isSubscribed());
+                        return ResponseEntity.ok(buildUserMap(u));
+                    })
+                    .orElseGet(() -> {
+                        System.out.println("[DEBUG_LOG] AuthController.me: User NOT found in DB for email " + finalEmail);
+                        return ResponseEntity.status(401).build();
+                    });
+        }
+        
+        System.out.println("[DEBUG_LOG] AuthController.me: Not authenticated (Principal and Session empty)");
+        return ResponseEntity.status(401).body("Not authenticated");
+    }
+
     private Map<String, Object> buildUserMap(Korisnik u) {
+        System.out.println("[DEBUG_LOG] Building UserMap for " + u.getEmail() + ", isSubscribed=" + u.isSubscribed());
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("id", u.getIdKorisnik());
         userMap.put("email", u.getEmail());
@@ -202,6 +259,7 @@ public class AuthController {
         userMap.put("contact", u.getBrojTelefona());
         userMap.put("address", u.getAdresa());
         userMap.put("status", u.getStatus());
+        userMap.put("isSubscribed", u.isSubscribed());
 
         userMap.put("photoUrl", userService.resolvePhotoUrl(u));
 
@@ -220,3 +278,4 @@ public class AuthController {
         return userMap;
     }
 }
+

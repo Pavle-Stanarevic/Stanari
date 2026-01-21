@@ -188,6 +188,7 @@ export default function Profile() {
   const isOrganizator = userType === "organizator";
   const isPolaznik = userType === "polaznik";
   const isAdmin = userType === "admin";
+  const isSubscribed = !!safeUser?.isSubscribed;
 
   // admin redirect
   useEffect(() => {

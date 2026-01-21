@@ -57,12 +57,20 @@ public class UserController {
         }
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUser(@PathVariable("id") Long id) {
+        return userService.findById(id)
+                .map(u -> ResponseEntity.ok(buildUserMap(u)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     private Map<String, Object> buildUserMap(Korisnik updated) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("id", updated.getIdKorisnik());
         userMap.put("email", updated.getEmail());
         userMap.put("firstName", updated.getIme());
         userMap.put("lastName", updated.getPrezime());
+        userMap.put("isSubscribed", updated.isSubscribed());
         boolean isOrg = userService.isOrganizator(updated.getIdKorisnik());
         userMap.put("userType", isOrg ? "organizator" : "polaznik");
         userMap.put("contact", updated.getBrojTelefona());

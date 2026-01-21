@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PlanCard from "../components/planCard";
 import "../styles/plan.css";
 import plans from "../data/plans";
 import { createSubscription } from "../api/subscriptions";
 import useAuth from "../hooks/useAuth";
+import { me } from "../api/auth";
 
 export default function Plan() {
   const [billing, setBilling] = useState("monthly");
@@ -13,17 +14,89 @@ export default function Plan() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+
+  const isSubscribed = !!user?.isSubscribed;
+  
+  // Dodatna provjera za isSubscribed iz sessionStorage ako context još nije sinkroniziran
+  const isSubscribedSession = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem("user");
+      const u = raw ? JSON.parse(raw) : null;
+      return !!u?.isSubscribed;
+    } catch { return false; }
+  }, []);
+
+  const effectiveIsSubscribed = useMemo(() => {
+    return !!(user?.isSubscribed || isSubscribedSession);
+  }, [user?.isSubscribed, isSubscribedSession]);
+
+  const subscribedUntil = useMemo(() => {
+    if (effectiveIsSubscribed) {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      return d.toLocaleDateString("hr-HR");
+    }
+    return null;
+  }, [effectiveIsSubscribed]);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        console.log("Plan.jsx: Fetching user data via me()...");
+        const u = await me();
+        console.log("Plan.jsx: User data received:", u);
+        if (u && isMounted) {
+          if (u.isSubscribed !== user?.isSubscribed) {
+            console.log("Plan.jsx: Subscription status change detected!", u.isSubscribed);
+          }
+          setUser(u);
+          sessionStorage.setItem("user", JSON.stringify(u));
+        }
+      } catch (err) {
+        console.error("Plan.jsx: Error fetching user data", err);
+      }
+    })();
+    
+    const handleStorageChange = (e) => {
+      if (e.key === "user" && isMounted) {
+        try {
+          const u = JSON.parse(e.newValue);
+          if (u) setUser(u);
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [setUser]); // Namjerno maknuto user?.isSubscribed kako bi se izbjegao loop ako setUser ne promijeni referencu savršeno
 
   const isOrganizer =
     user?.userType === "organizator" ||
     user?.role === "ORGANIZER" ||
+    user?.role === "ORGANIZATOR" ||
     user?.type === "organizator";
 
   const plan = useMemo(() => plans?.[0], []);
 
-  const getPrice = (p) => (billing === "monthly" ? p.priceMonthly : p.priceYearly);
-  const priceSuffix = billing === "monthly" ? "mjesečno" : "godišnje";
+  const getPrice = (p) => {
+    if (!p) return 0;
+    return billing === "monthly" ? p.priceMonthly : p.priceYearly;
+  };
+
+  console.log("Plan.jsx: Rendering", { 
+    user, 
+    isOrganizer, 
+    isSubscribed, 
+    isSubscribedSession,
+    effectiveIsSubscribed,
+    userIsSubscribed: user?.isSubscribed,
+    typeofIsSubscribed: typeof user?.isSubscribed 
+  });
 
   if (!user) {
     return (
@@ -94,8 +167,20 @@ export default function Plan() {
       const subscriptionId = data?.subscriptionId ?? data?.id;
       if (!subscriptionId) throw new Error("Backend nije vratio subscriptionId.");
 
+      const amount = data.amount;
+
       navigate("/placanje", {
-        state: { subscriptionId, subscription: data },
+        state: { 
+          subscriptionId, 
+          subscription: { 
+            ...data, 
+            amount, 
+            billing, 
+            title: plan.title, 
+            id: subscriptionId 
+          }, 
+          mode: "subscription" 
+        },
       });
     } catch (e) {
       setError(e?.message || "Greška kod spremanja pretplate.");
@@ -107,6 +192,12 @@ export default function Plan() {
   return (
     <div className="plan-container">
       <h1 className="h1-plan">Pretplata</h1>
+
+      {effectiveIsSubscribed && (
+        <p className="subscription-status">
+          Vaš plan vrijedi do: <strong>{subscribedUntil}</strong>
+        </p>
+      )}
 
       {error && <p className="error">{error}</p>}
 
@@ -134,7 +225,7 @@ export default function Plan() {
         <div className="planItem selected">
           <PlanCard
             title={plan.title}
-            price={`${getPrice(plan)} € / ${priceSuffix}`}
+            price={`${getPrice(plan)} € / ${billing === "monthly" ? "mjesečno" : "godišnje"}`}
             features={plan.features}
             selected={true}
           />
@@ -142,9 +233,15 @@ export default function Plan() {
       </div>
 
       <div className="button-container">
-        <button className="continue-btn" onClick={handleContinue} disabled={loading}>
-          {loading ? "Spremam..." : "Nastavi s plaćanjem"}
-        </button>
+        {effectiveIsSubscribed ? (
+          <button className="continue-btn" onClick={() => navigate("/")}>
+            Povratak na početnu
+          </button>
+        ) : (
+          <button className="continue-btn" onClick={handleContinue} disabled={loading}>
+            {loading ? "Spremam..." : "Nastavi s plaćanjem"}
+          </button>
+        )}
       </div>
     </div>
   );

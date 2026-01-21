@@ -1,8 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanjeKartica.css";
-import { createStripeCheckoutSession } from "../api/subscriptions";
+import { createStripeCheckoutSession, createPaymentIntent } from "../api/subscriptions";
 import { createStripeCartCheckoutSession } from "../api/checkout";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import CheckoutForm from "../components/CheckoutForm";
+import { AuthContext } from "../contexts/AuthContext";
+
+const stripePromise = loadStripe("pk_test_51Srz930MLuw9qpqbQceWSxoAve1Ydm0fR9heKUuIszdymTR6m3AAiRSr4h0YXtBHqgDzYDa9zo1r0QzchxW6PBKw00Kvcszxqq");
 
 function formatBilling(billing) {
   if (!billing) return "";
@@ -12,6 +18,7 @@ function formatBilling(billing) {
 export default function PlacanjeKartica() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useContext(AuthContext);
 
   const mode = location.state?.mode || "subscription";
 
@@ -27,6 +34,8 @@ export default function PlacanjeKartica() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
 
   const titleText =
     mode === "cart" ? "Plaćanje karticom (Narudžba)" : "Plaćanje karticom (Pretplata)";
@@ -46,41 +55,34 @@ export default function PlacanjeKartica() {
     setLoading(true);
 
     try {
-      if (mode === "cart") {
-        if (!checkoutId) throw new Error("Nema checkoutId. Vratite se na košaricu.");
-
-        sessionStorage.setItem(
-          "clayplay_pending_payment",
-          JSON.stringify({ mode: "cart", checkoutId, checkout, paymentMethod: "card" })
-        );
-
-        const data = await createStripeCartCheckoutSession({ checkoutId });
-        if (!data?.url) throw new Error("Backend nije vratio Stripe URL.");
-        window.location.href = data.url;
-        return;
+      if (!user) {
+        throw new Error("Morate biti prijavljeni.");
       }
 
-      if (!subscriptionId || !subscription) {
-        throw new Error("Nema podataka o pretplati. Vratite se na planove.");
-      }
+      const amount = mode === "cart" ? checkout?.total : subscription?.amount;
 
-      sessionStorage.setItem(
-        "clayplay_pending_payment",
-        JSON.stringify({ mode: "subscription", subscriptionId, subscription, paymentMethod: "card" })
-      );
-
-      const data = await createStripeCheckoutSession({
-        subscriptionId,
-        billing: subscription.billing,
+      const data = await createPaymentIntent({ 
+        userId: user.id || user.idKorisnik,
+        amount: Math.round(amount * 100) 
       });
 
-      if (!data?.url) throw new Error("Backend nije vratio Stripe URL.");
-      window.location.href = data.url;
+      if (!data?.clientSecret) throw new Error("Backend nije vratio clientSecret.");
+      setClientSecret(data.clientSecret);
+      setPaymentIntentId(data.id);
     } catch (e) {
-      setError(e?.message || "Ne mogu pokrenuti Stripe checkout.");
+      setError(e?.message || "Ne mogu pokrenuti Stripe plaćanje.");
+    } finally {
       setLoading(false);
     }
   }
+
+  const appearance = {
+    theme: 'stripe',
+  };
+  const options = {
+    clientSecret,
+    appearance,
+  };
 
   if (mode === "cart" && !checkoutId) {
     return (
@@ -118,11 +120,11 @@ export default function PlacanjeKartica() {
         <div className="cardpay-disclaimer">
           {mode === "cart" ? (
             <>
-              Plaćanje preko Stripe checkouta. Checkout: <strong>#{checkoutId}</strong> ({priceText})
+              Plaćanje preko Stripe-a. Narudžba: <strong>#{checkoutId}</strong> ({priceText})
             </>
           ) : (
             <>
-              Plaćanje preko Stripe checkouta. Plan: <strong>{subscription.title}</strong>{" "}
+              Plaćanje preko Stripe-a. Plan: <strong>{subscription.title}</strong>{" "}
               ({priceText})
             </>
           )}
@@ -130,26 +132,39 @@ export default function PlacanjeKartica() {
 
         {error ? <div className="cardpay-error">{error}</div> : null}
 
-        <button className="cardpay-pay" type="button" onClick={goToStripe} disabled={loading}>
-          {loading ? "Preusmjeravam..." : "Nastavi na Stripe"}
-        </button>
+        {clientSecret ? (
+          <Elements options={options} stripe={stripePromise}>
+            <CheckoutForm 
+              clientSecret={clientSecret} 
+              paymentIntentId={paymentIntentId}
+              userId={user.id || user.idKorisnik}
+              onCancel={() => setClientSecret("")} 
+            />
+          </Elements>
+        ) : (
+          <>
+            <button className="cardpay-pay" type="button" onClick={goToStripe} disabled={loading}>
+              {loading ? "Pokrećem..." : "Plati karticom"}
+            </button>
 
-        <button
-          className="cardpay-back"
-          type="button"
-          onClick={() =>
-            navigate("/placanje", {
-              state:
-                mode === "cart"
-                  ? { mode: "cart", checkoutId, checkout }
-                  : { mode: "subscription", subscriptionId, subscription },
-            })
-          }
-          style={{ marginTop: 12 }}
-          disabled={loading}
-        >
-          Povratak
-        </button>
+            <button
+              className="cardpay-back"
+              type="button"
+              onClick={() =>
+                navigate("/placanje", {
+                  state:
+                    mode === "cart"
+                      ? { mode: "cart", checkoutId, checkout }
+                      : { mode: "subscription", subscriptionId, subscription },
+                })
+              }
+              style={{ marginTop: 12 }}
+              disabled={loading}
+            >
+              Povratak
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

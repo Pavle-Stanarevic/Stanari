@@ -121,6 +121,10 @@ public class UserService {
         return administratorRepository.existsByIdKorisnik(idKorisnik);
     }
 
+    public Optional<Korisnik> findById(Long id) {
+        return korisnikRepository.findById(id);
+    }
+
     @Transactional
     public Korisnik updateProfile(Long idKorisnik, ProfileUpdateRequest req) {
         if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");

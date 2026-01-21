@@ -28,6 +28,22 @@ export async function activateSubscription({
   });
 }
 
+// POST /api/payments/create-payment-intent
+export async function createPaymentIntent({ userId, amount }) {
+  return requestJson(`/api/payments/create-payment-intent`, {
+    method: "POST",
+    data: { userId, amount },
+  });
+}
+
+// POST /api/payments/confirm-success
+export async function confirmPaymentSuccess({ userId, paymentIntentId }) {
+  return requestJson(`/api/payments/confirm-success`, {
+    method: "POST",
+    data: { userId, paymentIntentId },
+  });
+}
+
 // POST /api/payments/stripe/checkout-session (subscription)
 export async function createStripeCheckoutSession({ subscriptionId, billing }) {
   return requestJson(`/api/payments/stripe/checkout-session`, {

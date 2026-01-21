@@ -1,5 +1,9 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanjeUspjeh.css";
+import { confirmPaymentSuccess } from "../api/subscriptions";
+import useAuth from "../hooks/useAuth";
+import { me } from "../api/auth";
 
 function formatBilling(billing) {
   if (!billing) return "";
@@ -18,15 +22,44 @@ function fmtDate(iso) {
 export default function PlacanjeUspjeh() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setUser } = useAuth();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const userId = params.get("userId");
+    const paymentIntentId = params.get("payment_intent") || params.get("paymentIntentId");
+    const redirectStatus = params.get("redirect_status");
+
+    console.log("PlacanjeUspjeh: status=", redirectStatus, "userId=", userId, "PI=", paymentIntentId);
+
+    if (redirectStatus === "succeeded" && userId) {
+      confirmPaymentSuccess({ userId, paymentIntentId })
+        .then(async () => {
+          console.log("Payment confirmed successfully");
+          await new Promise(resolve => setTimeout(resolve, 500));
+          try {
+            console.log("PlacanjeUspjeh: Fetching updated user data...");
+            const u = await me();
+            console.log("PlacanjeUspjeh: New user data:", u);
+            if (u) {
+              setUser(u);
+              sessionStorage.setItem("user", JSON.stringify(u));
+            }
+          } catch (err) {
+            console.error("Error refreshing user data after payment", err);
+          }
+        })
+        .catch(err => console.error("Error confirming payment:", err));
+    }
+  }, [location, setUser]);
 
   const subscription = location.state?.subscription;
 
-  // kartica (stari flow) ili stripe/paypal (novi flow)
   const last4 = location.state?.last4;
 
-  const method = location.state?.method; // "card" | "paypal"
-  const provider = location.state?.provider; // "stripe" (za kartice preko Stripe)
-  const transactionId = location.state?.transactionId; // paypal capture id / orderID
+  const method = location.state?.method;
+  const provider = location.state?.provider;
+  const transactionId = location.state?.transactionId;
 
   const startAt = location.state?.startAt;
   const endAt = location.state?.endAt;
