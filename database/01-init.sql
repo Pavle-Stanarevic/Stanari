@@ -174,7 +174,9 @@ CREATE TABLE placa
   datvrkrajclanarine TIMESTAMPTZ,
   idkorisnik BIGINT NOT NULL,
   idclanarina BIGINT NOT NULL,
+  stripe_payment_intent_id VARCHAR(255),
   PRIMARY KEY (idplacanje),
+  UNIQUE (stripe_payment_intent_id),
   FOREIGN KEY (idkorisnik) REFERENCES ORGANIZATOR(idkorisnik) ON DELETE CASCADE,
   FOREIGN KEY (idclanarina) REFERENCES CLANARINA(idclanarina) ON DELETE CASCADE
 );

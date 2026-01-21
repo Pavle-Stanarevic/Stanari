@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 import "../styles/placanje.css";
 
 import cardIcon from "../assets/images/credit-card.svg";
-import paypalIcon from "../assets/images/pay-pal.png";
 import { getCheckout } from "../api/checkout";
 import { getSubscription } from "../api/subscriptions";
 
@@ -61,6 +61,7 @@ export default function Placanje() {
   const location = useLocation();
 
   const subscriptionId = location.state?.subscriptionId;
+  const initialSubscription = location.state?.subscription;
   const checkoutId = location.state?.checkoutId;
   const cartItems = location.state?.items || null;
 
@@ -71,16 +72,31 @@ export default function Placanje() {
 
   const [paymentMethod, setPaymentMethod] = useState(null);
 
-  const [subscription, setSubscription] = useState(null);
+  const [subscription, setSubscription] = useState(initialSubscription || null);
   const [checkout, setCheckout] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialSubscription && mode === "subscription" ? true : mode === "cart");
   const [error, setError] = useState("");
+
+  const { user: currentUser, isSubscribed: authIsSubscribed } = useAuth();
+  const effectiveIsSubscribed = !!(currentUser?.isSubscribed || authIsSubscribed);
+
+  useEffect(() => {
+    if (mode === "subscription" && effectiveIsSubscribed) {
+      navigate("/plan");
+    }
+  }, [mode, effectiveIsSubscribed, navigate]);
 
   useEffect(() => {
     let mounted = true;
 
     async function run() {
+      // Ako već imamo podatke iz state-a, ne moramo ih ponovno dohvaćati
+      if (mode === "subscription" && initialSubscription) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError("");
 
@@ -135,7 +151,8 @@ export default function Placanje() {
       }
 
       try {
-        const data = await getSubscription(subscriptionId);
+        const billingInfo = initialSubscription?.billing || "monthly";
+        const data = await getSubscription(subscriptionId, billingInfo);
         if (!mounted) return;
         setSubscription(data);
       } catch (e) {
@@ -151,7 +168,7 @@ export default function Placanje() {
     return () => {
       mounted = false;
     };
-  }, [mode, demoCart, checkoutId, subscriptionId, navigate, cartItems]);
+  }, [mode, demoCart, checkoutId, subscriptionId, navigate, cartItems, initialSubscription]);
 
   const summaryTitle = useMemo(() => {
     return mode === "cart" ? "Vaša košarica" : "Vaša pretplata";
@@ -162,7 +179,6 @@ export default function Placanje() {
 
     const routeMap = {
       card: "/placanje/kartica",
-      paypal: "/placanje/paypal",
     };
 
     const payload =
@@ -269,17 +285,6 @@ export default function Placanje() {
               <span className="payment-label">Kreditna ili debitna kartica</span>
               <span className="payment-right">
                 <img className="payment-icon" src={cardIcon} alt="" />
-              </span>
-            </button>
-
-            <button
-              className={`payment-row ${paymentMethod === "paypal" ? "selected" : ""}`}
-              type="button"
-              onClick={() => setPaymentMethod("paypal")}
-            >
-              <span className="payment-label">PayPal</span>
-              <span className="payment-right">
-                <img className="payment-icon" src={paypalIcon} alt="PayPal" />
               </span>
             </button>
           </div>

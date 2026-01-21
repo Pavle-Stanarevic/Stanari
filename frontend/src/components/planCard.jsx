@@ -12,7 +12,7 @@ export default function PlanCard({
     <div className={`plan-card ${selected ? "selected" : ""}`}>
       <div className="plan-header">
         <h1 className="plan-title">{title}</h1>
-        <h2 className="plan-price">€{price} mjesečno</h2>
+        <h2 className="plan-price">{price}</h2>
       </div>
 
       <ul className="plan-features">

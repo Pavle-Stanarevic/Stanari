@@ -134,10 +134,10 @@ public class AdminController {
     public ResponseEntity<?> membershipPricing() {
         BigDecimal monthly = clanarinaRepository.findByTipClanarine("monthly")
                 .map(Clanarina::getIznosEUR)
-                .orElse(new BigDecimal("9.99"));
+                .orElse(new BigDecimal("5.00"));
         BigDecimal yearly = clanarinaRepository.findByTipClanarine("yearly")
                 .map(Clanarina::getIznosEUR)
-                .orElse(new BigDecimal("89.99"));
+                .orElse(new BigDecimal("50.00"));
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("monthly", monthly);
