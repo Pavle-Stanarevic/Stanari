@@ -157,10 +157,6 @@ export default function ProfilOrganizator() {
               {!orgLoading && (
                 <ul className="org-infoList">
                   <li>
-                    <span className="org-label">Age:</span>
-                    <span className="org-value">{org?.age ?? "—"} years old</span>
-                  </li>
-                  <li>
                     <span className="org-label">Adresa:</span>
                     <span className="org-value">{org?.address || "—"}</span>
                   </li>

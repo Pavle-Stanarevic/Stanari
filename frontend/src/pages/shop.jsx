@@ -201,7 +201,7 @@ export default function Shop() {
             <div className="price-filter">
               <div className="price-values">
                 <span>€ 0</span>
-                <span>€ 500</span>
+                <span>€ {maxPrice}</span>
               </div>
 
               <input
@@ -214,6 +214,7 @@ export default function Shop() {
               />
             </div>
           </div>
+
 
           <div className="filter filter-reset">
             <button

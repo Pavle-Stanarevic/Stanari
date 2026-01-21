@@ -1,3 +1,4 @@
+// frontend/src/pages/detaljiIzlozbe.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
@@ -9,6 +10,9 @@ import {
   getExhibitionApplications,
   listExhibitionComments,
   createExhibitionComment,
+  // NEW (organizer)
+  listExhibitionApplicationsByExhibition,
+  decideExhibitionApplication,
 } from "../api/exhibitions";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -30,9 +34,7 @@ function toGoogleCalDateUtc(date) {
 
 function buildGoogleCalendarUrl({ title, details, location, start, end }) {
   if (!start || !end) return null;
-
   const dates = `${toGoogleCalDateUtc(start)}/${toGoogleCalDateUtc(end)}`;
-
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: title || "Izložba",
@@ -40,7 +42,6 @@ function buildGoogleCalendarUrl({ title, details, location, start, end }) {
     location: location || "",
     dates,
   });
-
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
@@ -86,7 +87,7 @@ function getDescription(x) {
   return typeof v === "string" ? v.trim() : "";
 }
 
-/* NEW: end time calc (if no duration, default 2h) */
+/* end time calc (if no duration, default 2h) */
 function calcEndDate(exh) {
   const startIso = getISO(exh);
   if (!startIso) return null;
@@ -96,7 +97,7 @@ function calcEndDate(exh) {
   const durMin =
     Number(exh?.durationMinutes ?? exh?.duration ?? exh?.trajanjeMinuta ?? 0) || 0;
 
-  const minutes = durMin > 0 ? durMin : 120; // default 2h if missing
+  const minutes = durMin > 0 ? durMin : 120;
   return new Date(start.getTime() + minutes * 60 * 1000);
 }
 
@@ -105,11 +106,30 @@ function formatTimeOnly(d) {
   return `${d.toTimeString().slice(0, 5)}h`;
 }
 
+/* organizer helpers */
+function normStatus(s) {
+  if (!s) return "pending";
+  const v = String(s).toLowerCase();
+  if (v.includes("accept")) return "accepted";
+  if (v.includes("reject")) return "rejected";
+  if (v.includes("pend")) return "pending";
+  return v;
+}
+
+function appDisplayName(a) {
+  const fn = a?.firstName ?? a?.ime ?? "";
+  const ln = a?.lastName ?? a?.prezime ?? "";
+  const name = `${fn} ${ln}`.trim();
+  return name || a?.name || a?.email || "—";
+}
+
 export default function DetaljiIzlozbe() {
   const { id } = useParams();
   const exhId = Number(id);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const userId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
   const isPolaznik = user?.userType === "polaznik";
 
   const [loading, setLoading] = useState(true);
@@ -126,6 +146,13 @@ export default function DetaljiIzlozbe() {
   const [commentText, setCommentText] = useState("");
   const [commentPosting, setCommentPosting] = useState(false);
   const [commentError, setCommentError] = useState("");
+
+  /* NEW: organizer applications */
+  const [appsOpen, setAppsOpen] = useState(false);
+  const [appsLoading, setAppsLoading] = useState(false);
+  const [appsError, setAppsError] = useState("");
+  const [applications, setApplications] = useState([]);
+  const [decisionBusy, setDecisionBusy] = useState({}); // { [applicationId]: true }
 
   useEffect(() => {
     let alive = true;
@@ -152,38 +179,45 @@ export default function DetaljiIzlozbe() {
     };
   }, [exhId]);
 
-  const onSubmitComment = async (e) => {
-    e.preventDefault();
-    if (!canComment) {
-      setCommentError("Komentar je moguć tek nakon završetka izložbe i ako ste se prijavili.");
-      return;
-    }
+  const isPast = useMemo(() => {
+    const iso = getISO(exh);
+    if (!iso) return false;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return false;
+    return d < new Date();
+  }, [exh]);
 
-    const text = String(commentText || "").trim();
-    if (!text) {
-      setCommentError("Unesite komentar.");
-      return;
-    }
+  const isOrganizer = useMemo(() => {
+    const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
+    return userId != null && ownerId != null && Number(userId) === Number(ownerId);
+  }, [userId, exh]);
 
-    const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
-    if (!userId) {
-      setCommentError("Nedostaje ID korisnika.");
-      return;
-    }
+  /* participant reserved/app status */
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!isPolaznik || !userId) return;
+      try {
+        const ids = await getReservedExhibitionIds(userId);
+        if (!alive) return;
+        setReserved(Array.isArray(ids) ? ids.map(Number).includes(Number(exhId)) : false);
 
-    setCommentPosting(true);
-    setCommentError("");
-    try {
-      const created = await createExhibitionComment(exhId, userId, text);
-      setComments((prev) => [created, ...prev]);
-      setCommentText("");
-    } catch (e2) {
-      setCommentError(e2?.message || "Ne mogu spremiti komentar.");
-    } finally {
-      setCommentPosting(false);
-    }
-  };
+        const apps = await getExhibitionApplications(userId);
+        if (!alive) return;
+        const found = Array.isArray(apps)
+          ? apps.find((a) => Number(a?.exhibitionId) === Number(exhId))
+          : null;
+        setAppStatus(found?.status || "");
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isPolaznik, userId, exhId]);
 
+  /* comments */
   useEffect(() => {
     let alive = true;
     if (!exhId) return () => { alive = false; };
@@ -209,47 +243,38 @@ export default function DetaljiIzlozbe() {
     };
   }, [exhId]);
 
-  const isPast = useMemo(() => {
-    const iso = getISO(exh);
-    if (!iso) return false;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return false;
-    return d < new Date();
-  }, [exh]);
+  const canComment = Boolean(isPast && (reserved || appStatus) && userId);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      if (!isPolaznik || !user) return;
-      try {
-        const userId = user.id ?? user.idKorisnik ?? user.userId;
-        const ids = await getReservedExhibitionIds(userId);
-        if (!alive) return;
-        setReserved(Array.isArray(ids) ? ids.map(Number).includes(Number(exhId)) : false);
+  const onSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!canComment) {
+      setCommentError("Komentar je moguć tek nakon završetka izložbe i ako ste se prijavili.");
+      return;
+    }
 
-        const apps = await getExhibitionApplications(userId);
-        if (!alive) return;
-        const found = Array.isArray(apps)
-          ? apps.find((a) => Number(a?.exhibitionId) === Number(exhId))
-          : null;
-        setAppStatus(found?.status || "");
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [isPolaznik, user, exhId]);
+    const text = String(commentText || "").trim();
+    if (!text) {
+      setCommentError("Unesite komentar.");
+      return;
+    }
+
+    setCommentPosting(true);
+    setCommentError("");
+    try {
+      const created = await createExhibitionComment(exhId, userId, text);
+      setComments((prev) => [created, ...prev]);
+      setCommentText("");
+    } catch (e2) {
+      setCommentError(e2?.message || "Ne mogu spremiti komentar.");
+    } finally {
+      setCommentPosting(false);
+    }
+  };
 
   const onApply = async () => {
     try {
-      if (!user) throw new Error("Prijavi se za prijavu na izložbu.");
-      const ownerId = exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
-      const currentUserId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
-      const isOwner =
-        currentUserId != null && ownerId != null && Number(currentUserId) === Number(ownerId);
-      if (isOwner) return;
+      if (!userId) throw new Error("Prijavi se za prijavu na izložbu.");
+      if (isOrganizer) return;
       if (!isPolaznik) throw new Error("Samo polaznici se mogu prijaviti na izložbu.");
       if (isPast) throw new Error("Ne možeš se prijaviti na prošlu izložbu.");
       if (!exh) return;
@@ -258,11 +283,9 @@ export default function DetaljiIzlozbe() {
         throw new Error("Ovo je demo izložba (placeholder) — prijava nije dostupna.");
       }
 
-      const userId = user.id ?? user.idKorisnik ?? user.userId;
       setApplying(true);
       await applyToExhibition(exh.id, userId);
 
-      // local optimistic state
       setReserved(true);
       setAppStatus("pending");
     } catch (e) {
@@ -275,10 +298,8 @@ export default function DetaljiIzlozbe() {
   const imgs = getImages(exh);
   const cover = imgs[0] || null;
   const rest = imgs.slice(1);
-
   const description = getDescription(exh);
 
-  /* NEW: calendar url (show only when applied/reserved & upcoming) */
   const calendarUrl = useMemo(() => {
     if (!exh) return null;
     const startIso = getISO(exh);
@@ -302,7 +323,53 @@ export default function DetaljiIzlozbe() {
   }, [exh, description]);
 
   const showCalendarBtn = isPolaznik && !isPast && (reserved || appStatus === "pending") && !!calendarUrl;
-  const canComment = Boolean(isPast && (reserved || appStatus) && user);
+
+  /* -------- organizer: load applications -------- */
+  const loadApplications = async () => {
+    if (!isOrganizer || !userId) return;
+    setAppsLoading(true);
+    setAppsError("");
+    try {
+      const data = await listExhibitionApplicationsByExhibition(exhId, userId);
+      setApplications(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setApplications([]);
+      setAppsError(e?.message || "Ne mogu dohvatiti prijave.");
+    } finally {
+      setAppsLoading(false);
+    }
+  };
+
+  const toggleApplications = async () => {
+    const next = !appsOpen;
+    setAppsOpen(next);
+    if (next) await loadApplications();
+  };
+
+  const decide = async (applicationId, decision) => {
+    if (!isOrganizer || !userId) return;
+    setDecisionBusy((s) => ({ ...s, [applicationId]: true }));
+    setAppsError("");
+    try {
+      await decideExhibitionApplication(exhId, applicationId, userId, decision); // "ACCEPT" | "REJECT"
+      // update list locally after backend confirms
+      setApplications((prev) =>
+        (prev || []).map((a) => {
+          const idA = a?.applicationId ?? a?.id ?? a?._id;
+          if (String(idA) !== String(applicationId)) return a;
+          return { ...a, status: decision === "ACCEPT" ? "accepted" : "rejected" };
+        })
+      );
+    } catch (e) {
+      setAppsError(e?.message || "Ne mogu spremiti odluku.");
+    } finally {
+      setDecisionBusy((s) => {
+        const copy = { ...s };
+        delete copy[applicationId];
+        return copy;
+      });
+    }
+  };
 
   return (
     <div className="ed-page">
@@ -311,11 +378,19 @@ export default function DetaljiIzlozbe() {
           ← Natrag
         </button>
 
-        {exh && (
-          <span className={`ed-badge ${isPast ? "past" : "upcoming"}`}>
-            {isPast ? "Prošla" : "Nadolazeća"}
-          </span>
-        )}
+        <div style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
+          {isOrganizer && !loading && exh ? (
+            <button className="ed-back" onClick={toggleApplications}>
+              {appsOpen ? "Sakrij prijave" : "Prijave"}
+            </button>
+          ) : null}
+
+          {exh && (
+            <span className={`ed-badge ${isPast ? "past" : "upcoming"}`}>
+              {isPast ? "Prošla" : "Nadolazeća"}
+            </span>
+          )}
+        </div>
       </div>
 
       <main className="ed-wrap">
@@ -332,20 +407,14 @@ export default function DetaljiIzlozbe() {
                   <div className="ed-actions">
                     <button
                       className={`ed-primary ${appStatus === "pending" ? "is-pending" : ""}`}
-                      disabled={reserved || isPast || applying}
+                      disabled={reserved || isPast || applying || isOrganizer || normStatus(appStatus) === "rejected"}
                       onClick={onApply}
                       title={isPast ? "Izložba je prošla." : ""}
                     >
                       {(() => {
-                        const ownerId2 =
-                          exh?.organizerId ?? exh?.organizatorId ?? exh?.idKorisnik ?? null;
-                        const currentUserId2 = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
-                        const isOwner2 =
-                          currentUserId2 != null &&
-                          ownerId2 != null &&
-                          Number(currentUserId2) === Number(ownerId2);
-                        if (isOwner2) return "Vaša izložba";
+                        if (isOrganizer) return "Vaša izložba";
                         if (isPast) return "Izložba završena";
+                        if (normStatus(appStatus) === "rejected") return "Odbijeni ste";
                         if (appStatus === "pending" || reserved) return "Prijava se obrađuje";
                         if (applying) return "Prijavljujem...";
                         return "Prijava";
@@ -386,6 +455,96 @@ export default function DetaljiIzlozbe() {
                 <div className="ed-descEmpty">Opis nije dostupan.</div>
               )}
             </header>
+
+            {/* ORGANIZER: applications list */}
+            {isOrganizer && appsOpen && (
+              <section className="ed-comments" style={{ borderTop: "none", marginTop: 14, paddingTop: 0 }}>
+                <h2 className="ed-comments-title">Prijavljeni polaznici</h2>
+
+                <div className="ed-comments-info" style={{ marginBottom: 10 }}>
+                  Ovdje prihvaćaš (✓) ili odbijaš (✕) prijave.
+                </div>
+
+                {appsError ? <div className="ed-comments-error">{appsError}</div> : null}
+
+                {appsLoading ? (
+                  <div className="ed-comments-info">Učitavanje prijava…</div>
+                ) : applications.length === 0 ? (
+                  <div className="ed-comments-empty">Trenutno nema prijava.</div>
+                ) : (
+                  <ul className="ed-comments-list" style={{ maxHeight: 320 }}>
+                    {applications.map((a, i) => {
+                      const applicationId = a?.applicationId ?? a?.id ?? a?._id ?? `app-${i}`;
+                      const st = normStatus(a?.status);
+                      const busy = !!decisionBusy[applicationId];
+
+                      return (
+                        <li
+                          key={String(applicationId)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 10,
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 2 }}>
+                            <div style={{ fontWeight: 800, color: "#111827" }}>
+                              {appDisplayName(a)}
+                            </div>
+                            <div style={{ fontSize: 13 }}>
+                              {a?.email ? a.email : null}{" "}
+                              <span style={{ marginLeft: 8, fontWeight: 800 }}>
+                                {st === "pending"
+                                  ? "(na čekanju)"
+                                  : st === "accepted"
+                                  ? "(prihvaćen)"
+                                  : st === "rejected"
+                                  ? "(odbijen)"
+                                  : `(${st})`}
+                              </span>
+                            </div>
+                          </div>
+
+                          {st === "pending" ? (
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                className="ed-primary"
+                                onClick={() => decide(applicationId, "ACCEPT")}
+                                disabled={busy}
+                                title="Prihvati"
+                                style={{ padding: "8px 12px" }}
+                              >
+                                ✓
+                              </button>
+                              <button
+                                className="ed-back"
+                                onClick={() => decide(applicationId, "REJECT")}
+                                disabled={busy}
+                                title="Odbij"
+                                style={{ padding: "8px 12px" }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="ed-comments-info" style={{ whiteSpace: "nowrap" }}>
+                              Odluka donesena
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <div style={{ marginTop: 10 }}>
+                  <button className="ed-back" onClick={loadApplications} disabled={appsLoading}>
+                    {appsLoading ? "Osvježavam…" : "Osvježi listu"}
+                  </button>
+                </div>
+              </section>
+            )}
 
             <section className="ed-gallery">
               <h2>Radovi na izložbi</h2>
