@@ -6,11 +6,11 @@ import "../styles/detaljiIzlozbe.css";
 import {
   listExhibitions,
   applyToExhibition,
+  cancelExhibitionReservation, // ✅ NEW
   getReservedExhibitionIds,
   getExhibitionApplications,
   listExhibitionComments,
   createExhibitionComment,
-  // NEW (organizer)
   listExhibitionApplicationsByExhibition,
   decideExhibitionApplication,
 } from "../api/exhibitions";
@@ -123,6 +123,20 @@ function appDisplayName(a) {
   return name || a?.name || a?.email || "—";
 }
 
+/* ---------- F-007: 48h rule ---------- */
+function canCancel48hBeforeStart(exh) {
+  const startIso = getISO(exh);
+  if (!startIso) return false;
+
+  const start = new Date(startIso);
+  if (Number.isNaN(start.getTime())) return false;
+
+  const diffMs = start.getTime() - Date.now();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  return diffHours >= 48;
+}
+
 export default function DetaljiIzlozbe() {
   const { id } = useParams();
   const exhId = Number(id);
@@ -139,6 +153,10 @@ export default function DetaljiIzlozbe() {
   const [reserved, setReserved] = useState(false);
   const [appStatus, setAppStatus] = useState("");
   const [applying, setApplying] = useState(false);
+
+  // ✅ NEW cancel states
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelErr, setCancelErr] = useState("");
 
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -247,9 +265,7 @@ export default function DetaljiIzlozbe() {
 
   const onSubmitComment = async (e) => {
     e.preventDefault();
-    if (!canComment) {
-      return;
-    }
+    if (!canComment) return;
 
     const text = String(commentText || "").trim();
     if (!text) {
@@ -294,6 +310,44 @@ export default function DetaljiIzlozbe() {
     }
   };
 
+  // ✅ NEW: cancel action (48h)
+  const canCancel = useMemo(() => (exh ? canCancel48hBeforeStart(exh) : false), [exh]);
+
+  const onCancelReservation = async () => {
+    try {
+      setCancelErr("");
+
+      if (!userId) throw new Error("Prijavite se.");
+      if (!exh) return;
+      if (!isPolaznik) throw new Error("Samo polaznici mogu otkazati rezervaciju.");
+      if (isOrganizer) throw new Error("Ne možete otkazati vlastitu izložbu.");
+      if (isPast) throw new Error("Izložba je prošla — otkaz nije moguć.");
+
+      // dozvoli otkaz samo ako je stvarno prijavljen / ima pending/accepted
+      const st = normStatus(appStatus);
+      const hasApplication = reserved || st === "pending" || st === "accepted";
+      if (!hasApplication) throw new Error("Niste prijavljeni na ovu izložbu.");
+
+      if (!canCancel) throw new Error("Otkazivanje je moguće najkasnije 48 sati prije početka izložbe.");
+
+      const sure = window.confirm("Jeste li sigurni da želite otkazati prijavu?");
+      if (!sure) return;
+
+      setCancelling(true);
+
+      await cancelExhibitionReservation(exh.id, userId);
+
+      // optimistic UI update
+      setReserved(false);
+      setAppStatus(""); // ili "cancelled" ako backend kasnije uvede
+
+    } catch (e) {
+      setCancelErr(e?.message || "Otkaz nije uspio.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const imgs = getImages(exh);
   const cover = imgs[0] || null;
   const rest = imgs.slice(1);
@@ -321,7 +375,7 @@ export default function DetaljiIzlozbe() {
     return buildGoogleCalendarUrl({ title, details, location, start, end });
   }, [exh, description]);
 
-  const showCalendarBtn = isPolaznik && !isPast && (reserved || appStatus === "pending") && !!calendarUrl;
+  const showCalendarBtn = isPolaznik && !isPast && (reserved || normStatus(appStatus) === "pending" || normStatus(appStatus) === "accepted") && !!calendarUrl;
 
   /* -------- organizer: load applications -------- */
   const loadApplications = async () => {
@@ -350,8 +404,7 @@ export default function DetaljiIzlozbe() {
     setDecisionBusy((s) => ({ ...s, [applicationId]: true }));
     setAppsError("");
     try {
-      await decideExhibitionApplication(exhId, applicationId, userId, decision); // "ACCEPT" | "REJECT"
-      // update list locally after backend confirms
+      await decideExhibitionApplication(exhId, applicationId, userId, decision);
       setApplications((prev) =>
         (prev || []).map((a) => {
           const idA = a?.applicationId ?? a?.id ?? a?._id;
@@ -405,8 +458,16 @@ export default function DetaljiIzlozbe() {
                 {isPolaznik && (
                   <div className="ed-actions">
                     <button
-                      className={`ed-primary ${appStatus === "pending" ? "is-pending" : ""}`}
-                      disabled={reserved || isPast || applying || isOrganizer || normStatus(appStatus) === "rejected"}
+                      className={`ed-primary ${normStatus(appStatus) === "pending" ? "is-pending" : ""}`}
+                      disabled={
+                        isPast ||
+                        applying ||
+                        isOrganizer ||
+                        normStatus(appStatus) === "rejected" ||
+                        normStatus(appStatus) === "pending" ||
+                        normStatus(appStatus) === "accepted" ||
+                        reserved
+                      }
                       onClick={onApply}
                       title={isPast ? "Izložba je prošla." : ""}
                     >
@@ -415,12 +476,39 @@ export default function DetaljiIzlozbe() {
                         if (isPast) return "Izložba završena";
                         if (normStatus(appStatus) === "rejected") return "Odbijeni ste";
                         if (normStatus(appStatus) === "accepted") return "Prijavljen";
-                        if (appStatus === "pending") return "Prijava se obrađuje";
+                        if (normStatus(appStatus) === "pending") return "Prijava se obrađuje";
                         if (reserved) return "Prijavljen";
                         if (applying) return "Prijavljujem...";
                         return "Prijava";
                       })()}
                     </button>
+
+                    {/* ✅ NEW cancel button (same concept as workshops) */}
+                    {(reserved || normStatus(appStatus) === "pending" || normStatus(appStatus) === "accepted") && !isPast ? (
+                      <button
+                        type="button"
+                        className="ed-btnDanger"
+                        onClick={onCancelReservation}
+                        disabled={cancelling || !canCancel}
+                        title={
+                          canCancel
+                            ? "Otkaži prijavu"
+                            : "Otkazivanje je moguće najkasnije 48 sati prije početka"
+                        }
+                      >
+                        {cancelling ? "Otkazujem..." : "Otkaži prijavu"}
+                      </button>
+                    ) : null}
+
+                    {(reserved || normStatus(appStatus) === "pending" || normStatus(appStatus) === "accepted") &&
+                    !isPast &&
+                    !canCancel ? (
+                      <div className="ed-cancelHint">
+                        Otkazivanje je moguće najkasnije <strong>48 sati</strong> prije početka izložbe.
+                      </div>
+                    ) : null}
+
+                    {cancelErr ? <div className="ed-errorSmall">{cancelErr}</div> : null}
 
                     {showCalendarBtn ? (
                       <a
@@ -591,8 +679,6 @@ export default function DetaljiIzlozbe() {
                   </button>
                 </form>
               )}
-
-              {/* Removed info message for non-eligible commenters */}
 
               {commentsLoading && <div className="ed-comments-info">Učitavanje komentara…</div>}
               {!commentsLoading && commentsError && (

@@ -138,3 +138,21 @@ export function decideExhibitionApplication(
     }
   );
 }
+
+export async function cancelExhibitionReservation(exhibitionId, userId) {
+  if (!exhibitionId) throw new Error("Nedostaje exhibitionId.");
+  if (userId == null) throw new Error("Nedostaje userId.");
+
+  // 1) pokušaj DELETE varijantu
+  try {
+    return await fetchJson(`/api/exhibitions/${exhibitionId}/reservations/${userId}`, {
+      method: "DELETE",
+    });
+  } catch (e) {
+    // 2) fallback: POST /cancel
+    return await fetchJson(`/api/exhibitions/${exhibitionId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    });
+  }
+}

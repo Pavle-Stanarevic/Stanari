@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { applyToWorkshop, getReservedWorkshopIds, listWorkshops } from "../api/workshops";
+import {
+  applyToWorkshop,
+  cancelWorkshopReservation,
+  getReservedWorkshopIds,
+  listWorkshops,
+} from "../api/workshops";
 import { getCart } from "../api/cart";
 import { getOrganizator } from "../api/organisers";
 import useAuth from "../hooks/useAuth";
@@ -10,7 +15,6 @@ const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 /* ---------- calendar helpers ---------- */
 function toGoogleCalDateUtc(date) {
-  // Google expects UTC format: YYYYMMDDTHHMMSSZ
   const pad = (n) => String(n).padStart(2, "0");
   return (
     date.getUTCFullYear() +
@@ -159,6 +163,19 @@ async function uploadExtraPhotos(workshopId, files) {
   return null;
 }
 
+/* ---------- F-007: 48h rule ---------- */
+function canCancel48hBeforeStart(workshop) {
+  const startIso = getWorkshopISO(workshop);
+  if (!startIso) return false;
+
+  const start = new Date(startIso);
+  if (Number.isNaN(start.getTime())) return false;
+
+  const diffMs = start.getTime() - Date.now();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  return diffHours >= 48;
+}
 
 export default function DetaljiRadionice() {
   const { id } = useParams();
@@ -186,6 +203,8 @@ export default function DetaljiRadionice() {
   const [uploadErr, setUploadErr] = useState("");
   const fileRef = useRef(null);
 
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelErr, setCancelErr] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -272,7 +291,6 @@ export default function DetaljiRadionice() {
     };
   }, [user]);
 
-  // cart
   useEffect(() => {
     let alive = true;
 
@@ -322,7 +340,6 @@ export default function DetaljiRadionice() {
 
   const initialPhotos = useMemo(() => (workshop ? getInitialImages(workshop) : []), [workshop]);
 
-  // dodatne slike nakon zavrsetka radionice
   useEffect(() => {
     let alive = true;
     setExtraErr("");
@@ -356,9 +373,10 @@ export default function DetaljiRadionice() {
     return uniqByString([...(initialPhotos || []), ...(extraPhotos || [])]);
   }, [initialPhotos, extraPhotos, isFinished]);
 
-
   const isReserved = useMemo(() => reservedSet.has(Number(workshopId)), [reservedSet, workshopId]);
 
+  // NOTE: cart logika ostaje, ali ne koristimo je za disable "prijavi se",
+  // jer se prijava ovdje radi direktno kroz applyToWorkshop (rezervacija).
   const isInCart = useMemo(() => {
     const items = Array.isArray(cartItems) ? cartItems : [];
     return items.some((item) => {
@@ -372,7 +390,6 @@ export default function DetaljiRadionice() {
     });
   }, [cartItems, workshopId]);
 
-
   const onAddToCart = async () => {
     try {
       if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
@@ -380,7 +397,6 @@ export default function DetaljiRadionice() {
       if (isFinished) throw new Error("Radionica je završila — više se nije moguće prijaviti.");
       if (isOwnerOrganizer) throw new Error("Ne možete se prijaviti na vlastitu radionicu.");
       if (isReserved) throw new Error("Već ste prijavljeni na radionicu.");
-      if (isInCart) throw new Error("Radionica je već u košarici.");
 
       if (user.userType !== "polaznik") {
         throw new Error("Samo polaznici se mogu prijaviti na radionicu.");
@@ -401,6 +417,41 @@ export default function DetaljiRadionice() {
       alert(e.message || "Prijava nije uspjela.");
     } finally {
       setAdding(false);
+    }
+  };
+
+  const canCancel = useMemo(() => (workshop ? canCancel48hBeforeStart(workshop) : false), [workshop]);
+
+  const onCancelReservation = async () => {
+    try {
+      setCancelErr("");
+
+      if (!user) throw new Error("Prijavite se.");
+      if (!workshop) return;
+      if (!polaznik) throw new Error("Samo polaznici mogu otkazati rezervaciju.");
+      if (!isReserved) throw new Error("Niste prijavljeni na ovu radionicu.");
+      if (isFinished) throw new Error("Radionica je završila — otkaz nije moguć.");
+      if (!canCancel) throw new Error("Otkazivanje je moguće najkasnije 48 sati prije početka radionice.");
+
+      const sure = window.confirm("Jeste li sigurni da želite otkazati rezervaciju?");
+      if (!sure) return;
+
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+      if (!userId) throw new Error("Nedostaje ID korisnika.");
+
+      setCancelling(true);
+
+      await cancelWorkshopReservation(workshop.id, userId);
+
+      setReservedSet((prev) => {
+        const next = new Set(prev);
+        next.delete(Number(workshop.id));
+        return next;
+      });
+    } catch (e) {
+      setCancelErr(e?.message || "Otkaz nije uspio.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -437,8 +488,6 @@ export default function DetaljiRadionice() {
     }
   };
 
-
-  /* ---------- calendar url (only useful when reserved + upcoming) ---------- */
   const calendarUrl = useMemo(() => {
     if (!workshop) return null;
 
@@ -494,16 +543,15 @@ export default function DetaljiRadionice() {
                           !user ||
                           isFinished ||
                           isReserved ||
-                          isInCart ||
                           isOwnerOrganizer ||
-                          (workshop.capacity || 0) <= 0
+                          reservedLoading
                         }
                         onClick={onAddToCart}
                         title={
-                          !user
+                          reservedLoading
+                            ? "Učitavam status rezervacije..."
+                            : !user
                             ? "Odjavljeni ste"
-                            : (workshop.capacity || 0) <= 0
-                            ? "Radionica je popunjena"
                             : ""
                         }
                       >
@@ -515,12 +563,35 @@ export default function DetaljiRadionice() {
                           ? "Vaša radionica"
                           : isReserved
                           ? "Prijavljen"
-                          : isInCart
-                          ? "U košarici"
+                          : reservedLoading
+                          ? "Učitavam..."
                           : "Prijavi se"}
                       </button>
 
-                      {/* NEW: show only when polaznik is reserved */}
+                      {polaznik && isReserved ? (
+                        <button
+                          type="button"
+                          className="wd-btnDanger"
+                          onClick={onCancelReservation}
+                          disabled={cancelling || !canCancel}
+                          title={
+                            canCancel
+                              ? "Otkaži rezervaciju"
+                              : "Otkazivanje je moguće najkasnije 48 sati prije početka"
+                          }
+                        >
+                          {cancelling ? "Otkazujem..." : "Otkaži rezervaciju"}
+                        </button>
+                      ) : null}
+
+                      {polaznik && isReserved && !canCancel ? (
+                        <div className="wd-cancelHint">
+                          Otkazivanje je moguće najkasnije <strong>48 sati</strong> prije početka radionice.
+                        </div>
+                      ) : null}
+
+                      {cancelErr ? <div className="wd-errorSmall">{cancelErr}</div> : null}
+
                       {polaznik && isReserved && calendarUrl ? (
                         <a
                           className="wd-calendarBtn"
@@ -532,6 +603,9 @@ export default function DetaljiRadionice() {
                           + Dodaj u kalendar
                         </a>
                       ) : null}
+
+                      {/* (optional) debug: ako želiš znat da ima u cartu */}
+                      {isInCart ? null : null}
                     </>
                   ) : (
                     <div className="wd-finishedNote">Radionica je završila.</div>
@@ -591,7 +665,9 @@ export default function DetaljiRadionice() {
               <div className="wd-sectionTop">
                 <div className="wd-galleryTitle">
                   <h2>Galerija</h2>
-                  <div className="wd-chip">{isFinished ? "prošle + dodatne slike" : "slike radionice"}</div>
+                  <div className="wd-chip">
+                    {isFinished ? "prošle + dodatne slike" : "slike radionice"}
+                  </div>
                 </div>
 
                 {isFinished && isOwnerOrganizer ? (
@@ -624,7 +700,6 @@ export default function DetaljiRadionice() {
                 </div>
               )}
             </section>
-
           </>
         ) : null}
       </main>

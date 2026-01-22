@@ -348,3 +348,95 @@
 .ed-calendarBtn:active {
   transform: translateY(0px);
 }
+
+
+/* ===== Cancel reservation (Exhibitions, F-007) ===== */
+
+.ed-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ed-btnDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  background: rgba(220, 38, 38, 0.06);
+  color: rgb(220, 38, 38);
+
+  font-weight: 900;
+  cursor: pointer;
+
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.ed-btnDanger:hover {
+  background: rgba(220, 38, 38, 0.10);
+  border-color: rgba(220, 38, 38, 0.70);
+  transform: translateY(-1px);
+}
+
+.ed-btnDanger:active {
+  transform: translateY(0px);
+}
+
+.ed-btnDanger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* tamniji “warning” hint (nije pre-svijetlo) */
+.ed-cancelHint {
+  width: 100%;
+  margin-top: 8px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: rgba(55, 65, 81, 0.96); /* tamno sivo (čitljivo na bijeloj podlozi) */
+
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 700;
+
+  position: relative;
+  padding-left: 14px;
+}
+
+.ed-cancelHint::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.65);
+}
+
+.ed-errorSmall {
+  width: 100%;
+  margin-top: 8px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(220, 38, 38, 0.10);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  color: rgba(185, 28, 28, 0.95);
+
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 800;
+}

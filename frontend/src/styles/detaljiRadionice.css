@@ -378,3 +378,82 @@
 .wd-calendarBtn:active {
   transform: translateY(0px);
 }
+
+/* ===== Cancel reservation (F-007) ===== */
+
+.wd-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.wd-btnDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  background: rgba(220, 38, 38, 0.06);
+  color: rgb(220, 38, 38);
+
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.wd-btnDanger:hover {
+  background: rgba(220, 38, 38, 0.10);
+  border-color: rgba(220, 38, 38, 0.70);
+  transform: translateY(-1px);
+}
+
+.wd-btnDanger:active {
+  transform: translateY(0px);
+}
+
+.wd-btnDanger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wd-cancelHint {
+  width: 100%;
+  margin-bottom: 16px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  color: rgba(3, 1, 1, 0.85);
+
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.wd-cancelHint strong {
+  color: rgba(3, 0, 0, 0.95);
+}
+
+.wd-errorSmall {
+  width: 100%;
+  margin-top: 8px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: rgba(255, 255, 255, 0.92);
+
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
