@@ -29,19 +29,22 @@ public class WorkshopService {
     private final FotografijaRepository fotografijaRepository;
     private final FotoRadRepository fotoRadRepository;
     private final FileStorageService fileStorageService;
+    private final WorkshopNotificationEmailService workshopNotificationEmailService;
 
     public WorkshopService(RadionicaRepository radionicaRepository,
                            OrganizatorRepository organizatorRepository,
                            PlacaRepository placaRepository,
                            FotografijaRepository fotografijaRepository,
                            FotoRadRepository fotoRadRepository,
-                           FileStorageService fileStorageService) {
+                           FileStorageService fileStorageService,
+                           WorkshopNotificationEmailService workshopNotificationEmailService) {
         this.radionicaRepository = radionicaRepository;
         this.organizatorRepository = organizatorRepository;
         this.placaRepository = placaRepository;
         this.fotografijaRepository = fotografijaRepository;
         this.fotoRadRepository = fotoRadRepository;
         this.fileStorageService = fileStorageService;
+        this.workshopNotificationEmailService = workshopNotificationEmailService;
     }
 
     @Transactional
@@ -73,6 +76,11 @@ public class WorkshopService {
         r.setIdKorisnik(req.getOrganizerId());
 
         Radionica saved = radionicaRepository.save(r);
+
+        try {
+            workshopNotificationEmailService.notifyAllSubscribedPolaznici(req.getOrganizerId(), saved);
+        } catch (Exception ignored) { }
+
         return saved.getIdRadionica();
     }
 

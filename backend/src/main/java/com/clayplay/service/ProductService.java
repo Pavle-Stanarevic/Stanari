@@ -25,19 +25,22 @@ public class ProductService {
     private final KupovinaRepository kupovinaRepository;
     private final RecenzijaRepository recenzijaRepository;
     private final FileStorageService storage;
+    private final ProductNotificationEmailService productNotificationEmailService;
 
     public ProductService(ProizvodRepository proizvodRepository,
                           FotografijaRepository fotografijaRepository,
                           FotoProizvodRepository fotoProizvodRepository,
                           KupovinaRepository kupovinaRepository,
                           RecenzijaRepository recenzijaRepository,
-                          FileStorageService storage) {
+                          FileStorageService storage,
+                          ProductNotificationEmailService productNotificationEmailService) {
         this.proizvodRepository = proizvodRepository;
         this.fotografijaRepository = fotografijaRepository;
         this.fotoProizvodRepository = fotoProizvodRepository;
         this.kupovinaRepository = kupovinaRepository;
         this.recenzijaRepository = recenzijaRepository;
         this.storage = storage;
+        this.productNotificationEmailService = productNotificationEmailService;
     }
 
     public List<ProductResponse> listAll() {
@@ -98,6 +101,11 @@ public class ProductService {
             f.setFotoURL(publicUrl);
             Fotografija sf = fotografijaRepository.save(f);
             fotoProizvodRepository.link(saved.getProizvodId(), sf.getFotoId());
+        }
+
+        try {
+            productNotificationEmailService.notifyAllSubscribedPolaznici(idKorisnik, saved);
+        } catch (Exception ignored) {
         }
 
         return saved.getProizvodId();
