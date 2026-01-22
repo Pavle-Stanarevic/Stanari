@@ -115,13 +115,31 @@ public class PaymentController {
             } else if (data.get("userId") instanceof String) {
                 userId = Long.parseLong((String) data.get("userId"));
             }
-            
+
             String paymentIntentId = (String) data.get("paymentIntentId");
-            
+
             System.out.println("[DEBUG_LOG] Manual confirmation received for userId: " + userId + ", PI: " + paymentIntentId);
-            
+
             if (userId == null) {
                 return ResponseEntity.badRequest().body("Missing userId");
+            }
+            if (paymentIntentId == null || paymentIntentId.isBlank()) {
+                return ResponseEntity.badRequest().body("Missing paymentIntentId");
+            }
+
+            try {
+                PaymentIntent pi = PaymentIntent.retrieve(paymentIntentId);
+                if (pi == null) return ResponseEntity.status(404).body("PaymentIntent not found");
+                String st = pi.getStatus();
+                if (!"succeeded".equalsIgnoreCase(st)) {
+                    return ResponseEntity.status(409).body(Map.of(
+                            "status", "not_paid",
+                            "paymentIntentStatus", st == null ? "unknown" : st,
+                            "message", "PaymentIntent is not succeeded"
+                    ));
+                }
+            } catch (StripeException se) {
+                return ResponseEntity.status(502).body(Map.of("message", "Stripe error: " + se.getMessage()));
             }
 
             Optional<Korisnik> userOpt = korisnikRepository.findById(userId);
@@ -130,14 +148,14 @@ public class PaymentController {
                     return ResponseEntity.status(403).body("User is blocked");
                 }
                 String billing = (String) data.getOrDefault("billing", "monthly");
-                
+
                 Optional<Placa> result = subscriptionService.activateSubscription(userId, billing, paymentIntentId);
                 if (result.isPresent()) {
                     System.out.println("[DEBUG_LOG] User " + userId + " subscription confirmed via manual call.");
                     return ResponseEntity.ok(Map.of(
-                        "status", "success", 
-                        "isSubscribed", true, 
-                        "subscriptionEndDate", result.get().getDatvrKrajClanarine()
+                            "status", "success",
+                            "isSubscribed", true,
+                            "subscriptionEndDate", result.get().getDatvrKrajClanarine()
                     ));
                 } else {
                     return ResponseEntity.status(400).body("Could not activate subscription");
@@ -209,6 +227,14 @@ public class PaymentController {
             PaymentIntent pi = PaymentIntent.retrieve(paymentIntentId);
             if (pi == null) return ResponseEntity.status(404).body(Map.of("message", "PaymentIntent not found"));
 
+            String piStatus = pi.getStatus();
+            if (!"succeeded".equalsIgnoreCase(piStatus)) {
+                return ResponseEntity.status(409).body(Map.of(
+                        "message", "Payment not successful",
+                        "paymentIntentStatus", piStatus == null ? "unknown" : piStatus
+                ));
+            }
+
             Map<String, String> meta = pi.getMetadata();
             checkoutId = meta == null ? null : meta.get("checkoutId");
             System.out.println("[DEBUG_LOG] PI metadata checkoutId=" + checkoutId);
@@ -223,21 +249,11 @@ public class PaymentController {
             if (u instanceof Number) userId = ((Number) u).longValue();
             else try { userId = u == null ? null : Long.valueOf(String.valueOf(u)); } catch (Exception ignored) {}
 
-            try {
-                System.out.println("[DEBUG_LOG] Attempting cart finalization for checkoutId=" + checkoutId + " userId=" + userId);
-                cartService.finalizeCheckout(checkoutId, prepared);
-                System.out.println("[DEBUG_LOG] Cart finalization succeeded for checkoutId=" + checkoutId + " userId=" + userId);
-            } catch (Exception e) {
-                System.out.println("[DEBUG_LOG] Error during finalizeCheckout: " + e.getMessage());
-            }
+            cartService.finalizeCheckout(checkoutId, prepared);
 
             checkoutStore.remove(checkoutId);
             if (userId != null) {
-                try {
-                    cartService.clearCartForUser(userId);
-                } catch (Exception e) {
-                    System.out.println("[DEBUG_LOG] clearCartForUser failed for userId=" + userId + ": " + e.getMessage());
-                }
+                cartService.clearCartForUser(userId);
             }
 
             return ResponseEntity.ok(Map.of("status", "ok", "checkoutId", checkoutId));
@@ -248,8 +264,6 @@ public class PaymentController {
             return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
-            try { if (checkoutId != null) checkoutStore.remove(checkoutId); } catch (Exception ignored) {}
-            try { if (userId != null) cartService.clearCartForUser(userId); } catch (Exception ignored) {}
             return ResponseEntity.status(500).body(Map.of("message", e.getMessage() == null ? e.toString() : e.getMessage()));
         }
     }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanjeUspjeh.css";
 import { confirmPaymentSuccess } from "../api/subscriptions";
@@ -24,6 +24,9 @@ export default function PlacanjeUspjeh() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useAuth();
+
+  const [isFailedPayment, setIsFailedPayment] = useState(false);
+  const [failMsg, setFailMsg] = useState("");
 
   const checkoutState = { ...(location.state || {}) };
   const urlParams = new URLSearchParams(location.search);
@@ -69,10 +72,23 @@ export default function PlacanjeUspjeh() {
     const redirectStatus = params.get("redirect_status");
     const billing = params.get("billing");
 
+    const failed = !!redirectStatus && redirectStatus !== "succeeded";
+    if (failed) {
+      setIsFailedPayment(true);
+      setFailMsg(
+        redirectStatus === "failed"
+          ? "Plaćanje nije uspjelo. Pokušajte ponovno."
+          : redirectStatus === "canceled"
+          ? "Plaćanje je otkazano."
+          : "Plaćanje nije uspješno završeno."
+      );
+    }
+
     let cancelled = false;
 
     async function finalizeCartIfNeeded() {
       if (!isCartPayment) return;
+      if (failed) return;
 
       let pending = null;
       try {
@@ -155,6 +171,8 @@ export default function PlacanjeUspjeh() {
     }
 
     async function handleSuccess() {
+      if (failed) return;
+
       if (isCartPayment) {
         await finalizeCartIfNeeded();
         return;
@@ -252,55 +270,64 @@ export default function PlacanjeUspjeh() {
         : "Kartica"
       : "";
 
+  const title = isFailedPayment ? "Plaćanje nije uspjelo" : "Plaćanje uspješno!";
+
   return (
     <div className="ps-page">
       <div className="ps-card">
-        <div className="ps-check">✓</div>
-        <h1 className="ps-title">Plaćanje uspješno!</h1>
+        <div className="ps-check">{isFailedPayment ? "✕" : "✓"}</div>
+        <h1 className="ps-title">{title}</h1>
 
-        <p className="ps-text">
-          {isCartPayment ? 'Kupnja je uspješna.' : `Pretplata je aktivirana${demo ? ' (demo)' : ''}.`}
-          {methodLabel ? (
-            <>
-              <br />
-              Način plaćanja: <strong>{methodLabel}</strong>
-            </>
-          ) : null}
-          {subscription ? (
-            <>
-              <br />
-              Plan: <strong>{subscription.title}</strong> — €{Number(subscription.amount).toFixed(2)}/{formatBilling(subscription.billing)}
-            </>
-          ) : null}
-          {last4 ? (
-            <>
-              <br />Kartica: **** {last4}
-            </>
-          ) : null}
-          {transactionId ? (
-            <>
-              <br />Transakcija: <strong>{transactionId}</strong>
-            </>
-          ) : null}
-          {startAt ? (
-            <>
-              <br />Aktivno od: <strong>{fmtDate(startAt)}</strong>
-            </>
-          ) : null}
-          {endAt ? (
-            <>
-              <br />Vrijedi do: <strong>{fmtDate(endAt)}</strong>
-            </>
-          ) : null}
+        {isFailedPayment ? (
+          <p className="ps-text">
+            {failMsg || "Plaćanje nije uspjelo."}
+            <br />
+          </p>
+        ) : (
+          <p className="ps-text">
+            {isCartPayment ? "Kupnja je uspješna." : `Pretplata je aktivirana${demo ? " (demo)" : ""}.`}
+            {methodLabel ? (
+              <>
+                <br />
+                Način plaćanja: <strong>{methodLabel}</strong>
+              </>
+            ) : null}
+            {subscription ? (
+              <>
+                <br />
+                Plan: <strong>{subscription.title}</strong> — €{Number(subscription.amount).toFixed(2)}/{formatBilling(subscription.billing)}
+              </>
+            ) : null}
+            {last4 ? (
+              <>
+                <br />Kartica: **** {last4}
+              </>
+            ) : null}
+            {transactionId ? (
+              <>
+                <br />Transakcija: <strong>{transactionId}</strong>
+              </>
+            ) : null}
+            {startAt ? (
+              <>
+                <br />Aktivno od: <strong>{fmtDate(startAt)}</strong>
+              </>
+            ) : null}
+            {endAt ? (
+              <>
+                <br />Vrijedi do: <strong>{fmtDate(endAt)}</strong>
+              </>
+            ) : null}
 
-          {!isCartPayment ? (
-            <>
-              <br />
-              <br />
-              <em>Da bi vidjeli promjene, ponovno se ulogirajte u stranicu.</em>
-            </>
-          ) : null}
-        </p>
+            {!isCartPayment ? (
+              <>
+                <br />
+                <br />
+                <em>Da bi vidjeli promjene, ponovno se ulogirajte u stranicu.</em>
+              </>
+            ) : null}
+          </p>
+        )}
 
         <div className="ps-actions">
           <button className="ps-btn" onClick={() => navigate("/")}>Natrag na početnu</button>
