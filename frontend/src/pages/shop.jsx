@@ -8,6 +8,8 @@ import { getCart } from "../api/cart";
 
 
 async function fetchJson(url, options) {
+  options = options || {};
+  options.credentials = 'include';
   const res = await fetch(url, options);
   const contentType = res.headers.get("content-type") || "";
   const text = await res.text();
