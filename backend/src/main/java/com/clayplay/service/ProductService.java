@@ -115,6 +115,8 @@ public class ProductService {
             String url = fotoProizvodRepository.findFirstImageUrl(p.getProizvodId());
             r.imageUrl = url;
         } catch (Exception ignored) {}
+        r.nazivProizvod = p.getOpisProizvod();
+        r.title = p.getOpisProizvod();
         return r;
     }
 }

@@ -8,10 +8,16 @@ function getUserIdFromSession() {
     const raw = sessionStorage.getItem("user");
     if (!raw) return null;
     const u = JSON.parse(raw);
-    return u?.id ?? u?.userId ?? u?.korisnikId ?? null;
+    return u?.id ?? u?.userId ?? u?.idKorisnik ?? null;
   } catch {
     return null;
   }
+}
+
+function withUser(body = {}) {
+  const uid = getUserIdFromSession();
+  if (uid != null) return { ...body, userId: uid };
+  return body;
 }
 
 function getStorageKey() {
@@ -72,14 +78,15 @@ function toWorkshopItem(workshopId, details = {}) {
     price,
     qty: 1,
     meta,
+    idRadionica: Number(workshopId),
   };
 }
 
 function toProductItem(productId, qty, details = {}) {
   const title =
+    details?.nazivProizvod ||
     details?.title ||
     details?.opisProizvod ||
-    details?.nazivProizvod ||
     details?.name ||
     `Proizvod #${productId}`;
   const price = Number(details?.price ?? details?.cijenaProizvod ?? 0);
@@ -93,12 +100,13 @@ function toProductItem(productId, qty, details = {}) {
     price,
     qty: Number(qty || 1),
     meta,
+    productId: Number(productId),
   };
 }
 
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
-    credentials: "include", // ako koristiš cookie auth
+    credentials: "include",
     ...options,
     headers: {
       ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
@@ -116,13 +124,11 @@ async function fetchJson(url, options = {}) {
     throw err;
   }
   if (!contentType.includes("application/json")) {
-    // backend može vratiti empty body kod DELETE
     return text ? JSON.parse(text) : null;
   }
   return text ? JSON.parse(text) : null;
 }
 
-// GET /api/cart  -> { items: [...] } ili [...]
 export async function getCart() {
   if (forceLocal) {
     const items = loadLocalItems();
@@ -130,7 +136,9 @@ export async function getCart() {
     return { items };
   }
   try {
-    const data = await fetchJson(`${BASE}`);
+    const uid = getUserIdFromSession();
+    const url = uid ? `${BASE}?userId=${encodeURIComponent(uid)}` : `${BASE}`;
+    const data = await fetchJson(url);
     const items = extractItems(data);
     if (items.length) notifyCartUpdated(items);
     return data;
@@ -145,17 +153,14 @@ export async function getCart() {
   }
 }
 
-// POST /api/cart/items  body: { type: "workshop", workshopId, qty: 1 }
 export async function addWorkshopToCart(workshopId, qty = 1, details = {}) {
   if (!forceLocal) {
     try {
-      const data = await fetchJson(`${BASE}/items`, {
-        method: "POST",
-        body: JSON.stringify({ type: "workshop", workshopId, qty }),
-      });
+      const body = withUser({ type: "workshop", workshopId: Number(workshopId), qty: Number(qty), title: details?.title || undefined, price: details?.price ?? undefined, meta: details?.meta ?? undefined });
+      const data = await fetchJson(`${BASE}/items`, { method: "POST", body: JSON.stringify(body) });
       const items = extractItems(data);
-      if (items.length) notifyCartUpdated(items);
-      return data;
+      notifyCartUpdated(items);
+      return items;
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
@@ -167,23 +172,20 @@ export async function addWorkshopToCart(workshopId, qty = 1, details = {}) {
   const existing = items.find((x) => x.id === id);
   if (!existing) {
     items.push(toWorkshopItem(workshopId, details));
+    saveLocalItems(items);
+    notifyCartUpdated(items);
   }
-  saveLocalItems(items);
-  notifyCartUpdated(items);
-  return { items };
+  return items;
 }
 
-// POST /api/cart/items  body: { type: "product", productId, qty: 1 }
 export async function addProductToCart(productId, qty = 1, details = {}) {
   if (!forceLocal) {
     try {
-      const data = await fetchJson(`${BASE}/items`, {
-        method: "POST",
-        body: JSON.stringify({ type: "product", productId, qty }),
-      });
+      const body = withUser({ type: "product", productId: Number(productId), qty: Number(qty), title: details?.title || undefined, price: details?.price ?? undefined, meta: details?.meta ?? undefined });
+      const data = await fetchJson(`${BASE}/items`, { method: "POST", body: JSON.stringify(body) });
       const items = extractItems(data);
-      if (items.length) notifyCartUpdated(items);
-      return data;
+      notifyCartUpdated(items);
+      return items;
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
@@ -194,26 +196,30 @@ export async function addProductToCart(productId, qty = 1, details = {}) {
   const id = `product:${productId}`;
   const existing = items.find((x) => x.id === id);
   if (!existing) {
-    items.push(toProductItem(productId, 1, details));
-  } else {
-    existing.qty = 1;
+    items.push(toProductItem(productId, qty, details));
+    saveLocalItems(items);
+    notifyCartUpdated(items);
   }
-  saveLocalItems(items);
-  notifyCartUpdated(items);
-  return { items };
+  return items;
 }
 
-// PATCH /api/cart/items/:itemId  body: { qty }
+export async function addCartItem(payload) {
+  if (!payload) throw new Error("Missing payload");
+  if (payload.type === "product") return addProductToCart(payload.productId || payload.id || payload.productId, payload.qty || 1, payload);
+  if (payload.type === "workshop") return addWorkshopToCart(payload.workshopId || payload.id || payload.idRadionica, payload.qty || 1, payload);
+  throw new Error("Unknown cart item type");
+}
+
 export async function updateCartItemQty(itemId, qty) {
+  if (!itemId) throw new Error("Missing itemId");
   if (!forceLocal) {
     try {
-      const data = await fetchJson(`${BASE}/items/${itemId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ qty }),
-      });
+      const uid = getUserIdFromSession();
+      const body = withUser({ qty: Number(qty) });
+      const data = await fetchJson(`${BASE}/items/${encodeURIComponent(String(itemId))}`, { method: "PATCH", body: JSON.stringify(body) });
       const items = extractItems(data);
-      if (items.length) notifyCartUpdated(items);
-      return data;
+      notifyCartUpdated(items);
+      return items;
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
@@ -221,41 +227,41 @@ export async function updateCartItemQty(itemId, qty) {
   }
 
   const items = loadLocalItems();
-  const q = Math.max(1, Number(qty || 1));
-  const next = items.map((x) => (x.id === itemId ? { ...x, qty: q } : x));
-  saveLocalItems(next);
-  notifyCartUpdated(next);
-  return { items: next };
+  const updated = items.map((it) => (it.id === itemId ? { ...it, qty: Number(qty) } : it));
+  saveLocalItems(updated);
+  notifyCartUpdated(updated);
+  return updated;
 }
 
-// DELETE /api/cart/items/:itemId
 export async function removeCartItem(itemId) {
+  if (!itemId) throw new Error("Missing itemId");
   if (!forceLocal) {
     try {
-      const data = await fetchJson(`${BASE}/items/${itemId}`, { method: "DELETE" });
+      const body = withUser();
+      const data = await fetchJson(`${BASE}/items/${encodeURIComponent(String(itemId))}`, { method: "DELETE", body: JSON.stringify(body) });
       const items = extractItems(data);
-      if (items.length) notifyCartUpdated(items);
-      return data;
+      notifyCartUpdated(items);
+      return items;
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
     }
   }
 
-  const items = loadLocalItems().filter((x) => x.id !== itemId);
+  const items = loadLocalItems().filter((it) => it.id !== itemId);
   saveLocalItems(items);
   notifyCartUpdated(items);
-  return { items };
+  return items;
 }
 
-// DELETE /api/cart (clear)
 export async function clearCart() {
   if (!forceLocal) {
     try {
-      const data = await fetchJson(`${BASE}`, { method: "DELETE" });
+      const body = withUser();
+      const data = await fetchJson(`${BASE}`, { method: "DELETE", body: JSON.stringify(body) });
       const items = extractItems(data);
-      if (items.length) notifyCartUpdated(items);
-      return data;
+      notifyCartUpdated(items);
+      return items;
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
@@ -264,5 +270,41 @@ export async function clearCart() {
 
   saveLocalItems([]);
   notifyCartUpdated([]);
-  return { items: [] };
+  return [];
 }
+
+export async function checkoutCart() {
+  if (!forceLocal) {
+    try {
+      const body = withUser();
+      const data = await fetchJson(`${BASE}/checkout`, { method: "POST", body: JSON.stringify(body) });
+      const refreshed = await getCart();
+      const items = extractItems(refreshed);
+      notifyCartUpdated(items);
+      return data;
+    } catch (e) {
+      try { await getCart(); } catch {}
+      throw e;
+    }
+  }
+
+  saveLocalItems([]);
+  notifyCartUpdated([]);
+  return { status: "ok" };
+}
+
+export async function forceUseLocalMode() {
+  forceLocal = true;
+}
+
+export default {
+  getCart,
+  addWorkshopToCart,
+  addProductToCart,
+  addCartItem,
+  updateCartItemQty,
+  removeCartItem,
+  clearCart,
+  checkoutCart,
+  forceUseLocalMode,
+};

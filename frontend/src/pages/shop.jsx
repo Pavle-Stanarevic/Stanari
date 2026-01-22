@@ -61,9 +61,7 @@ export default function Shop() {
     try {
       const data = await fetchJson("/api/me", { credentials: "include" });
       setMe(data);
-    } catch {
-      // ignore
-    }
+    } catch { }
   }
 
   async function loadProducts() {
@@ -104,9 +102,13 @@ export default function Shop() {
       const items = e?.detail?.items;
       if (Array.isArray(items)) setCartItems(items);
       else refresh();
+      loadProducts();
     };
     const onStorage = (e) => {
-      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) {
+        refresh();
+        loadProducts();
+      }
     };
 
     window.addEventListener("cart:updated", onCartUpdated);
@@ -275,24 +277,18 @@ export default function Shop() {
             >
               <img
                 src={p.imageUrl || "/images/placeholder.jpg"}
-                alt="Proizvod"
+                alt={p.opisProizvod || p.nazivProizvod || p.title || "Proizvod"}
                 loading="lazy"
               />
               <div className="product-body">
                 <div className="product-top">
-                  <h3 className="product-title">
-                    <p className="product-desc">{p.opisProizvod}</p>
-                    {isProductInCart(p.proizvodId ?? p.id ?? p.productId) && (
-                      <span className="cart-badge">U košarici</span>
-                    )}
-                  </h3>
-                  <span className="product-price">
-                    € {Number(p.cijenaProizvod).toFixed(2)}
-                  </span>
+                  <h3 className="product-title">{p.opisProizvod || p.nazivProizvod || p.title || "Proizvod"}</h3>
+                  {isProductInCart(p.proizvodId ?? p.id ?? p.productId) && (
+                    <span className="cart-badge">U košarici</span>
+                  )}
+                  <span className="product-price">€ {Number(p.cijenaProizvod).toFixed(2)}</span>
                 </div>
-                <div className="product-category">
-                  {p.nazivProizvod || p.title || p.kategorijaProizvod || "Proizvod"}
-                </div>
+                <div className="product-category">{p.kategorijaProizvod || p.kategorija || ""}</div>
                 <div className="product-rating">
                   <span className="product-rating-score">
                     {Number.isFinite(Number(p.organizerAvgRating))

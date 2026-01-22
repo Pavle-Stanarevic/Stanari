@@ -7,6 +7,8 @@ import com.clayplay.repository.ClanarinaRepository;
 import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.repository.PlacaRepository;
 import com.clayplay.service.SubscriptionService;
+import com.clayplay.service.CheckoutStore;
+import com.clayplay.service.CartService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -34,12 +36,16 @@ public class PaymentController {
     private final ClanarinaRepository clanarinaRepository;
     private final PlacaRepository placaRepository;
     private final SubscriptionService subscriptionService;
+    private final CheckoutStore checkoutStore;
+    private final CartService cartService;
 
-    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository, SubscriptionService subscriptionService) {
+    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository, SubscriptionService subscriptionService, CheckoutStore checkoutStore, CartService cartService) {
         this.korisnikRepository = korisnikRepository;
         this.clanarinaRepository = clanarinaRepository;
         this.placaRepository = placaRepository;
         this.subscriptionService = subscriptionService;
+        this.checkoutStore = checkoutStore;
+        this.cartService = cartService;
     }
 
     @PostConstruct
@@ -141,6 +147,110 @@ public class PaymentController {
         } catch (Exception e) {
             System.out.println("[DEBUG_LOG] Error in confirmSuccess: " + e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/stripe/cart-checkout-session")
+    public ResponseEntity<?> createStripeCartCheckoutSession(@RequestBody Map<String, Object> data) {
+        try {
+            String checkoutId = (String) data.get("checkoutId");
+            Map<String, Object> prepared = checkoutStore.get(checkoutId);
+            if (prepared == null) return ResponseEntity.status(404).body(Map.of("message", "Checkout not found"));
+            Long userId = ((Number) prepared.get("userId")).longValue();
+            Double total = (Double) prepared.get("total");
+            long amount = Math.round(total * 100);
+
+            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                    .setAmount(amount)
+                    .setCurrency("eur")
+                    .setAutomaticPaymentMethods(
+                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build()
+                    )
+                    .putMetadata("checkoutId", checkoutId)
+                    .putMetadata("userId", String.valueOf(userId))
+                    .build();
+
+            PaymentIntent intent = PaymentIntent.create(params);
+            return ResponseEntity.ok(Map.of("clientSecret", intent.getClientSecret(), "id", intent.getId()));
+        } catch (StripeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/confirm-cart-success")
+    public ResponseEntity<?> confirmCartSuccess(@RequestBody Map<String, Object> data) {
+        try {
+            String checkoutId = (String) data.get("checkoutId");
+            String paymentIntentId = (String) data.get("paymentIntentId");
+            Map<String, Object> prepared = checkoutStore.get(checkoutId);
+            if (prepared == null) return ResponseEntity.status(404).body(Map.of("message", "Checkout not found"));
+            cartService.finalizeCheckout(checkoutId, prepared);
+            checkoutStore.remove(checkoutId);
+            return ResponseEntity.ok(Map.of("status", "ok"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Server error"));
+        }
+    }
+
+    @PostMapping("/finalize-by-payment-intent")
+    public ResponseEntity<?> finalizeByPaymentIntent(@RequestBody Map<String, Object> data) {
+        String paymentIntentId = null;
+        String checkoutId = null;
+        Long userId = null;
+        try {
+            paymentIntentId = (String) data.get("paymentIntentId");
+            System.out.println("[DEBUG_LOG] finalizeByPaymentIntent called, PI=" + paymentIntentId);
+            if (paymentIntentId == null || paymentIntentId.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Missing paymentIntentId"));
+            }
+
+            PaymentIntent pi = PaymentIntent.retrieve(paymentIntentId);
+            if (pi == null) return ResponseEntity.status(404).body(Map.of("message", "PaymentIntent not found"));
+
+            Map<String, String> meta = pi.getMetadata();
+            checkoutId = meta == null ? null : meta.get("checkoutId");
+            System.out.println("[DEBUG_LOG] PI metadata checkoutId=" + checkoutId);
+            if (checkoutId == null || checkoutId.isBlank()) {
+                return ResponseEntity.status(400).body(Map.of("message", "PaymentIntent metadata has no checkoutId"));
+            }
+
+            Map<String, Object> prepared = checkoutStore.get(checkoutId);
+            if (prepared == null) return ResponseEntity.status(404).body(Map.of("message", "Checkout not found"));
+
+            Object u = prepared.get("userId");
+            if (u instanceof Number) userId = ((Number) u).longValue();
+            else try { userId = u == null ? null : Long.valueOf(String.valueOf(u)); } catch (Exception ignored) {}
+
+            try {
+                System.out.println("[DEBUG_LOG] Attempting cart finalization for checkoutId=" + checkoutId + " userId=" + userId);
+                cartService.finalizeCheckout(checkoutId, prepared);
+                System.out.println("[DEBUG_LOG] Cart finalization succeeded for checkoutId=" + checkoutId + " userId=" + userId);
+            } catch (Exception e) {
+                System.out.println("[DEBUG_LOG] Error during finalizeCheckout: " + e.getMessage());
+            }
+
+            checkoutStore.remove(checkoutId);
+            if (userId != null) {
+                try {
+                    cartService.clearCartForUser(userId);
+                } catch (Exception e) {
+                    System.out.println("[DEBUG_LOG] clearCartForUser failed for userId=" + userId + ": " + e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(Map.of("status", "ok", "checkoutId", checkoutId));
+        } catch (StripeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Stripe error: " + e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            try { if (checkoutId != null) checkoutStore.remove(checkoutId); } catch (Exception ignored) {}
+            try { if (userId != null) cartService.clearCartForUser(userId); } catch (Exception ignored) {}
+            return ResponseEntity.status(500).body(Map.of("message", e.getMessage() == null ? e.toString() : e.getMessage()));
         }
     }
 }
