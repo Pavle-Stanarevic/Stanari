@@ -31,7 +31,7 @@
   font-weight: 650;
 }
 
-.exh-newBtn {
+.exh-btn {
   border: none;
   border-radius: 12px;
   padding: 10px 14px;
@@ -42,7 +42,7 @@
   transition: 0.2s ease;
 }
 
-.exh-newBtn:hover {
+.exh-btn:hover {
   background: #1f2937;
   transform: translateY(-1px);
 }
@@ -199,10 +199,9 @@
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
   display: flex;
-  flex-direction: column; /* pomaže da sadržaj bude konzistentan */
+  flex-direction: column;
 }
 
-/* ✅ cover uvijek iste visine (već imaš), samo osiguramo da je button block */
 .exh-coverOnly {
   width: 100%;
   border: none;

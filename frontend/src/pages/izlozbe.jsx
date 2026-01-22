@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import ShopProductAdd from "../components/shopProductAdd.jsx";
 import "../styles/izlozbe.css";
 import {
   listExhibitions,
@@ -107,6 +108,7 @@ export default function Izlozbe() {
   const isRejectedOrganizer = isOrganizer && organizerStatus === "REJECTED";
   const isSubscribed = !!user?.isSubscribed;
   const canCreateExhibition = isOrganizer && isApprovedOrganizer && isSubscribed;
+  const canAddProductsToShop = canCreateExhibition; // ista pravila kao i u Shop-u
 
   const MAX_IMAGE_MB = 5;
 
@@ -130,6 +132,9 @@ export default function Izlozbe() {
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
   const fileRef = useRef(null);
+
+  // ✅ dodavanje proizvoda direktno iz kreiranja izložbe
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -272,7 +277,7 @@ export default function Izlozbe() {
           {isOrganizer && (
             <div style={{ display: "grid", gap: 6 }}>
               <button
-                className="exh-newBtn"
+                className="exh-btn"
                 onClick={() => setFormOpen((p) => !p)}
                 type="button"
                 disabled={!canCreateExhibition}
@@ -311,6 +316,38 @@ export default function Izlozbe() {
               <h2>Kreiranje izložbe</h2>
               <span className="exh-hint">Unesi podatke i dodaj slike radova</span>
             </div>
+
+            <button
+              type="button"
+              className="exh-btn"
+              style={{ background: "#fff", color: "#111", border: "1px solid rgba(0,0,0,0.12)" }}
+              onClick={() => setIsAddProductOpen(true)}
+              disabled={!canAddProductsToShop}
+              title={
+                isPendingOrganizer
+                  ? "Čeka se odobrenje admina"
+                  : isRejectedOrganizer
+                  ? "Profil je odbijen"
+                  : !isSubscribed
+                  ? "Potrebna je aktivna pretplata"
+                  : ""
+              }
+            >
+              + Dodaj proizvod u Shop (Izložbe)
+            </button>
+
+            {!canAddProductsToShop ? (
+              <div className="hint" style={{ margin: 0, alignSelf: "center" }}>
+                {isPendingOrganizer
+                  ? "Čeka se odobrenje admina."
+                  : isRejectedOrganizer
+                  ? "Profil je odbijen."
+                  : !isSubscribed
+                  ? "Za objavu proizvoda potrebna je aktivna pretplata."
+                  : ""}
+              </div>
+            ) : null}
+
             <form className="exh-form" onSubmit={onCreate}>
               <div className="exh-grid">
                 <div className="exh-field">
@@ -332,7 +369,6 @@ export default function Izlozbe() {
                   />
                 </div>
 
-                {/* ✅ NEW: opis */}
                 <div className="exh-field">
                   <label>Opis izložbe</label>
                   <textarea
@@ -399,7 +435,6 @@ export default function Izlozbe() {
 
               return (
                 <article className="exh-item" key={exhId ?? exh.id}>
-                  {/* ✅ Manje slika: samo cover */}
                   <button
                     type="button"
                     className="exh-coverOnly"
@@ -465,6 +500,14 @@ export default function Izlozbe() {
           </section>
         )}
       </main>
+
+      {/* MODAL: kategorija je obavezno Izlozbe */}
+      <ShopProductAdd
+        open={isAddProductOpen}
+        onClose={() => setIsAddProductOpen(false)}
+        onCreated={() => setIsAddProductOpen(false)}
+        forcedCategory="Izložbe"
+      />
     </div>
   );
 }

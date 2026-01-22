@@ -1,11 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAuth from "../hooks/useAuth";
 import "../styles/shopProductAdd.css";
 import { PRODUCT_CATEGORIES } from "../data/productCategories";
 const DEV_FORCE_USER = false; // frontend test
 
 
-export default function ShopProductAdd({ open, onClose, onCreated }) {
+// forcedCategory: ako je postavljeno, kategorija je zakljucana
+export default function ShopProductAdd({ open, onClose, onCreated, forcedCategory = "" }) {
   // const { user } = useAuth();
   const { user: realUser } = useAuth();
 
@@ -16,7 +17,7 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
 
   const [opisProizvod, setOpisProizvod] = useState("");
   const [cijenaProizvod, setCijenaProizvod] = useState("");
-  const [kategorijaProizvod, setKategorijaProizvod] = useState("");
+  const [kategorijaProizvod, setKategorijaProizvod] = useState(forcedCategory || "");
   const [imageFile, setImageFile] = useState(null);
 
   const [saving, setSaving] = useState(false);
@@ -26,6 +27,11 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
     if (!imageFile) return "";
     return URL.createObjectURL(imageFile);
   }, [imageFile]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (forcedCategory) setKategorijaProizvod(forcedCategory);
+  }, [open, forcedCategory]);
 
   if (!open) return null;
 
@@ -43,7 +49,7 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
       fd.append("userId", String(userId));
       fd.append("opisProizvod", opisProizvod);
       fd.append("cijenaProizvod", String(Number(cijenaProizvod)));
-      fd.append("kategorijaProizvod", kategorijaProizvod);
+      fd.append("kategorijaProizvod", forcedCategory || kategorijaProizvod);
 
       if (imageFile) fd.append("image", imageFile); // "image" uskladit s backendom
 
@@ -61,7 +67,7 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
       // reset
       setOpisProizvod("");
       setCijenaProizvod("");
-      setKategorijaProizvod("");
+      setKategorijaProizvod(forcedCategory || "");
       setImageFile(null);
 
       onClose?.();
@@ -114,20 +120,26 @@ export default function ShopProductAdd({ open, onClose, onCreated }) {
 
             <div className="field">
               <label>Kategorija</label>
-              <select
-                value={kategorijaProizvod}
-                onChange={(e) => setKategorijaProizvod(e.target.value)}
-                required
-              >
-                <option value="" disabled>
-                  Odaberi kategoriju
-                </option>
-                {PRODUCT_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+              {forcedCategory ? (
+                <select value={forcedCategory} disabled required>
+                  <option value={forcedCategory}>{forcedCategory}</option>
+                </select>
+              ) : (
+                <select
+                  value={kategorijaProizvod}
+                  onChange={(e) => setKategorijaProizvod(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    Odaberi kategoriju
                   </option>
-                ))}
-              </select>
+                  {PRODUCT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

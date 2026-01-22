@@ -6,7 +6,7 @@ import "../styles/header.css";
 import logo from "../images/logo.png";
 
 const NAV_ITEMS = [
-  { label: "Rezervacije termina", to: "/pregledRadionica" },
+  { label: "Radionice", to: "/pregledRadionica" },
   { label: "Shop", to: "/shop" },
   { label: "Izložbe", to: "/izlozbe" },
   { label: "Naš tim", to: "/tim" }
