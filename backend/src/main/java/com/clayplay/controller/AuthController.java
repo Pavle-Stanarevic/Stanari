@@ -275,6 +275,10 @@ public class AuthController {
             System.out.println("[DEBUG_LOG] AuthController.me: Fetching fresh user data for " + finalEmail);
             return korisnikRepository.findByEmail(finalEmail)
                     .map(u -> {
+                        if ("BLOCKED".equalsIgnoreCase(u.getStatus())) {
+                            session.invalidate();
+                            return ResponseEntity.status(403).body("User is blocked");
+                        }
                         return ResponseEntity.ok(buildUserMap(u));
                     })
                     .orElseGet(() -> {

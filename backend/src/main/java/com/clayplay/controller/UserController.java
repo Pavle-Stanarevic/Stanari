@@ -34,6 +34,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProfile(@PathVariable("id") Long id, @RequestBody ProfileUpdateRequest req) {
         try {
+            if (userService.isBlocked(id)) return ResponseEntity.status(403).body("User is blocked");
             Korisnik updated = userService.updateProfile(id, req);
             return ResponseEntity.ok(buildUserMap(updated));
         } catch (IllegalArgumentException e) {
@@ -49,6 +50,7 @@ public class UserController {
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
         try {
+            if (userService.isBlocked(id)) return ResponseEntity.status(403).body("User is blocked");
             if (image == null || image.isEmpty()) {
                 return ResponseEntity.badRequest().body("Image is required");
             }

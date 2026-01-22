@@ -4,6 +4,7 @@ import com.clayplay.dto.WorkshopRequest;
 import com.clayplay.dto.WorkshopResponse;
 import com.clayplay.service.WorkshopService;
 import com.clayplay.service.ReservationService;
+import com.clayplay.service.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,15 +20,20 @@ public class WorkshopController {
 
     private final WorkshopService service;
     private final ReservationService reservations;
+    private final UserService users;
 
-    public WorkshopController(WorkshopService service, ReservationService reservations) {
+    public WorkshopController(WorkshopService service, ReservationService reservations, UserService users) {
         this.service = service;
         this.reservations = reservations;
+        this.users = users;
     }
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody WorkshopRequest req) {
         try {
+            if (req != null && users.isBlocked(req.getOrganizerId())) {
+                return ResponseEntity.status(403).body("User is blocked");
+            }
             Long id = service.create(req);
             Map<String, Object> resp = new HashMap<>();
             resp.put("workshopId", id);
@@ -74,6 +80,7 @@ public class WorkshopController {
         try {
             if (body == null || body.get("userId") == null) return ResponseEntity.badRequest().body("Missing userId");
             Long userId = ((Number) body.get("userId")).longValue();
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             Long resId = reservations.apply(userId, workshopId);
             return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{ put("reservationId", resId); }});
         } catch (IllegalArgumentException e) {
@@ -92,6 +99,7 @@ public class WorkshopController {
         try {
             if (body == null || body.get("userId") == null) return ResponseEntity.badRequest().body("Missing userId");
             Long userId = ((Number) body.get("userId")).longValue();
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             reservations.cancel(userId, workshopId);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
@@ -108,6 +116,7 @@ public class WorkshopController {
     @GetMapping("/reserved")
     public ResponseEntity<?> reservedForUser(@RequestParam("userId") Long userId) {
         try {
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             List<Long> ids = reservations.reservedWorkshopIds(userId);
             return ResponseEntity.ok(ids);
         } catch (IllegalArgumentException e) {

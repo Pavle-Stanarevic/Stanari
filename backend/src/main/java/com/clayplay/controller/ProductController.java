@@ -53,6 +53,7 @@ public class ProductController {
         try {
             if (body == null || body.get("userId") == null) return ResponseEntity.badRequest().body("Missing userId");
             Long userId = ((Number) body.get("userId")).longValue();
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             if (!users.isPolaznik(userId)) return ResponseEntity.status(403).body("Only polaznik can buy products");
             return ResponseEntity.ok(products.markPurchased(id, userId));
         } catch (IllegalArgumentException e) {
@@ -88,6 +89,7 @@ public class ProductController {
             if (userIdRaw == null) return ResponseEntity.badRequest().body("Missing userId");
             Long userId = ((Number) userIdRaw).longValue();
 
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             if (!users.isPolaznik(userId)) return ResponseEntity.status(403).body("Only polaznik can review products");
             if (!kupovine.existsByIdKorisnikAndProizvodId(userId, id)) {
                 return ResponseEntity.status(403).body("Only buyers can review this product");
@@ -135,6 +137,7 @@ public class ProductController {
     ) {
         try {
             if (userId == null) return ResponseEntity.badRequest().body("Missing userId");
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             if (!users.isApprovedOrganizator(userId)) return ResponseEntity.status(403).body("Only approved organizator can create products");
             if (!users.hasActiveSubscription(userId)) return ResponseEntity.status(403).body("Active subscription is required");
 

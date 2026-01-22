@@ -9,6 +9,7 @@ import com.clayplay.repository.KomentarRepository;
 import com.clayplay.repository.PrijavaRepository;
 import com.clayplay.service.ExhibitionReservationService;
 import com.clayplay.service.ExhibitionService;
+import com.clayplay.service.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,13 +29,15 @@ public class ExhibitionController {
     private final KomentarRepository komentari;
     private final IzlozbaRepository izlozbe;
     private final PrijavaRepository prijave;
+    private final UserService users;
 
-    public ExhibitionController(ExhibitionService exhibitions, ExhibitionReservationService reservations, KomentarRepository komentari, IzlozbaRepository izlozbe, PrijavaRepository prijave) {
+    public ExhibitionController(ExhibitionService exhibitions, ExhibitionReservationService reservations, KomentarRepository komentari, IzlozbaRepository izlozbe, PrijavaRepository prijave, UserService users) {
         this.exhibitions = exhibitions;
         this.reservations = reservations;
         this.komentari = komentari;
         this.izlozbe = izlozbe;
         this.prijave = prijave;
+        this.users = users;
     }
 
     @GetMapping
@@ -52,6 +55,7 @@ public class ExhibitionController {
             @RequestPart(value = "images", required = false) List<MultipartFile> images
     ) {
         try {
+            if (users.isBlocked(organizerId)) return ResponseEntity.status(403).body("User is blocked");
             OffsetDateTime when = OffsetDateTime.parse(startDateTime);
             Long id = exhibitions.create(organizerId, title, location, description, when, images);
             Map<String, Object> resp = new HashMap<>();
@@ -69,6 +73,7 @@ public class ExhibitionController {
         try {
             if (body == null || body.get("userId") == null) return ResponseEntity.badRequest().body("Missing userId");
             Long userId = ((Number) body.get("userId")).longValue();
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             Long id = reservations.apply(userId, exhibitionId);
             return ResponseEntity.ok(new HashMap<String, Object>() {{ put("applicationId", id); }});
         } catch (IllegalArgumentException e) {
@@ -81,6 +86,7 @@ public class ExhibitionController {
     @GetMapping("/reserved")
     public ResponseEntity<?> reservedForUser(@RequestParam("userId") Long userId) {
         try {
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             List<Long> ids = reservations.reservedExhibitionIds(userId);
             return ResponseEntity.ok(ids);
         } catch (IllegalArgumentException e) {
@@ -93,6 +99,7 @@ public class ExhibitionController {
     @GetMapping("/applications")
     public ResponseEntity<?> applicationsForUser(@RequestParam("userId") Long userId) {
         try {
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             List<ExhibitionApplicationResponse> apps = reservations.applicationStatuses(userId);
             return ResponseEntity.ok(apps);
         } catch (IllegalArgumentException e) {
@@ -127,6 +134,7 @@ public class ExhibitionController {
             Object userIdRaw = body.get("userId");
             if (userIdRaw == null) return ResponseEntity.badRequest().body("Missing userId");
             Long userId = ((Number) userIdRaw).longValue();
+            if (users.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
 
             Izlozba iz = izlozbe.findById(exhibitionId).orElse(null);
             if (iz == null) return ResponseEntity.status(404).body("Izložba nije pronađena");
