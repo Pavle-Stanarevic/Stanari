@@ -224,3 +224,10 @@
   background: rgba(0, 0, 0, 0.8);
 }
 
+.input-error {
+  color: #c00;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  text-align: left;
+}
+

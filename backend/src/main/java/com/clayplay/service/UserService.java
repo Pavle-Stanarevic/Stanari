@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class UserService {
@@ -30,6 +31,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
 
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    private static final Pattern NAME_STARTS_WITH_LETTER_PATTERN = Pattern.compile("^[A-Za-zÀ-ÖØ-öø-ÿČĆĐŠŽčćđšž].*");
+
     public UserService(KorisnikRepository korisnikRepository, OrganizatorRepository organizatorRepository, PolaznikRepository polaznikRepository, AdministratorRepository administratorRepository, FotografijaRepository fotografijaRepository, PlacaRepository placaRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.korisnikRepository = korisnikRepository;
         this.organizatorRepository = organizatorRepository;
@@ -41,6 +45,34 @@ public class UserService {
         this.fileStorageService = fileStorageService;
     }
 
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private static boolean isValidEmail(String email) {
+        if (isBlank(email)) return false;
+        return EMAIL_PATTERN.matcher(email.trim()).matches();
+    }
+
+    private static boolean isValidName(String name) {
+        if (isBlank(name)) return false;
+        return NAME_STARTS_WITH_LETTER_PATTERN.matcher(name.trim()).matches();
+    }
+
+    private static boolean isValidContact(String contact) {
+        if (isBlank(contact)) return false;
+        String digits = contact.replaceAll("\\D", "");
+        return digits.length() >= 7 && digits.length() <= 15;
+    }
+
+    private static void validatePasswordOrThrow(String password) {
+        if (password == null) throw new IllegalArgumentException("Password is required");
+        if (password.length() < 6) throw new IllegalArgumentException("Password must be at least 6 characters long");
+        if (!password.matches(".*[A-Z].*")) throw new IllegalArgumentException("Password must contain at least one uppercase letter");
+        if (!password.matches(".*[a-z].*")) throw new IllegalArgumentException("Password must contain at least one lowercase letter");
+        if (!password.matches(".*[0-9].*")) throw new IllegalArgumentException("Password must contain at least one number");
+    }
+
     @Transactional
     public Korisnik register(RegistrationRequest req) {
         return register(req, null, null);
@@ -49,9 +81,17 @@ public class UserService {
     @Transactional
     public Korisnik register(RegistrationRequest req, byte[] imageBytes, String contentType) {
         if (req == null) throw new IllegalArgumentException("Invalid registration data");
+
+        if (!isValidName(req.firstName)) throw new IllegalArgumentException("Invalid first name");
+        if (!isValidName(req.lastName)) throw new IllegalArgumentException("Invalid last name");
+        if (!isValidContact(req.contact)) throw new IllegalArgumentException("Invalid contact");
+        if (!isValidEmail(req.email)) throw new IllegalArgumentException("Invalid email");
+        validatePasswordOrThrow(req.password);
+
         if (req.password == null || !req.password.equals(req.confirmPassword)) {
             throw new IllegalArgumentException("Passwords do not match");
         }
+
         Optional<Korisnik> exists = korisnikRepository.findByEmail(req.email);
         if (exists.isPresent()) {
             throw new IllegalArgumentException("Email already registered");
