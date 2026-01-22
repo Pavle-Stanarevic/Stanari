@@ -1,6 +1,6 @@
 // frontend/src/api/exhibitions.js
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 async function fetchJson(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {

@@ -57,6 +57,12 @@ export default function PregledRadionica() {
 
   const organizer = user?.userType === "organizator";
   const polaznik = user?.userType === "polaznik";
+  const organizerStatus = String(user?.organizerStatus || "").toUpperCase();
+  const isApprovedOrganizer = organizer && organizerStatus === "APPROVED";
+  const isPendingOrganizer = organizer && organizerStatus === "PENDING";
+  const isRejectedOrganizer = organizer && organizerStatus === "REJECTED";
+  const isSubscribed = !!user?.isSubscribed;
+  const canCreateWorkshop = organizer && isApprovedOrganizer && isSubscribed;
 
   // 1) radionice
   useEffect(() => {
@@ -247,12 +253,35 @@ export default function PregledRadionica() {
             </button>
 
             {organizer ? (
-              <button
-                className="new-workshop-btn"
-                onClick={() => navigate("/organizacijaRadionica")}
-              >
-                + Nova radionica
-              </button>
+              <div style={{ display: "grid", gap: 6 }}>
+                <button
+                  className="new-workshop-btn"
+                  onClick={() => navigate("/organizacijaRadionica")}
+                  disabled={!canCreateWorkshop}
+                  title={
+                    isPendingOrganizer
+                      ? "Čeka se odobrenje admina"
+                      : isRejectedOrganizer
+                      ? "Profil je odbijen"
+                      : !isSubscribed
+                      ? "Potrebna je aktivna pretplata"
+                      : ""
+                  }
+                >
+                  + Nova radionica
+                </button>
+                {!canCreateWorkshop ? (
+                  <div className="hint" style={{ margin: 0 }}>
+                    {isPendingOrganizer
+                      ? "Čeka se odobrenje admina."
+                      : isRejectedOrganizer
+                      ? "Profil je odbijen."
+                      : !isSubscribed
+                      ? "Za objavu radionica potrebna je aktivna pretplata."
+                      : ""}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>

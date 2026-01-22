@@ -183,7 +183,7 @@ export default function PlacanjeUspjeh() {
         </p>
 
         <div className="ps-actions">
-          <button className="ps-btn" onClick={() => navigate("/")}>
+          <button className="ps-btn" onClick={() => navigate("/")}> 
             Povratak na početnu
           </button>
           <button className="ps-btn ghost" onClick={() => navigate("/plan")}>

@@ -50,7 +50,13 @@ export default function Shop() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
-  const canAddProducts = user?.userType === "organizator";
+  const organizerStatus = String(user?.organizerStatus || "").toUpperCase();
+  const isOrganizer = user?.userType === "organizator";
+  const isApprovedOrganizer = isOrganizer && organizerStatus === "APPROVED";
+  const isPendingOrganizer = isOrganizer && organizerStatus === "PENDING";
+  const isRejectedOrganizer = isOrganizer && organizerStatus === "REJECTED";
+  const isSubscribed = !!user?.isSubscribed;
+  const canAddProducts = isOrganizer && isApprovedOrganizer && isSubscribed;
 
   async function loadMe() {
     try {
@@ -156,14 +162,37 @@ export default function Shop() {
             <p>Kupite keramičke proizvode naših stručnjaka i instruktora</p>
 
             <div className="hero-actions">
-              {canAddProducts && (
-                <button
-                  className="hero-btn hero-btn--secondary"
-                  onClick={() => setIsAddOpen(true)}
-                  type="button"
-                >
-                  + Dodaj proizvod
-                </button>
+              {isOrganizer && (
+                <div style={{ display: "grid", gap: 6 }}>
+                  <button
+                    className="hero-btn hero-btn--secondary"
+                    onClick={() => setIsAddOpen(true)}
+                    type="button"
+                    disabled={!canAddProducts}
+                    title={
+                      isPendingOrganizer
+                        ? "Čeka se odobrenje admina"
+                        : isRejectedOrganizer
+                        ? "Profil je odbijen"
+                        : !isSubscribed
+                        ? "Potrebna je aktivna pretplata"
+                        : ""
+                    }
+                  >
+                    + Dodaj proizvod
+                  </button>
+                  {!canAddProducts ? (
+                    <div className="hint" style={{ margin: 0 }}>
+                      {isPendingOrganizer
+                        ? "Čeka se odobrenje admina."
+                        : isRejectedOrganizer
+                        ? "Profil je odbijen."
+                        : !isSubscribed
+                        ? "Za objavu proizvoda potrebna je aktivna pretplata."
+                        : ""}
+                    </div>
+                  ) : null}
+                </div>
               )}
 
               

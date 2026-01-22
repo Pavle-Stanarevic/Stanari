@@ -10,6 +10,7 @@ import com.clayplay.repository.AdministratorRepository;
 import com.clayplay.repository.FotografijaRepository;
 import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.repository.OrganizatorRepository;
+import com.clayplay.repository.PlacaRepository;
 import com.clayplay.repository.PolaznikRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,15 +26,17 @@ public class UserService {
     private final PolaznikRepository polaznikRepository;
     private final AdministratorRepository administratorRepository;
     private final FotografijaRepository fotografijaRepository;
+    private final PlacaRepository placaRepository;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
 
-    public UserService(KorisnikRepository korisnikRepository, OrganizatorRepository organizatorRepository, PolaznikRepository polaznikRepository, AdministratorRepository administratorRepository, FotografijaRepository fotografijaRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
+    public UserService(KorisnikRepository korisnikRepository, OrganizatorRepository organizatorRepository, PolaznikRepository polaznikRepository, AdministratorRepository administratorRepository, FotografijaRepository fotografijaRepository, PlacaRepository placaRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.korisnikRepository = korisnikRepository;
         this.organizatorRepository = organizatorRepository;
         this.polaznikRepository = polaznikRepository;
         this.administratorRepository = administratorRepository;
         this.fotografijaRepository = fotografijaRepository;
+        this.placaRepository = placaRepository;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
     }
@@ -85,7 +88,7 @@ public class UserService {
             Organizator o = new Organizator();
             o.setIdKorisnik(saved.getIdKorisnik());
             o.setImeStudija(req.studyName);
-            o.setStatusOrganizator("APPROVED");
+            o.setStatusOrganizator("PENDING");
             organizatorRepository.save(o);
         } else {
             Polaznik p = new Polaznik();
@@ -111,6 +114,11 @@ public class UserService {
 
     public boolean isApprovedOrganizator(Long idKorisnik) {
         return organizatorRepository.existsByIdKorisnikAndStatusOrganizator(idKorisnik, "APPROVED");
+    }
+
+    public boolean hasActiveSubscription(Long idKorisnik) {
+        if (idKorisnik == null) return false;
+        return !placaRepository.findActiveSubscriptions(idKorisnik, java.time.OffsetDateTime.now()).isEmpty();
     }
 
     public boolean isPolaznik(Long idKorisnik) {
