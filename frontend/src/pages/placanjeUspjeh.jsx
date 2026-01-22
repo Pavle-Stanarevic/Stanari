@@ -293,14 +293,6 @@ export default function PlacanjeUspjeh() {
         </p>
 
         <div className="ps-actions">
-<<<<<<< HEAD
-          <button className="ps-btn" onClick={() => navigate("/")}> 
-            Povratak na početnu
-          </button>
-          <button className="ps-btn ghost" onClick={() => navigate("/plan")}>
-            Pogledaj planove
-          </button>
-=======
           <button className="ps-btn" onClick={() => navigate("/")}>Natrag na početnu</button>
 
           {isCartPayment ? (
@@ -308,7 +300,6 @@ export default function PlacanjeUspjeh() {
           ) : (
             <button className="ps-btn secondary" onClick={() => navigate("/plan")}>Pregled planova</button>
           )}
->>>>>>> feature/placanje-kosarice
         </div>
       </div>
     </div>
