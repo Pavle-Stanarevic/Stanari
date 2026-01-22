@@ -25,7 +25,6 @@ export default function PlacanjeUspjeh() {
   const location = useLocation();
   const { setUser } = useAuth();
 
-  // collect state from React router and from URL params (Stripe redirects often lose state)
   const checkoutState = { ...(location.state || {}) };
   const urlParams = new URLSearchParams(location.search);
   const urlMode = urlParams.get("mode") || urlParams.get("checkoutMode") || urlParams.get("type");
@@ -35,7 +34,6 @@ export default function PlacanjeUspjeh() {
   if (!checkoutState.checkoutId && urlCheckoutId) checkoutState.checkoutId = urlCheckoutId;
   if (!checkoutState.paymentIntentId && urlPaymentIntent) checkoutState.paymentIntentId = urlPaymentIntent;
 
-  // figure out payment type reliably (router state OR URL OR sessionStorage fallback)
   let pending = null;
   try {
     const raw = sessionStorage.getItem("clayplay_pending_payment");
@@ -167,7 +165,7 @@ export default function PlacanjeUspjeh() {
       try {
         await confirmPaymentSuccess({ userId, paymentIntentId, billing });
 
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 250));
 
         const normalize = (raw) => (raw && raw.user) ? raw.user : raw;
         const hasSubscription = (usr) => {
@@ -178,47 +176,51 @@ export default function PlacanjeUspjeh() {
             if (Array.isArray(usr.placa) && usr.placa.length > 0) return true;
             if (organizator.subscriptionEnd || organizator.subscription_end) return true;
             if (organizator.pretplata || organizator.subscription || usr.subscription) return true;
+            if (usr.isSubscribed === true || organizator.isSubscribed === true) return true;
           } catch (e) {}
           return false;
         };
 
         let lastFetched = null;
         try {
-          const initial = normalize(await me());
+          const initial = normalize(await me(true));
           lastFetched = initial;
           if (!cancelled && hasSubscription(initial)) {
             setUser(initial);
-            try {
-              sessionStorage.setItem("user", JSON.stringify(initial));
-            } catch (e) {}
+            try { sessionStorage.setItem("user", JSON.stringify(initial)); } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent("auth:updated", { detail: { user: initial } })); } catch (e) {}
+            try { sessionStorage.removeItem("clayplay_pending_payment"); } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent("subscription:updated", { detail: { user: initial } })); } catch (e) {}
             return;
           }
-        } catch (e) { }
+        } catch (e) {}
 
         const maxAttempts = 8;
         for (let i = 0; i < maxAttempts && !cancelled; i++) {
           await new Promise((r) => setTimeout(r, 1000));
           try {
-            const raw = await me();
+            const raw = await me(true);
             const u = normalize(raw);
             lastFetched = u;
             if (hasSubscription(u)) {
               if (!cancelled) {
                 setUser(u);
-                try {
-                  sessionStorage.setItem("user", JSON.stringify(u));
-                } catch (e) {}
+                try { sessionStorage.setItem("user", JSON.stringify(u)); } catch (e) {}
+                try { window.dispatchEvent(new CustomEvent("auth:updated", { detail: { user: u } })); } catch (e) {}
+                try { sessionStorage.removeItem("clayplay_pending_payment"); } catch (e) {}
+                try { window.dispatchEvent(new CustomEvent("subscription:updated", { detail: { user: u } })); } catch (e) {}
               }
               break;
             }
-          } catch (e) { }
+          } catch (e) {}
         }
 
         if (!cancelled && lastFetched) {
           setUser(lastFetched);
-          try {
-            sessionStorage.setItem("user", JSON.stringify(lastFetched));
-          } catch (e) {}
+          try { sessionStorage.setItem("user", JSON.stringify(lastFetched)); } catch (e) {}
+          try { window.dispatchEvent(new CustomEvent("auth:updated", { detail: { user: lastFetched } })); } catch (e) {}
+          try { sessionStorage.removeItem("clayplay_pending_payment"); } catch (e) {}
+          try { window.dispatchEvent(new CustomEvent("subscription:updated", { detail: { user: lastFetched } })); } catch (e) {}
         }
       } catch (err) {
         console.error("Error confirming payment:", err);
@@ -288,6 +290,14 @@ export default function PlacanjeUspjeh() {
           {endAt ? (
             <>
               <br />Vrijedi do: <strong>{fmtDate(endAt)}</strong>
+            </>
+          ) : null}
+
+          {!isCartPayment ? (
+            <>
+              <br />
+              <br />
+              <em>Da bi vidjeli promjene, ponovno se ulogirajte u stranicu.</em>
             </>
           ) : null}
         </p>

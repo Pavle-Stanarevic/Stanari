@@ -111,13 +111,20 @@ export default function Plan() {
       }
     };
 
+    const handleSubscriptionUpdated = () => {
+      if (!isMounted) return;
+      refreshUser(true);
+    };
+
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("auth:updated", handleAuthUpdated);
+    window.addEventListener("subscription:updated", handleSubscriptionUpdated);
 
     return () => {
       isMounted = false;
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("auth:updated", handleAuthUpdated);
+      window.removeEventListener("subscription:updated", handleSubscriptionUpdated);
     };
   }, [setUser, user]);
 

@@ -283,7 +283,7 @@ public class CartService {
     public Map<String, Object> prepareCheckout(Long userId) {
         if (userId == null) throw new IllegalArgumentException("Missing userId");
         List<CartItem> items = cartItemRepository.findByIdKorisnikOrderByCreatedAtAsc(userId);
-        if (items == null || items.isEmpty()) throw new IllegalArgumentException("Cart is empty");
+        if (items == null || items.isEmpty()) throw new IllegalArgumentException("Košarica je prazna.");
 
         BigDecimal total = BigDecimal.ZERO;
         for (CartItem item : items) {
@@ -291,14 +291,14 @@ public class CartService {
                 Proizvod p = proizvodRepository.findById(item.getProductId()).orElse(null);
                 if (p == null || Boolean.TRUE.equals(p.getKupljen())) {
                     cartItemRepository.deleteByIdKorisnik(userId);
-                    throw new IllegalArgumentException("Some products are no longer available. Cart cleared.");
+                    throw new IllegalArgumentException("Neki produkti više nisu dostupni. Molimo očistite košaricu.");
                 }
                 total = total.add(item.getPrice() == null ? BigDecimal.ZERO : item.getPrice().multiply(new BigDecimal(item.getQty())));
             } else if (item.getIdRadionica() != null) {
                 Radionica r = radionicaRepository.findById(item.getIdRadionica()).orElse(null);
                 if (r == null || r.getBrSlobMjesta() == null || r.getBrSlobMjesta() <= 0) {
                     cartItemRepository.deleteByIdKorisnik(userId);
-                    throw new IllegalArgumentException("Some workshops are no longer available. Cart cleared.");
+                    throw new IllegalArgumentException("Neki produkti više nisu dostupni. Molimo očistite košaricu.");
                 }
                 total = total.add(item.getPrice() == null ? BigDecimal.ZERO : item.getPrice().multiply(new BigDecimal(item.getQty())));
             }
