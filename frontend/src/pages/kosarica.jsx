@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import { clearCart, getCart, removeCartItem, updateCartItemQty } from "../api/cart";
+import { createCheckoutFromCart } from "../api/checkout";
 import "../styles/kosarica.css";
 
 function formatPrice(price) {
@@ -9,6 +10,27 @@ function formatPrice(price) {
   const n = Number(price);
   if (Number.isNaN(n)) return String(price);
   return `${n.toFixed(2)}€`;
+}
+
+function getItemTitle(it) {
+  if (!it) return "";
+  if (it.title && String(it.title).trim() && String(it.title).trim().toLowerCase() !== 'proizvod') return it.title;
+
+  const meta = it.meta;
+  let metaObj = null;
+  if (meta) {
+    if (typeof meta === 'string') {
+      try { metaObj = JSON.parse(meta); } catch { metaObj = null; }
+    } else if (typeof meta === 'object') metaObj = meta;
+  }
+
+  if (metaObj) {
+    return (
+      metaObj.opisProizvod || metaObj.nazivProizvod || metaObj.title || metaObj.name || metaObj.productName || metaObj.category || it.title || 'Proizvod'
+    );
+  }
+
+  return it.title || 'Proizvod';
 }
 
 export default function Kosarica() {
@@ -26,7 +48,73 @@ export default function Kosarica() {
     try {
       const data = await getCart();
       const arr = Array.isArray(data) ? data : data?.items || [];
-      setItems(Array.isArray(arr) ? arr : []);
+      const normalized = Array.isArray(arr) ? arr : [];
+      setItems(normalized);
+
+      (async function enrich() {
+        if (!normalized || !normalized.length) return;
+        const base = import.meta.env.VITE_API_URL || "";
+
+        async function tryFetchPaths(paths) {
+          for (const p of paths) {
+            try {
+              const res = await fetch(base + p, { credentials: 'include' });
+              if (!res.ok) continue;
+              const body = await res.json();
+              return body?.item || body?.product || body?.workshop || body;
+            } catch (e) { }
+          }
+          return null;
+        }
+
+        let changed = false;
+        const updated = await Promise.all(
+          normalized.map(async (it) => {
+            const copy = { ...it };
+            // if title or price missing, try to fetch
+            if ((!copy.title || copy.title === "" || Number(copy.price || 0) === 0) && copy.productId) {
+              const id = copy.productId;
+              const candidate = await tryFetchPaths([
+                `/api/proizvodi/${id}`,
+                `/api/proizvod/${id}`,
+                `/api/products/${id}`,
+                `/api/product/${id}`,
+              ]);
+              if (candidate) {
+                if (!copy.title) copy.title = candidate.opisProizvod || candidate.nazivProizvod || candidate.title || candidate.naziv || candidate.name || candidate.naslov;
+                if (!copy.price || Number(copy.price) === 0) copy.price = candidate.cijenaProizvod ?? candidate.price ?? candidate.amount ?? copy.price;
+                if (!copy.meta) {
+                  const metaObj = candidate.meta || candidate || null;
+                  if (candidate.kategorijaProizvod && typeof metaObj === 'object') metaObj.category = candidate.kategorijaProizvod;
+                  copy.meta = metaObj;
+                }
+                changed = true;
+              }
+            }
+
+            if ((!copy.title || copy.title === "" || Number(copy.price || 0) === 0) && copy.idRadionica) {
+              const id = copy.idRadionica;
+              const candidate = await tryFetchPaths([
+                `/api/radionica/${id}`,
+                `/api/radionice/${id}`,
+                `/api/workshop/${id}`,
+                `/api/workshops/${id}`,
+              ]);
+              if (candidate) {
+                if (!copy.title) copy.title = candidate.title || candidate.naslov || candidate.name;
+                if (!copy.price || Number(copy.price) === 0) copy.price = candidate.price ?? candidate.cijena ?? copy.price;
+                if (!copy.meta) copy.meta = candidate.meta || candidate || null;
+                changed = true;
+              }
+            }
+
+            return copy;
+          })
+        );
+
+        if (changed) setItems(updated);
+      })();
+
     } catch (e) {
       setErr(e.message || "Greška pri dohvaćanju košarice.");
     } finally {
@@ -83,11 +171,19 @@ export default function Kosarica() {
     setCheckoutLoading(true);
 
     try {
-      await clearCart();
-      setItems([]);
-      setOrderNote("Narudžba je zaprimljena. Plaćanje trenutno nije potrebno.");
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+      const res = await createCheckoutFromCart({ userId });
+      const checkoutId = res?.checkoutId;
+      const total = res?.total;
+      const items = res?.items || [];
+
+      if (!checkoutId) throw new Error("Ne mogu kreirati narudžbu (checkout). Pokušajte ponovno.");
+
+      navigate("/placanje", { state: { mode: "cart", checkoutId, checkout: { checkoutId, total, items } } });
     } catch (e) {
-      alert(e.message || "Ne mogu potvrditi narudžbu.");
+      const msg = e?.message || (e?.body || e?.toString()) || "Ne mogu potvrditi narudžbu.";
+      alert(msg);
+      try { await reload(); } catch (ignored) {}
     } finally {
       setCheckoutLoading(false);
     }
@@ -181,7 +277,7 @@ export default function Kosarica() {
                   {products.map((p) => (
                     <li key={p.id} className="cart-item">
                       <div className="cart-item-main">
-                        <div className="cart-item-title">{p.title}</div>
+                        <div className="cart-item-title">{getItemTitle(p)}</div>
                         {p.meta?.category ? (
                           <div className="cart-item-meta">
                             <span>Kategorija: {p.meta.category}</span>
@@ -208,7 +304,7 @@ export default function Kosarica() {
               </div>
 
               <button className="primary" onClick={onCheckout} disabled={checkoutLoading}>
-                {checkoutLoading ? "Potvrđujem..." : "Potvrdi narudžbu"}
+                {checkoutLoading ? "Pripremam…" : "Idi na plaćanje"}
               </button>
             </section>
           </>

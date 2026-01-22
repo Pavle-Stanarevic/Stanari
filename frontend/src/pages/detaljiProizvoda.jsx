@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiProizvoda.css";
+import { getCart, addCartItem } from "../api/cart";
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -31,6 +32,7 @@ export default function ProductPage() {
   const [error, setError] = useState("");
 
   const [adding, setAdding] = useState(false);
+  const [inCart, setInCart] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -44,6 +46,21 @@ export default function ProductPage() {
         if (!alive) return;
         setProduct(p);
         if (!p) setError("Proizvod nije pronađen.");
+
+        try {
+          const cart = await getCart();
+          const arr = Array.isArray(cart) ? cart : cart?.items || [];
+          const pid = p?.proizvodId ?? p?.idProizvod ?? p?.id;
+          const exists = arr.some((item) => {
+            if (!item) return false;
+            if (item.type && item.type !== "product") return false;
+            if (item.productId != null) return Number(item.productId) === Number(pid);
+            if (item.meta?.productId != null) return Number(item.meta.productId) === Number(pid);
+            if (typeof item.id === "string" && item.id.startsWith("product:")) return Number(item.id.split(":")[1]) === Number(pid);
+            return false;
+          });
+          if (alive) setInCart(Boolean(exists));
+        } catch (e) { }
       } catch (e) {
         if (!alive) return;
         setError(e.message || "Greška.");
@@ -56,12 +73,10 @@ export default function ProductPage() {
     return () => {
       alive = false;
     };
-  }, [proizvodId]);
+  }, [proizvodId, user]);
 
-  const displayName =
-    product?.nazivProizvod || product?.kategorijaProizvod || "Proizvod";
-
-  const productTitle = product?.opisProizvod || displayName;
+  const productTitle = product?.nazivProizvod || product?.title || "Proizvod";
+  const productDesc = product?.opisProizvod || product?.opis || "";
 
   const productIdResolved =
     product?.idProizvod ??
@@ -71,29 +86,41 @@ export default function ProductPage() {
 
   const isPurchased = Boolean(product?.kupljen);
 
-  const onBuyProduct = async () => {
+  const onAddToCart = async () => {
     try {
-      if (!user) throw new Error("Prijavite se da biste mogli kupiti proizvod.");
-      if (user?.userType !== "polaznik")
-        throw new Error("Samo polaznici mogu kupiti proizvod.");
+      if (!user) throw new Error("Prijavite se da biste mogli dodati u košaricu.");
+      if (user?.userType !== "polaznik") throw new Error("Samo polaznici mogu kupiti proizvode.");
       if (!product) return;
 
-      // ID fallback logika (za slučaj da backend vraća različito ime polja)
       const id = productIdResolved;
       if (isPurchased) throw new Error("Proizvod je već kupljen.");
+      if (inCart) return;
+
       const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
       if (!userId) throw new Error("Nedostaje ID korisnika.");
 
       setAdding(true);
-      const updated = await fetchJson(`/api/products/${id}/buy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      setProduct(updated);
-      navigate("/shop");
+
+      const itemPayload = {
+        type: "product",
+        productId: id,
+        title: productTitle,
+        price: Number(product.cijenaProizvod || 0),
+        qty: 1,
+        meta: { productId: id },
+      };
+
+      await addCartItem(itemPayload);
+
+      try {
+        const cart = await getCart();
+        const items = Array.isArray(cart) ? cart : cart?.items || [];
+        window.dispatchEvent(new CustomEvent("cart:updated", { detail: { items } }));
+      } catch (e) { }
+
+      setInCart(true);
     } catch (e) {
-      alert(e.message || "Kupnja nije uspjela.");
+      alert(e.message || "Ne mogu dodati u košaricu.");
     } finally {
       setAdding(false);
     }
@@ -116,13 +143,13 @@ export default function ProductPage() {
             <div className="product-media">
               <img
                 src={product.imageUrl || "/images/placeholder.jpg"}
-                alt={displayName}
+                alt={productTitle}
               />
             </div>
 
             <div className="product-info">
               <h1 className="product-title">{productTitle}</h1>
-              <p className="product-desc-full">{displayName}</p>
+              <p className="product-desc-full">{productDesc}</p>
 
               <div className="pd-rating">
                 <span className="pd-rating-score">
@@ -144,17 +171,19 @@ export default function ProductPage() {
               <div className="product-actions">
                 <button
                   className="btn btn-primary"
-                  onClick={onBuyProduct}
-                  disabled={adding || isPurchased || !user}
+                  onClick={onAddToCart}
+                  disabled={adding || isPurchased || !user || inCart}
                   title={!user ? "Odjavljeni ste" : ""}
                 >
                   {adding
-                    ? "Kupujem..."
+                    ? "Dodajem..."
                     : !user
                     ? "Odjavljeni ste"
                     : isPurchased
                     ? "Kupljeno"
-                    : "Kupi"}
+                    : inCart
+                    ? "U košarici"
+                    : "Dodaj u košaricu"}
                 </button>
               </div>
 

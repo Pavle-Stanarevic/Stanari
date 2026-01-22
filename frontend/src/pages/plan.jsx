@@ -67,17 +67,11 @@ export default function Plan() {
 
   useEffect(() => {
     let isMounted = true;
-    (async () => {
-      const params = new URLSearchParams(window.location.search);
-      const shouldForce = params.get("refreshed");
 
-      if (user && !shouldForce) {
-        console.log("[DEBUG_LOG] Plan.jsx: User already in context, skipping extra me() call.");
-        return;
-      }
+    const refreshUser = async (force = false) => {
       try {
-        console.log("[DEBUG_LOG] Plan.jsx: Fetching fresh user data via me()...");
-        const u = await me(!!shouldForce);
+        console.log("[DEBUG_LOG] Plan.jsx: Fetching fresh user data via me()...", { force });
+        const u = await me(!!force);
         console.log("[DEBUG_LOG] Plan.jsx: User data received:", u);
         if (u && isMounted) {
           setUser(u);
@@ -86,8 +80,14 @@ export default function Plan() {
       } catch (err) {
         console.error("[DEBUG_LOG] Plan.jsx: Error fetching user data", err);
       }
-    })();
-    
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const refreshedFlag = params.get("refreshed");
+    if (!user || refreshedFlag) {
+      refreshUser(!!refreshedFlag);
+    }
+
     const handleStorageChange = (e) => {
       if (e.key === "user" && isMounted) {
         try {
@@ -96,13 +96,28 @@ export default function Plan() {
         } catch {}
       }
     };
-    window.addEventListener("storage", handleStorageChange);
 
-    return () => { 
-      isMounted = false; 
-      window.removeEventListener("storage", handleStorageChange);
+    const handleAuthUpdated = (e) => {
+      const newUser = e?.detail?.user;
+      if (!isMounted) return;
+      if (newUser !== undefined) {
+        setUser(newUser);
+        try {
+          if (newUser) sessionStorage.setItem("user", JSON.stringify(newUser));
+          else sessionStorage.removeItem("user");
+        } catch {}
+      }
     };
-  }, [setUser]);
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("auth:updated", handleAuthUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("auth:updated", handleAuthUpdated);
+    };
+  }, [setUser, user]);
 
   const isOrganizer =
     user?.userType === "organizator" ||
@@ -200,7 +215,7 @@ export default function Plan() {
         billing,
       });
 
-      // data može biti { subscriptionId, ... } ili { id, ... } ovisno o backendu
+
       const subscriptionId = data?.subscriptionId ?? data?.id;
       if (!subscriptionId) throw new Error("Backend nije vratio subscriptionId.");
 

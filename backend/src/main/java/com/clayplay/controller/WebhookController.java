@@ -3,6 +3,8 @@ package com.clayplay.controller;
 import com.clayplay.model.Korisnik;
 import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.service.SubscriptionService;
+import com.clayplay.service.CheckoutStore;
+import com.clayplay.service.CartService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -29,10 +32,14 @@ public class WebhookController {
 
     private final SubscriptionService subscriptionService;
     private final KorisnikRepository korisnikRepository;
+    private final CheckoutStore checkoutStore;
+    private final CartService cartService;
 
-    public WebhookController(SubscriptionService subscriptionService, KorisnikRepository korisnikRepository) {
+    public WebhookController(SubscriptionService subscriptionService, KorisnikRepository korisnikRepository, CheckoutStore checkoutStore, CartService cartService) {
         this.subscriptionService = subscriptionService;
         this.korisnikRepository = korisnikRepository;
+        this.checkoutStore = checkoutStore;
+        this.cartService = cartService;
     }
 
     @PostMapping
@@ -56,6 +63,27 @@ public class WebhookController {
             if (paymentIntent != null) {
                 logger.info("PaymentIntent was successful for amount: {}", paymentIntent.getAmount());
                 handlePaymentSuccess(paymentIntent);
+
+                String checkoutId = null;
+                try {
+                    checkoutId = paymentIntent.getMetadata() == null ? null : paymentIntent.getMetadata().get("checkoutId");
+                } catch (Exception ex) { }
+
+                if (checkoutId != null) {
+                    logger.info("Detected checkoutId in PaymentIntent metadata: {}", checkoutId);
+                    Map<String,Object> prepared = checkoutStore.get(checkoutId);
+                    if (prepared != null) {
+                        try {
+                            cartService.finalizeCheckout(checkoutId, prepared);
+                            checkoutStore.remove(checkoutId);
+                            logger.info("Finalized checkout from webhook: {}", checkoutId);
+                        } catch (Exception e) {
+                            logger.error("Error finalizing checkout {}: {}", checkoutId, e.getMessage());
+                        }
+                    } else {
+                        logger.warn("CheckoutStore has no entry for checkoutId: {}", checkoutId);
+                    }
+                }
             }
         } else {
             logger.info("Received event type: {}", event.getType());

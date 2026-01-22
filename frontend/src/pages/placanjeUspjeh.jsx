@@ -4,6 +4,7 @@ import "../styles/placanjeUspjeh.css";
 import { confirmPaymentSuccess } from "../api/subscriptions";
 import useAuth from "../hooks/useAuth";
 import { me } from "../api/auth";
+import { finalizeCheckout } from "../api/checkout";
 
 function formatBilling(billing) {
   if (!billing) return "";
@@ -24,6 +25,45 @@ export default function PlacanjeUspjeh() {
   const location = useLocation();
   const { setUser } = useAuth();
 
+  // collect state from React router and from URL params (Stripe redirects often lose state)
+  const checkoutState = { ...(location.state || {}) };
+  const urlParams = new URLSearchParams(location.search);
+  const urlMode = urlParams.get("mode") || urlParams.get("checkoutMode") || urlParams.get("type");
+  const urlCheckoutId = urlParams.get("checkoutId") || urlParams.get("checkout_id") || urlParams.get("session_id");
+  const urlPaymentIntent = urlParams.get("payment_intent") || urlParams.get("paymentIntentId");
+  if (!checkoutState.mode && urlMode) checkoutState.mode = urlMode;
+  if (!checkoutState.checkoutId && urlCheckoutId) checkoutState.checkoutId = urlCheckoutId;
+  if (!checkoutState.paymentIntentId && urlPaymentIntent) checkoutState.paymentIntentId = urlPaymentIntent;
+
+  // figure out payment type reliably (router state OR URL OR sessionStorage fallback)
+  let pending = null;
+  try {
+    const raw = sessionStorage.getItem("clayplay_pending_payment");
+    pending = raw ? JSON.parse(raw) : null;
+  } catch {
+    pending = null;
+  }
+
+  const pendingMode = pending?.mode || pending?.checkoutMode || null;
+  const effectiveMode = checkoutState?.mode || urlMode || pendingMode || null;
+
+  const hasCheckoutId = Boolean(checkoutState?.checkoutId) || Boolean(urlCheckoutId) || Boolean(pending?.checkoutId) || Boolean(pending?.checkout?.checkoutId);
+
+  const isCartPayment = effectiveMode === "cart" || hasCheckoutId;
+  const isSubscriptionPayment = !isCartPayment;
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("clayplay_pending_payment");
+      const cur = raw ? JSON.parse(raw) : {};
+      const next = { ...(cur || {}) };
+      if (!next.mode && effectiveMode) next.mode = effectiveMode;
+      if (!next.mode && isCartPayment) next.mode = "cart";
+      if (!next.mode && isSubscriptionPayment) next.mode = "subscription";
+      sessionStorage.setItem("clayplay_pending_payment", JSON.stringify(next));
+    } catch { }
+  }, [effectiveMode, isCartPayment, isSubscriptionPayment]);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const userId = params.get("userId");
@@ -31,23 +71,105 @@ export default function PlacanjeUspjeh() {
     const redirectStatus = params.get("redirect_status");
     const billing = params.get("billing");
 
-    console.log("PlacanjeUspjeh: status=", redirectStatus, "userId=", userId, "PI=", paymentIntentId, "billing=", billing);
-
     let cancelled = false;
 
-    async function handleSuccess() {
-      if (!(redirectStatus === "succeeded" && userId)) return;
+    async function finalizeCartIfNeeded() {
+      if (!isCartPayment) return;
 
-      console.log("[DEBUG_LOG] PlacanjeUspjeh: Succeeded status detected, confirming...");
+      let pending = null;
+      try {
+        const raw = sessionStorage.getItem("clayplay_pending_payment");
+        pending = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        pending = null;
+      }
+
+      const effectiveCheckoutId =
+        checkoutState?.checkoutId || pending?.checkoutId || pending?.checkout?.checkoutId || urlCheckoutId;
+      const effectivePi =
+        checkoutState?.paymentIntentId || pending?.paymentIntentId || paymentIntentId || urlPaymentIntent;
+
+      if (effectiveCheckoutId) {
+        try {
+          await finalizeCheckout({ checkoutId: effectiveCheckoutId });
+          try {
+            window.dispatchEvent(new CustomEvent("cart:updated", { detail: { items: [] } }));
+          } catch (e) {}
+          try {
+            sessionStorage.removeItem("clayplay_pending_payment");
+          } catch (e) {}
+          return;
+        } catch (err) {
+          console.error("finalizeCheckout failed", err);
+        }
+      }
+
+      if (effectivePi) {
+        try {
+          const r = await fetch((import.meta.env.VITE_API_URL || "") + "/api/payments/finalize-by-payment-intent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ paymentIntentId: effectivePi }),
+            credentials: "include",
+          });
+          const body = await r.json().catch(() => ({}));
+          if (r.ok) {
+            console.log("[DEBUG] finalize-by-payment-intent ok", body);
+            try {
+              window.dispatchEvent(new CustomEvent("cart:updated", { detail: { items: [] } }));
+            } catch (e) {}
+            try {
+              sessionStorage.removeItem("clayplay_pending_payment");
+            } catch (e) {}
+            return;
+          }
+          console.warn("[DEBUG] finalize-by-payment-intent failed", body);
+        } catch (err) {
+          console.error("[DEBUG] finalize-by-payment-intent error", err);
+        }
+      }
+
+      try {
+        const resolvedUserId = userId || (await me())?.user?.id || (await me())?.id;
+        if (resolvedUserId) {
+          const fc = await fetch((import.meta.env.VITE_API_URL || "") + "/api/cart/force-clear", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ userId: resolvedUserId }),
+          });
+          const fcBody = await fc.json().catch(() => ({}));
+          if (fc.ok) {
+            console.log("[DEBUG] force-clear ok", fcBody);
+            try {
+              window.dispatchEvent(new CustomEvent("cart:updated", { detail: { items: [] } }));
+            } catch (e) {}
+            try {
+              sessionStorage.removeItem("clayplay_pending_payment");
+            } catch (e) {}
+          } else {
+            console.warn("[DEBUG] force-clear failed", fcBody);
+          }
+        }
+      } catch (err) {
+        console.error("[DEBUG] force-clear error", err);
+      }
+    }
+
+    async function handleSuccess() {
+      if (isCartPayment) {
+        await finalizeCartIfNeeded();
+        return;
+      }
+
+      if (!(redirectStatus === "succeeded" && userId)) return;
 
       try {
         await confirmPaymentSuccess({ userId, paymentIntentId, billing });
-        console.log("[DEBUG_LOG] PlacanjeUspjeh: Payment confirmed successfully.");
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((r) => setTimeout(r, 1000));
 
         const normalize = (raw) => (raw && raw.user) ? raw.user : raw;
-
         const hasSubscription = (usr) => {
           if (!usr) return false;
           const organizator = usr.organizator ?? usr;
@@ -56,25 +178,22 @@ export default function PlacanjeUspjeh() {
             if (Array.isArray(usr.placa) && usr.placa.length > 0) return true;
             if (organizator.subscriptionEnd || organizator.subscription_end) return true;
             if (organizator.pretplata || organizator.subscription || usr.subscription) return true;
-          } catch (e) {
-          }
+          } catch (e) {}
           return false;
         };
 
         let lastFetched = null;
         try {
           const initial = normalize(await me());
-          console.log("[DEBUG_LOG] PlacanjeUspjeh: initial me() returned:", initial);
           lastFetched = initial;
           if (!cancelled && hasSubscription(initial)) {
             setUser(initial);
-            try { sessionStorage.setItem("user", JSON.stringify(initial)); } catch (e) { /* ignore */ }
-            console.log("[DEBUG_LOG] PlacanjeUspjeh: Subscription found on initial fetch, updated auth.");
+            try {
+              sessionStorage.setItem("user", JSON.stringify(initial));
+            } catch (e) {}
             return;
           }
-        } catch (err) {
-          console.error("[DEBUG_LOG] PlacanjeUspjeh: Error on initial me():", err);
-        }
+        } catch (e) { }
 
         const maxAttempts = 8;
         for (let i = 0; i < maxAttempts && !cancelled; i++) {
@@ -82,28 +201,27 @@ export default function PlacanjeUspjeh() {
           try {
             const raw = await me();
             const u = normalize(raw);
-            console.log("[DEBUG_LOG] PlacanjeUspjeh: Poll attempt", i + 1, "me() returned:", u);
             lastFetched = u;
             if (hasSubscription(u)) {
               if (!cancelled) {
                 setUser(u);
-                try { sessionStorage.setItem("user", JSON.stringify(u)); } catch (e) { /* ignore */ }
+                try {
+                  sessionStorage.setItem("user", JSON.stringify(u));
+                } catch (e) {}
               }
-              console.log("[DEBUG_LOG] PlacanjeUspjeh: Subscription detected after polling.");
-              return;
+              break;
             }
-          } catch (err) {
-            console.error("[DEBUG_LOG] PlacanjeUspjeh: Error fetching me during polling:", err);
-          }
+          } catch (e) { }
         }
 
         if (!cancelled && lastFetched) {
           setUser(lastFetched);
-          try { sessionStorage.setItem("user", JSON.stringify(lastFetched)); } catch (e) { /* ignore */ }
-          console.log("[DEBUG_LOG] PlacanjeUspjeh: Updated auth with last fetched user (fallback).", lastFetched);
+          try {
+            sessionStorage.setItem("user", JSON.stringify(lastFetched));
+          } catch (e) {}
         }
       } catch (err) {
-        console.error("[DEBUG_LOG] PlacanjeUspjeh: Error confirming payment:", err);
+        console.error("Error confirming payment:", err);
       }
     }
 
@@ -115,13 +233,10 @@ export default function PlacanjeUspjeh() {
   }, [location, setUser]);
 
   const subscription = location.state?.subscription;
-
   const last4 = location.state?.last4;
-
   const method = location.state?.method;
   const provider = location.state?.provider;
   const transactionId = location.state?.transactionId;
-
   const startAt = location.state?.startAt;
   const endAt = location.state?.endAt;
   const demo = location.state?.demo;
@@ -142,7 +257,7 @@ export default function PlacanjeUspjeh() {
         <h1 className="ps-title">Plaćanje uspješno!</h1>
 
         <p className="ps-text">
-          Pretplata je aktivirana{demo ? " (demo)" : ""}.
+          {isCartPayment ? 'Kupnja je uspješna.' : `Pretplata je aktivirana${demo ? ' (demo)' : ''}.`}
           {methodLabel ? (
             <>
               <br />
@@ -152,43 +267,39 @@ export default function PlacanjeUspjeh() {
           {subscription ? (
             <>
               <br />
-              Plan: <strong>{subscription.title}</strong> — €{Number(subscription.amount).toFixed(2)}/
-              {formatBilling(subscription.billing)}
+              Plan: <strong>{subscription.title}</strong> — €{Number(subscription.amount).toFixed(2)}/{formatBilling(subscription.billing)}
             </>
           ) : null}
           {last4 ? (
             <>
-              <br />
-              Kartica: **** {last4}
+              <br />Kartica: **** {last4}
             </>
           ) : null}
           {transactionId ? (
             <>
-              <br />
-              Transakcija: <strong>{transactionId}</strong>
+              <br />Transakcija: <strong>{transactionId}</strong>
             </>
           ) : null}
           {startAt ? (
             <>
-              <br />
-              Aktivno od: <strong>{fmtDate(startAt)}</strong>
+              <br />Aktivno od: <strong>{fmtDate(startAt)}</strong>
             </>
           ) : null}
           {endAt ? (
             <>
-              <br />
-              Vrijedi do: <strong>{fmtDate(endAt)}</strong>
+              <br />Vrijedi do: <strong>{fmtDate(endAt)}</strong>
             </>
           ) : null}
         </p>
 
         <div className="ps-actions">
-          <button className="ps-btn" onClick={() => navigate("/")}>
-            Povratak na početnu
-          </button>
-          <button className="ps-btn ghost" onClick={() => navigate("/plan")}>
-            Pogledaj planove
-          </button>
+          <button className="ps-btn" onClick={() => navigate("/")}>Natrag na početnu</button>
+
+          {isCartPayment ? (
+            <button className="ps-btn secondary" onClick={() => navigate("/kosarica")}>Natrag na košaricu</button>
+          ) : (
+            <button className="ps-btn secondary" onClick={() => navigate("/plan")}>Pregled planova</button>
+          )}
         </div>
       </div>
     </div>

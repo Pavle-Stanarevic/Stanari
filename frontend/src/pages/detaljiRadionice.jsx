@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { applyToWorkshop, getReservedWorkshopIds, listWorkshops } from "../api/workshops";
-import { getCart } from "../api/cart";
+import { addCartItem, getCart } from "../api/cart";
 import { getOrganizator } from "../api/organisers";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiRadionice.css";
@@ -279,8 +279,8 @@ export default function DetaljiRadionice() {
     const refresh = async () => {
       try {
         const data = await getCart();
-        const items = Array.isArray(data) ? data : data?.items || [];
-        if (alive) setCartItems(Array.isArray(items) ? items : []);
+        const arr = Array.isArray(data) ? data : data?.items || [];
+        if (alive) setCartItems(Array.isArray(arr) ? arr : []);
       } catch {
         if (alive) setCartItems([]);
       }
@@ -288,8 +288,23 @@ export default function DetaljiRadionice() {
 
     refresh();
 
+    const onCartUpdated = (e) => {
+      const items = e?.detail?.items;
+      if (Array.isArray(items)) setCartItems(items);
+      else refresh();
+    };
+
+    const onStorage = (e) => {
+      if (e.key && e.key.startsWith("stanari_cart_v1:")) refresh();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+
     return () => {
       alive = false;
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
     };
   }, [user]);
 
@@ -375,30 +390,38 @@ export default function DetaljiRadionice() {
 
   const onAddToCart = async () => {
     try {
-      if (!user) throw new Error("Prijavite se da biste se mogli prijaviti na radionicu.");
+      if (!user) throw new Error("Prijavite se da biste mogli dodati u košaricu.");
+      if (user?.userType !== "polaznik") throw new Error("Samo polaznici mogu kupiti radionice.");
       if (!workshop) return;
-      if (isFinished) throw new Error("Radionica je završila — više se nije moguće prijaviti.");
-      if (isOwnerOrganizer) throw new Error("Ne možete se prijaviti na vlastitu radionicu.");
-      if (isReserved) throw new Error("Već ste prijavljeni na radionicu.");
-      if (isInCart) throw new Error("Radionica je već u košarici.");
 
-      if (user.userType !== "polaznik") {
-        throw new Error("Samo polaznici se mogu prijaviti na radionicu.");
-      }
+      const id = workshopId;
+      if (isReserved) throw new Error("Već ste prijavljeni na radionicu.");
+      if (isInCart) return;
 
       setAdding(true);
+
       const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
       if (!userId) throw new Error("Nedostaje ID korisnika.");
 
-      await applyToWorkshop(workshop.id, userId);
+      const payload = {
+        type: "workshop",
+        workshopId: id,
+        title: workshop.title || workshop.naslov || `Radionica #${id}`,
+        price: Number(workshop.price || workshop.cijena || 0),
+        qty: 1,
+        meta: { workshopId: id, dateISO: workshop.startDateTime ?? workshop.dateISO }
+      };
 
-      setReservedSet((prev) => {
-        const next = new Set(prev);
-        next.add(Number(workshop.id));
-        return next;
-      });
+      await addCartItem(payload);
+
+      try {
+        const data = await getCart();
+        const arr = Array.isArray(data) ? data : data?.items || [];
+        setCartItems(Array.isArray(arr) ? arr : []);
+        try { window.dispatchEvent(new CustomEvent('cart:updated', { detail: { items: Array.isArray(arr) ? arr : [] } })); } catch (e) {}
+      } catch (e) { }
     } catch (e) {
-      alert(e.message || "Prijava nije uspjela.");
+      alert(e.message || "Ne mogu dodati radionicu u košaricu.");
     } finally {
       setAdding(false);
     }
@@ -517,7 +540,7 @@ export default function DetaljiRadionice() {
                           ? "Prijavljen"
                           : isInCart
                           ? "U košarici"
-                          : "Prijavi se"}
+                          : "Dodaj u košaricu"}
                       </button>
 
                       {/* NEW: show only when polaznik is reserved */}

@@ -66,6 +66,15 @@ export default function PlacanjeKartica() {
         throw new Error("Morate biti prijavljeni.");
       }
 
+      if (mode === "cart") {
+        if (!checkoutId) throw new Error("Nema podataka o checkoutu.");
+        const session = await createStripeCartCheckoutSession({ checkoutId });
+        if (!session?.clientSecret) throw new Error("Backend nije vratio clientSecret.");
+        setClientSecret(session.clientSecret);
+        setPaymentIntentId(session.id);
+        return;
+      }
+
       const amount = mode === "cart" ? checkout?.total : subscription?.amount;
 
       const data = await createPaymentIntent({ 

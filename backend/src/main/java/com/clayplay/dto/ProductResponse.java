@@ -13,4 +13,7 @@ public class ProductResponse {
     public Double organizerAvgRating;
     public Long organizerReviewCount;
     public java.util.List<String> organizerReviewComments;
+
+    public String nazivProizvod;
+    public String title;
 }
