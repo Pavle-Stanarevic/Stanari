@@ -47,6 +47,15 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductResponse> listBySeller(Long sellerId) {
+        if (sellerId == null) return List.of();
+        return proizvodRepository.findByIdKorisnikOrderByProizvodIdDesc(sellerId)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
     public ProductResponse getById(Long id) {
         Proizvod p = proizvodRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Not found"));
         return toDto(p);

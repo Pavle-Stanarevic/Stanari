@@ -48,7 +48,7 @@ const TABS = [
   { key: "upcomingWorkshops", label: "Nadolazeće radionice" },
   { key: "pastExhibitions", label: "Prošle izložbe" },
   { key: "upcomingExhibitions", label: "Buduće izložbe" },
-  { key: "products", label: "Proizvodi" },
+  { key: "products", label: "Svi proizvodi" },
 ];
 
 export default function ProfilOrganizator() {
@@ -109,7 +109,15 @@ export default function ProfilOrganizator() {
         }
 
         if (!alive) return;
-        setListItems(Array.isArray(data) ? data : []);
+
+        const arr = Array.isArray(data) ? data : [];
+        const orgIdNum = organizatorId != null ? Number(organizatorId) : null;
+        const filtered =
+          activeTab === "products" && orgIdNum != null
+            ? arr.filter((p) => Number(p?.idKorisnik ?? p?.organizatorId ?? p?.sellerId) === orgIdNum)
+            : arr;
+
+        setListItems(filtered);
       } catch (e) {
         if (!alive) return;
         setListError(e.message || "Greška pri dohvaćanju popisa");

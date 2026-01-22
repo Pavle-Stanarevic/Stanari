@@ -321,7 +321,10 @@ export default function Profile() {
           const sold = await listSoldItemsBySeller(uid);
 
           if (!alive) return;
-          setActiveProducts(Array.isArray(act) ? act : []);
+          const actArr = Array.isArray(act) ? act : [];
+          const activeOnly = actArr.filter((p) => !Boolean(p?.kupljen));
+
+          setActiveProducts(activeOnly);
           setSoldItems(Array.isArray(sold) ? sold : []);
           setBoughtItems([]);
         } else if (isPolaznik) {

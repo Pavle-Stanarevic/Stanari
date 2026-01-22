@@ -33,7 +33,10 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductResponse> list() {
+    public List<ProductResponse> list(@RequestParam(name = "sellerId", required = false) Long sellerId) {
+        if (sellerId != null) {
+            return products.listBySeller(sellerId);
+        }
         return products.listAll();
     }
 

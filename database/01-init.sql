@@ -167,7 +167,7 @@ CREATE TABLE izlozeni
   FOREIGN KEY (idizlozba) REFERENCES IZLOZBA(idizlozba) ON DELETE CASCADE
 );
 
-CREATE TABLE placa
+CREATE TABLE placanje
 (
   idplacanje BIGINT GENERATED ALWAYS AS IDENTITY,
   datvrpocetakclanarine TIMESTAMPTZ NOT NULL,
