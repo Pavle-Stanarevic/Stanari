@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import "../styles/detaljiProizvoda.css";
 import { getCart, addCartItem } from "../api/cart";
+import API_BASE from "../api/config";
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -42,7 +43,7 @@ export default function ProductPage() {
       setError("");
 
       try {
-        const p = await fetchJson(`/api/products/${proizvodId}`);
+        const p = await fetchJson(`${API_BASE}/api/products/${proizvodId}`);
         if (!alive) return;
         setProduct(p);
         if (!p) setError("Proizvod nije pronađen.");
