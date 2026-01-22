@@ -5,8 +5,8 @@ import "../styles/timOrganizatora.css";
 const API = import.meta.env.VITE_API_URL || "";
 
 function getDisplayName(o) {
-  if (o?.studyName) return o.studyName;
-  return `${o?.firstName || ""} ${o?.lastName || ""}`.trim() || "Organizator";
+  if (o?.firstName && o?.lastName) return o?.firstName + " " + o?.lastName;
+  return `${o?.studyName || ""}`.trim() || "Organizator";
 }
 
 function resolvePhotoUrl(o) {

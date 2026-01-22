@@ -7,7 +7,6 @@ import { PRODUCT_CATEGORIES } from "../data/productCategories";
 import { getCart } from "../api/cart";
 
 
-
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
   const contentType = res.headers.get("content-type") || "";
