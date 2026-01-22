@@ -5,10 +5,14 @@ console.log(`[DEBUG_LOG] auth.js initialized. API URL: "${API}"`);
 
 
 function getCookie(name = "XSRF-TOKEN") {
-  return document.cookie
-    .split("; ")
-    .find(r => r.startsWith(name + "="))
-    ?.split("=")[1];
+  try {
+    const parts = document.cookie.split("; ");
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i].trim();
+      if (p.indexOf(name + "=") === 0) return p.substring((name + "=").length);
+    }
+  } catch { }
+  return undefined;
 }
 
 async function postJsonWithCsrf(path, data) {
@@ -43,6 +47,17 @@ async function postJsonWithCsrf(path, data) {
   } catch (error) {
     console.error(`[DEBUG_LOG] postJsonWithCsrf: FETCH ERROR:`, error);
     throw error;
+  }
+}
+
+function logCorsInfo(res, label) {
+  try {
+    const aco = res.headers.get('access-control-allow-origin');
+    const acac = res.headers.get('access-control-allow-credentials');
+    const aceh = res.headers.get('access-control-expose-headers');
+    console.log(`[DEBUG_LOG] ${label} CORS headers:`, { 'Access-Control-Allow-Origin': aco, 'Access-Control-Allow-Credentials': acac, 'Access-Control-Expose-Headers': aceh });
+  } catch (e) {
+    console.log(`[DEBUG_LOG] ${label} CORS headers: (unavailable)`, e);
   }
 }
 
@@ -125,10 +140,17 @@ export async function login(email, password) {
       credentials: "include",
       body: JSON.stringify({ email, password }),
     });
+    try { logCorsInfo(r, 'login response'); } catch {}
     if (r.ok) {
       const data = await r.json().catch(() => ({}));
+      // detect common token fields and store for Authorization header fallback
+      const token = (data && (data.token || data.accessToken || data.jwt || data.access_token))
+        || (data && data.data && (data.data.token || data.data.accessToken));
+      if (token) {
+        try { sessionStorage.setItem('token', token); console.log('[DEBUG_LOG] login: stored token in sessionStorage'); } catch {}
+      }
       console.log(`[DEBUG_LOG] login: Success. Cookie after login: ${document.cookie}`);
-      return { mode: "jwt", data }; 
+      return { mode: "jwt", data };
     }
     if (r.status !== 404) throw new Error("Invalid credentials");
 
@@ -151,7 +173,11 @@ export async function me(force = false) {
   try {
     const url = `${API}/api/auth/me?t=${Date.now()}${force ? '&f=1' : ''}`;
     console.log(`[DEBUG_LOG] me: Fetching ${url}`);
-    const res = await fetch(url, { credentials: "include" });
+    const token = (() => { try { return sessionStorage.getItem('token'); } catch { return null; } })();
+    const opts = { credentials: "include" };
+    if (token) opts.headers = { Authorization: 'Bearer ' + token };
+    const res = await fetch(url, opts);
+    try { logCorsInfo(res, 'me response'); } catch {}
     console.log(`[DEBUG_LOG] me: Response status: ${res.status}`);
     if (res.status === 401) {
       console.log(`[DEBUG_LOG] me: Not authenticated (401). Cookie: ${document.cookie}`);
@@ -164,7 +190,8 @@ export async function me(force = false) {
     if (res.ok) {
       const data = await res.json().catch(() => null);
       console.log(`[DEBUG_LOG] me: Success (status ${res.status}):`, data);
-      return data?.user ?? data; // ✅ ako backend vrati {user, token}, uzmi user
+      if (data && data.user) return data.user;
+      return data;
     }
     console.log(`[DEBUG_LOG] me: Request failed with status ${res.status}`);
     return null;
