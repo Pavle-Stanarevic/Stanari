@@ -19,6 +19,8 @@ export default function Plan() {
   const { user, setUser, isSubscribed: authIsSubscribed } = useAuth();
 
   const isSubscribed = !!user?.isSubscribed;
+  const organizerStatus = String(user?.organizerStatus || "").toUpperCase();
+  const isRejectedOrganizer = user?.userType === "organizator" && organizerStatus === "REJECTED";
   
   const isSubscribedSession = useMemo(() => {
     try {
@@ -185,6 +187,12 @@ export default function Plan() {
       setLoading(true);
       setError("");
 
+      if (isRejectedOrganizer) {
+        setError("Profil je odbijen. Ne možete aktivirati pretplatu.");
+        setLoading(false);
+        return;
+      }
+
       if (effectiveIsSubscribed) {
         setError("Već imate aktivnu subskripciju.");
         setLoading(false);
@@ -275,7 +283,12 @@ export default function Plan() {
             Povratak na početnu
           </button>
         ) : (
-          <button className="continue-btn" onClick={handleContinue} disabled={loading}>
+          <button
+            className="continue-btn"
+            onClick={handleContinue}
+            disabled={loading || isRejectedOrganizer}
+            title={isRejectedOrganizer ? "Profil je odbijen" : ""}
+          >
             {loading ? "Spremam..." : "Nastavi s plaćanjem"}
           </button>
         )}

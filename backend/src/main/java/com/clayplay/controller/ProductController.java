@@ -136,6 +136,7 @@ public class ProductController {
         try {
             if (userId == null) return ResponseEntity.badRequest().body("Missing userId");
             if (!users.isApprovedOrganizator(userId)) return ResponseEntity.status(403).body("Only approved organizator can create products");
+            if (!users.hasActiveSubscription(userId)) return ResponseEntity.status(403).body("Active subscription is required");
 
             BigDecimal cijena;
             try { cijena = new BigDecimal(cijenaProizvod); } catch (Exception e) { return ResponseEntity.badRequest().body("Invalid price"); }

@@ -7,6 +7,7 @@ import com.clayplay.model.Radionica;
 import com.clayplay.repository.FotoRadRepository;
 import com.clayplay.repository.FotografijaRepository;
 import com.clayplay.repository.OrganizatorRepository;
+import com.clayplay.repository.PlacaRepository;
 import com.clayplay.repository.RadionicaRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -24,17 +25,20 @@ public class WorkshopService {
 
     private final RadionicaRepository radionicaRepository;
     private final OrganizatorRepository organizatorRepository;
+    private final PlacaRepository placaRepository;
     private final FotografijaRepository fotografijaRepository;
     private final FotoRadRepository fotoRadRepository;
     private final FileStorageService fileStorageService;
 
     public WorkshopService(RadionicaRepository radionicaRepository,
                            OrganizatorRepository organizatorRepository,
+                           PlacaRepository placaRepository,
                            FotografijaRepository fotografijaRepository,
                            FotoRadRepository fotoRadRepository,
                            FileStorageService fileStorageService) {
         this.radionicaRepository = radionicaRepository;
         this.organizatorRepository = organizatorRepository;
+        this.placaRepository = placaRepository;
         this.fotografijaRepository = fotografijaRepository;
         this.fotoRadRepository = fotoRadRepository;
         this.fileStorageService = fileStorageService;
@@ -46,6 +50,9 @@ public class WorkshopService {
         if (req.getOrganizerId() == null) throw new IllegalArgumentException("Missing organizerId");
         if (!organizatorRepository.existsByIdKorisnikAndStatusOrganizator(req.getOrganizerId(), "APPROVED")) {
             throw new IllegalArgumentException("Organizer is not approved");
+        }
+        if (placaRepository.findActiveSubscriptions(req.getOrganizerId(), OffsetDateTime.now()).isEmpty()) {
+            throw new IllegalArgumentException("Active subscription is required");
         }
         if (req.getTitle() == null || req.getTitle().isBlank()) throw new IllegalArgumentException("Missing title");
         if (req.getLocation() == null || req.getLocation().isBlank()) throw new IllegalArgumentException("Missing location");

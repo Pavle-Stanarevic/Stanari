@@ -13,7 +13,7 @@ public class Organizator {
     @Column(name = "imestudija")
     private String imeStudija; // nullable in DB, optional here
     @Column(name = "status_organizator", nullable = false)
-    private String statusOrganizator = "APPROVED";
+    private String statusOrganizator = "PENDING";
 
     @OneToOne(optional = false)
     @JoinColumn(name = "idkorisnik", referencedColumnName = "idkorisnik", insertable = false, updatable = false)

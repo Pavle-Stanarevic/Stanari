@@ -103,6 +103,13 @@ export default function OrganizacijaRadionica() {
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
+  const organizerStatus = String(user?.organizerStatus || "").toUpperCase();
+  const isOrganizer = user?.userType === "organizator";
+  const isApprovedOrganizer = isOrganizer && organizerStatus === "APPROVED";
+  const isPendingOrganizer = isOrganizer && organizerStatus === "PENDING";
+  const isRejectedOrganizer = isOrganizer && organizerStatus === "REJECTED";
+  const isSubscribed = !!user?.isSubscribed;
+  const canCreateWorkshop = isOrganizer && isApprovedOrganizer && isSubscribed;
 
   const [form, setForm] = useState({
     title: "",
@@ -137,6 +144,12 @@ export default function OrganizacijaRadionica() {
     setSubmitting(true);
 
     try {
+      if (!canCreateWorkshop) {
+        if (isPendingOrganizer) throw new Error("Čeka se odobrenje admina.");
+        if (isRejectedOrganizer) throw new Error("Profil je odbijen.");
+        if (!isSubscribed) throw new Error("Za objavu radionica potrebna je aktivna pretplata.");
+        throw new Error("Nemate dozvolu za objavu radionice.");
+      }
       const [h, m] = String(form.startTime || "00:00").split(":").map(Number);
       const when = new Date(form.date || new Date());
       when.setHours(h || 0, m || 0, 0, 0);
@@ -185,6 +198,17 @@ export default function OrganizacijaRadionica() {
         <h1>Organiziraj svoju radionicu</h1>
 
         {err ? <div className="error">{err}</div> : null}
+        {!canCreateWorkshop ? (
+          <div className="hint" style={{ marginBottom: 12 }}>
+            {isPendingOrganizer
+              ? "Čeka se odobrenje admina. Dok je profil na čekanju ne možete objavljivati radionice."
+              : isRejectedOrganizer
+              ? "Profil je odbijen."
+              : !isSubscribed
+              ? "Za objavu radionica potrebna je aktivna pretplata."
+              : ""}
+          </div>
+        ) : null}
 
         <section className="form-section">
           <h2>Osnovni podaci radionice</h2>
@@ -291,7 +315,7 @@ export default function OrganizacijaRadionica() {
             </div>
 
             <div className="form-submit">
-              <button type="submit" disabled={submitting}>
+              <button type="submit" disabled={submitting || !canCreateWorkshop}>
                 {submitting ? "Spremam..." : "Potvrdi"}
               </button>
             </div>

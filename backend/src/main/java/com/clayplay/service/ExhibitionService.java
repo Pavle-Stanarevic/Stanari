@@ -7,6 +7,7 @@ import com.clayplay.repository.FotografijaRepository;
 import com.clayplay.repository.IzlozbaRepository;
 import com.clayplay.repository.IzlozeniRepository;
 import com.clayplay.repository.OrganizatorRepository;
+import com.clayplay.repository.PlacaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,17 +22,20 @@ public class ExhibitionService {
 
     private final IzlozbaRepository izlozbaRepository;
     private final OrganizatorRepository organizatorRepository;
+    private final PlacaRepository placaRepository;
     private final FotografijaRepository fotografijaRepository;
     private final IzlozeniRepository izlozeniRepository;
     private final FileStorageService storage;
 
     public ExhibitionService(IzlozbaRepository izlozbaRepository,
                              OrganizatorRepository organizatorRepository,
+                             PlacaRepository placaRepository,
                              FotografijaRepository fotografijaRepository,
                              IzlozeniRepository izlozeniRepository,
                              FileStorageService storage) {
         this.izlozbaRepository = izlozbaRepository;
         this.organizatorRepository = organizatorRepository;
+        this.placaRepository = placaRepository;
         this.fotografijaRepository = fotografijaRepository;
         this.izlozeniRepository = izlozeniRepository;
         this.storage = storage;
@@ -40,8 +44,11 @@ public class ExhibitionService {
     @Transactional
     public Long create(Long organizerId, String title, String location, String description, OffsetDateTime startDateTime, List<MultipartFile> images) {
         if (organizerId == null) throw new IllegalArgumentException("Missing organizerId");
-        if (!organizatorRepository.existsByIdKorisnik(organizerId)) {
-            throw new IllegalArgumentException("Organizer does not exist");
+        if (!organizatorRepository.existsByIdKorisnikAndStatusOrganizator(organizerId, "APPROVED")) {
+            throw new IllegalArgumentException("Organizer is not approved");
+        }
+        if (placaRepository.findActiveSubscriptions(organizerId, OffsetDateTime.now()).isEmpty()) {
+            throw new IllegalArgumentException("Active subscription is required");
         }
         if (title == null || title.isBlank()) throw new IllegalArgumentException("Missing title");
         if (location == null || location.isBlank()) throw new IllegalArgumentException("Missing location");

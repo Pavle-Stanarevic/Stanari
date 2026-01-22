@@ -101,6 +101,12 @@ export default function Izlozbe() {
   const { user } = useAuth();
   const isOrganizer = user?.userType === "organizator";
   const isPolaznik = user?.userType === "polaznik";
+  const organizerStatus = String(user?.organizerStatus || "").toUpperCase();
+  const isApprovedOrganizer = isOrganizer && organizerStatus === "APPROVED";
+  const isPendingOrganizer = isOrganizer && organizerStatus === "PENDING";
+  const isRejectedOrganizer = isOrganizer && organizerStatus === "REJECTED";
+  const isSubscribed = !!user?.isSubscribed;
+  const canCreateExhibition = isOrganizer && isApprovedOrganizer && isSubscribed;
 
   const MAX_IMAGE_MB = 5;
 
@@ -131,10 +137,10 @@ export default function Izlozbe() {
     try {
       const data = await listExhibitions();
       const arr = Array.isArray(data) ? data : [];
-      setItems(arr.length ? arr : PLACEHOLDER_EXHIBITIONS);
+      setItems(arr);
     } catch {
-      setErr("Backend nije dostupan — prikazujem demo izložbe.");
-      setItems(PLACEHOLDER_EXHIBITIONS);
+      setErr("Backend nije dostupan — pokušajte ponovno.");
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -197,6 +203,12 @@ export default function Izlozbe() {
     e.preventDefault();
     try {
       setCreateErr("");
+      if (!canCreateExhibition) {
+        if (isPendingOrganizer) throw new Error("Čeka se odobrenje admina.");
+        if (isRejectedOrganizer) throw new Error("Profil je odbijen.");
+        if (!isSubscribed) throw new Error("Za objavu izložbi potrebna je aktivna pretplata.");
+        throw new Error("Nemate dozvolu za objavu izložbe.");
+      }
       if (!title.trim()) throw new Error("Unesi naziv izložbe.");
       if (!location.trim()) throw new Error("Unesi lokaciju.");
       if (!dateTime) throw new Error("Odaberi datum i vrijeme.");
@@ -258,9 +270,36 @@ export default function Izlozbe() {
           </div>
 
           {isOrganizer && (
-            <button className="exh-newBtn" onClick={() => setFormOpen((p) => !p)} type="button">
-              {formOpen ? "Zatvori" : "+ Nova izložba"}
-            </button>
+            <div style={{ display: "grid", gap: 6 }}>
+              <button
+                className="exh-newBtn"
+                onClick={() => setFormOpen((p) => !p)}
+                type="button"
+                disabled={!canCreateExhibition}
+                title={
+                  isPendingOrganizer
+                    ? "Čeka se odobrenje admina"
+                    : isRejectedOrganizer
+                    ? "Profil je odbijen"
+                    : !isSubscribed
+                    ? "Potrebna je aktivna pretplata"
+                    : ""
+                }
+              >
+                {formOpen ? "Zatvori" : "+ Nova izložba"}
+              </button>
+              {!canCreateExhibition ? (
+                <div className="hint" style={{ margin: 0 }}>
+                  {isPendingOrganizer
+                    ? "Čeka se odobrenje admina."
+                    : isRejectedOrganizer
+                    ? "Profil je odbijen."
+                    : !isSubscribed
+                    ? "Za objavu izložbi potrebna je aktivna pretplata."
+                    : ""}
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
 
@@ -313,7 +352,7 @@ export default function Izlozbe() {
               {createErr && <div className="exh-error">{createErr}</div>}
 
               <div className="exh-formActions">
-                <button className="exh-primary" disabled={creating} type="submit">
+                <button className="exh-primary" disabled={creating || !canCreateExhibition} type="submit">
                   {creating ? "Spremam..." : "Kreiraj izložbu"}
                 </button>
               </div>
