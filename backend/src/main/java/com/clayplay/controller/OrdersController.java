@@ -39,6 +39,7 @@ public class OrdersController {
     public ResponseEntity<?> myOrders(@RequestParam("userId") Long userId) {
         try {
             if (userId == null) return ResponseEntity.badRequest().body("Missing userId");
+            if (userService.isBlocked(userId)) return ResponseEntity.status(403).body("User is blocked");
             if (!userService.isPolaznik(userId)) {
                 return ResponseEntity.status(403).body("Only polaznik can view purchases");
             }
@@ -69,6 +70,7 @@ public class OrdersController {
     public ResponseEntity<?> sales(@RequestParam("sellerId") Long sellerId) {
         try {
             if (sellerId == null) return ResponseEntity.badRequest().body("Missing sellerId");
+            if (userService.isBlocked(sellerId)) return ResponseEntity.status(403).body("User is blocked");
             if (!userService.isOrganizator(sellerId)) {
                 return ResponseEntity.status(403).body("Only organizator can view sales");
             }

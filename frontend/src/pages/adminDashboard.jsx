@@ -334,7 +334,7 @@ export default function AdminDashboard() {
                   <span className={statusBadgeClass(u.status)}>{u.status}</span>
                 </div>
                 <div className="right">
-                  {u.status === "ACTIVE" ? (
+                  {u.role === "ADMIN" ? null : u.status === "ACTIVE" ? (
                     <button
                       className="btn btn-danger"
                       onClick={() => blockUser(u.id)}

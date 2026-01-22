@@ -54,6 +54,14 @@ public class PaymentController {
 
             System.out.println("[DEBUG_LOG] Creating PaymentIntent for userId: " + userId);
 
+            Optional<Korisnik> userOpt = korisnikRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("User not found");
+            }
+            if ("BLOCKED".equalsIgnoreCase(userOpt.get().getStatus())) {
+                return ResponseEntity.status(403).body("User is blocked");
+            }
+
             Long amount;
             if (data.containsKey("amount")) {
                 amount = ((Number) data.get("amount")).longValue();
@@ -73,7 +81,7 @@ public class PaymentController {
                                     .build()
                     )
                     .putMetadata("userId", String.valueOf(userId))
-                    .setReceiptEmail(korisnikRepository.findById(userId).map(Korisnik::getEmail).orElse(null));
+                    .setReceiptEmail(userOpt.map(Korisnik::getEmail).orElse(null));
 
             if (data.containsKey("billing")) {
                 paramsBuilder.putMetadata("billing", (String) data.get("billing"));
@@ -112,6 +120,9 @@ public class PaymentController {
 
             Optional<Korisnik> userOpt = korisnikRepository.findById(userId);
             if (userOpt.isPresent()) {
+                if ("BLOCKED".equalsIgnoreCase(userOpt.get().getStatus())) {
+                    return ResponseEntity.status(403).body("User is blocked");
+                }
                 String billing = (String) data.getOrDefault("billing", "monthly");
                 
                 Optional<Placa> result = subscriptionService.activateSubscription(userId, billing, paymentIntentId);

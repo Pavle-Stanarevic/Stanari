@@ -129,6 +129,13 @@ public class UserService {
         return administratorRepository.existsByIdKorisnik(idKorisnik);
     }
 
+    public boolean isBlocked(Long idKorisnik) {
+        if (idKorisnik == null) return false;
+        return korisnikRepository.findById(idKorisnik)
+                .map(u -> "BLOCKED".equalsIgnoreCase(u.getStatus()))
+                .orElse(false);
+    }
+
     public Optional<Korisnik> findById(Long id) {
         return korisnikRepository.findById(id);
     }

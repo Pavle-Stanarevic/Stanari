@@ -62,7 +62,9 @@ public class AdminController {
             m.put("status", status);
             m.put("createdAt", "—");
             return m;
-        }).collect(Collectors.toList());
+        })
+        .sorted(Comparator.comparing(m -> ((Number) m.get("id")).longValue()))
+        .collect(Collectors.toList());
 
         return ResponseEntity.ok(payload);
     }
