@@ -4,9 +4,12 @@ import com.clayplay.dto.ExhibitionApplicationResponse;
 import com.clayplay.dto.ExhibitionResponse;
 import com.clayplay.model.Izlozba;
 import com.clayplay.model.Komentar;
+import com.clayplay.model.Korisnik;
+import com.clayplay.model.Prijava;
 import com.clayplay.repository.IzlozbaRepository;
 import com.clayplay.repository.KomentarRepository;
 import com.clayplay.repository.PrijavaRepository;
+import com.clayplay.repository.KorisnikRepository;
 import com.clayplay.service.ExhibitionReservationService;
 import com.clayplay.service.ExhibitionService;
 import com.clayplay.service.UserService;
@@ -30,14 +33,16 @@ public class ExhibitionController {
     private final IzlozbaRepository izlozbe;
     private final PrijavaRepository prijave;
     private final UserService users;
+    private final KorisnikRepository korisnici;
 
-    public ExhibitionController(ExhibitionService exhibitions, ExhibitionReservationService reservations, KomentarRepository komentari, IzlozbaRepository izlozbe, PrijavaRepository prijave, UserService users) {
+    public ExhibitionController(ExhibitionService exhibitions, ExhibitionReservationService reservations, KomentarRepository komentari, IzlozbaRepository izlozbe, PrijavaRepository prijave, UserService users, KorisnikRepository korisnici) {
         this.exhibitions = exhibitions;
         this.reservations = reservations;
         this.komentari = komentari;
         this.izlozbe = izlozbe;
         this.prijave = prijave;
         this.users = users;
+        this.korisnici = korisnici;
     }
 
     @GetMapping
@@ -142,8 +147,9 @@ public class ExhibitionController {
                 return ResponseEntity.badRequest().body("Komentar je moguć tek nakon završetka izložbe");
             }
 
-            if (prijave.findByIdKorisnikAndIdIzlozba(userId, exhibitionId).isEmpty()) {
-                return ResponseEntity.status(403).body("Komentar je dopušten samo za izložbe na koje ste se prijavili");
+            Prijava prijava = prijave.findByIdKorisnikAndIdIzlozba(userId, exhibitionId).orElse(null);
+            if (prijava == null || !"accepted".equalsIgnoreCase(prijava.getStatusIzlozba())) {
+                return ResponseEntity.status(403).body("Komentar je dopušten samo za prihvaćene prijave");
             }
 
             if (komentari.existsByIdIzlozbaAndIdKorisnik(exhibitionId, userId)) {
@@ -165,6 +171,89 @@ public class ExhibitionController {
             resp.put("text", saved.getTextKomentar());
             resp.put("userId", saved.getIdKorisnik());
             return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    @GetMapping("/{id}/applications")
+    public ResponseEntity<?> listApplicationsForExhibition(
+            @PathVariable("id") Long exhibitionId,
+            @RequestParam("organizerId") Long organizerId
+    ) {
+        try {
+            if (organizerId == null) return ResponseEntity.badRequest().body("Missing organizerId");
+            if (users.isBlocked(organizerId)) return ResponseEntity.status(403).body("User is blocked");
+
+            Izlozba iz = izlozbe.findById(exhibitionId).orElse(null);
+            if (iz == null) return ResponseEntity.status(404).body("Izložba nije pronađena");
+            if (!organizerId.equals(iz.getIdKorisnik())) {
+                return ResponseEntity.status(403).body("Only organizer can view applications");
+            }
+
+            List<Map<String, Object>> payload = prijave
+                    .findByIdIzlozbaAndStatusIzlozba(exhibitionId, "pending")
+                    .stream()
+                    .map(p -> {
+                        Map<String, Object> m = new HashMap<>();
+                        m.put("applicationId", p.getIdPrijava());
+                        m.put("status", p.getStatusIzlozba());
+                        m.put("userId", p.getIdKorisnik());
+
+                        Korisnik u = korisnici.findById(p.getIdKorisnik()).orElse(null);
+                        if (u != null) {
+                            m.put("email", u.getEmail());
+                            m.put("firstName", u.getIme());
+                            m.put("lastName", u.getPrezime());
+                        }
+                        return m;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(payload);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
+    @PatchMapping("/{exhibitionId}/applications/{applicationId}/decision")
+    public ResponseEntity<?> decideApplication(
+            @PathVariable("exhibitionId") Long exhibitionId,
+            @PathVariable("applicationId") Long applicationId,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        try {
+            if (body == null) return ResponseEntity.badRequest().body("Missing payload");
+            Object organizerRaw = body.get("organizerId");
+            if (organizerRaw == null) return ResponseEntity.badRequest().body("Missing organizerId");
+            Long organizerId = ((Number) organizerRaw).longValue();
+            if (users.isBlocked(organizerId)) return ResponseEntity.status(403).body("User is blocked");
+
+            String decision = body.get("decision") == null ? "" : String.valueOf(body.get("decision")).trim();
+            String status;
+            if ("ACCEPT".equalsIgnoreCase(decision)) {
+                status = "accepted";
+            } else if ("REJECT".equalsIgnoreCase(decision)) {
+                status = "rejected";
+            } else {
+                return ResponseEntity.badRequest().body("Invalid decision");
+            }
+
+            Izlozba iz = izlozbe.findById(exhibitionId).orElse(null);
+            if (iz == null) return ResponseEntity.status(404).body("Izložba nije pronađena");
+            if (!organizerId.equals(iz.getIdKorisnik())) {
+                return ResponseEntity.status(403).body("Only organizer can decide applications");
+            }
+
+            Prijava p = prijave.findByIdPrijavaAndIdIzlozba(applicationId, exhibitionId).orElse(null);
+            if (p == null) return ResponseEntity.status(404).body("Prijava nije pronađena");
+            if (!"pending".equalsIgnoreCase(p.getStatusIzlozba())) {
+                return ResponseEntity.status(409).body("Decision already made");
+            }
+
+            p.setStatusIzlozba(status);
+            prijave.save(p);
+            return ResponseEntity.ok(Map.of("status", status));
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Server error");
         }

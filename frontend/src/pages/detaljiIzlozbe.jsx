@@ -243,12 +243,11 @@ export default function DetaljiIzlozbe() {
     };
   }, [exhId]);
 
-  const canComment = Boolean(isPast && (reserved || appStatus) && userId);
+  const canComment = Boolean(isPast && normStatus(appStatus) === "accepted" && userId);
 
   const onSubmitComment = async (e) => {
     e.preventDefault();
     if (!canComment) {
-      setCommentError("Komentar je moguć tek nakon završetka izložbe i ako ste se prijavili.");
       return;
     }
 
@@ -415,7 +414,9 @@ export default function DetaljiIzlozbe() {
                         if (isOrganizer) return "Vaša izložba";
                         if (isPast) return "Izložba završena";
                         if (normStatus(appStatus) === "rejected") return "Odbijeni ste";
-                        if (appStatus === "pending" || reserved) return "Prijava se obrađuje";
+                        if (normStatus(appStatus) === "accepted") return "Prijavljen";
+                        if (appStatus === "pending") return "Prijava se obrađuje";
+                        if (reserved) return "Prijavljen";
                         if (applying) return "Prijavljujem...";
                         return "Prijava";
                       })()}
@@ -575,26 +576,23 @@ export default function DetaljiIzlozbe() {
             <section className="ed-comments">
               <h2 className="ed-comments-title">Komentari</h2>
 
-              <form className="ed-commentForm" onSubmit={onSubmitComment}>
-                <textarea
-                  className="ed-commentInput"
-                  rows={3}
-                  placeholder="Napišite komentar..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  disabled={!canComment}
-                />
-                {commentError ? <div className="ed-comments-error">{commentError}</div> : null}
-                <button className="ed-commentBtn" type="submit" disabled={commentPosting}>
-                  {commentPosting ? "Spremam..." : "Objavi komentar"}
-                </button>
-              </form>
-
-              {!canComment && (
-                <div className="ed-comments-info">
-                  Komentar je moguć tek nakon završetka izložbe i ako ste se prijavili.
-                </div>
+              {canComment && (
+                <form className="ed-commentForm" onSubmit={onSubmitComment}>
+                  <textarea
+                    className="ed-commentInput"
+                    rows={3}
+                    placeholder="Napišite komentar..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                  />
+                  {commentError ? <div className="ed-comments-error">{commentError}</div> : null}
+                  <button className="ed-commentBtn" type="submit" disabled={commentPosting}>
+                    {commentPosting ? "Spremam..." : "Objavi komentar"}
+                  </button>
+                </form>
               )}
+
+              {/* Removed info message for non-eligible commenters */}
 
               {commentsLoading && <div className="ed-comments-info">Učitavanje komentara…</div>}
               {!commentsLoading && commentsError && (
