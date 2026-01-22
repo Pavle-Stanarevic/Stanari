@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { applyToWorkshop, getReservedWorkshopIds, listWorkshops } from "../api/workshops";
+import { applyToWorkshop, cancelWorkshop, getReservedWorkshopIds, listWorkshops } from "../api/workshops";
 import { addCartItem, getCart } from "../api/cart";
 import { getOrganizator } from "../api/organisers";
 import useAuth from "../hooks/useAuth";
@@ -151,7 +151,6 @@ async function uploadExtraPhotos(workshopId, files) {
     const data = await res.json().catch(() => null);
     if (Array.isArray(data)) {
       return data
-        .map((x) => (typeof x === "string" ? x : x?.url ?? x?.imageUrl ?? null))
         .map(resolvePhotoUrl)
         .filter(Boolean);
     }
@@ -185,6 +184,9 @@ export default function DetaljiRadionice() {
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState("");
   const fileRef = useRef(null);
+
+  const [canceling, setCanceling] = useState(false);
+  const [cancelMsg, setCancelMsg] = useState("");
 
 
   useEffect(() => {
@@ -460,7 +462,6 @@ export default function DetaljiRadionice() {
     }
   };
 
-
   /* ---------- calendar url (only useful when reserved + upcoming) ---------- */
   const calendarUrl = useMemo(() => {
     if (!workshop) return null;
@@ -482,6 +483,69 @@ export default function DetaljiRadionice() {
 
     return buildGoogleCalendarUrl({ title, details, location, start, end });
   }, [workshop]);
+
+  const workshopStart = useMemo(() => {
+    const iso = getWorkshopISO(workshop);
+    if (!iso) return null;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }, [workshop]);
+
+  const canCancel48h = useMemo(() => {
+    if (!polaznik) return false;
+    if (!workshopStart) return false;
+    const diffMs = workshopStart.getTime() - Date.now();
+    return diffMs >= 48 * 60 * 60 * 1000;
+  }, [polaznik, workshopStart]);
+
+  const refreshReserved = async () => {
+    if (!user || user?.userType !== "polaznik") return;
+    const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+    if (userId == null) return;
+    try {
+      const ids = await getReservedWorkshopIds(userId);
+      setReservedSet(new Set(Array.isArray(ids) ? ids.map((x) => Number(x)) : []));
+    } catch {
+      setReservedSet(new Set());
+    }
+  };
+
+  const refreshWorkshop = async () => {
+    try {
+      const data = await listWorkshops();
+      const arr = Array.isArray(data) ? data : [];
+      const found = arr.find((w) => Number(w?.id) === Number(workshopId)) || null;
+      if (found) setWorkshop(found);
+    } catch { }
+  };
+
+  const onCancelReservation = async () => {
+    try {
+      if (!user) throw new Error("Za odjavu morate biti prijavljeni.");
+      if (user?.userType !== "polaznik") throw new Error("Samo polaznici se mogu odjaviti.");
+      if (!isReserved) throw new Error("Niste prijavljeni na ovu radionicu.");
+      if (!canCancel48h) {
+        throw new Error("Odjava je moguća najkasnije 48h prije početka radionice.");
+      }
+
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId;
+      if (userId == null) throw new Error("Nedostaje userId.");
+
+      setCanceling(true);
+      setCancelMsg("");
+
+      await cancelWorkshop(workshopId, userId);
+
+      await refreshReserved();
+      await refreshWorkshop();
+
+      setCancelMsg("Uspješno ste odjavljeni. Refundacija će stići na vaš račun unutar 48h.");
+    } catch (e) {
+      alert(e?.message || "Ne mogu odjaviti s radionice.");
+    } finally {
+      setCanceling(false);
+    }
+  };
 
   return (
     <div className="wd-page">
@@ -543,7 +607,19 @@ export default function DetaljiRadionice() {
                           : "Dodaj u košaricu"}
                       </button>
 
-                      {/* NEW: show only when polaznik is reserved */}
+                      {/* Odjava */}
+                      {polaznik && isReserved ? (
+                        <button
+                          className="wd-primary"
+                          style={{ background: "#fff", color: "#111", border: "1px solid rgba(0,0,0,0.2)" }}
+                          disabled={canceling || !canCancel48h}
+                          onClick={onCancelReservation}
+                          title={!canCancel48h ? "Odjava je moguća najkasnije 48h prije početka." : ""}
+                        >
+                          {canceling ? "Odjavljujem..." : "Odjavi"}
+                        </button>
+                      ) : null}
+
                       {polaznik && isReserved && calendarUrl ? (
                         <a
                           className="wd-calendarBtn"
@@ -561,6 +637,21 @@ export default function DetaljiRadionice() {
                   )}
                 </div>
               </div>
+
+              {cancelMsg ? (
+                <div
+                  className="wd-muted"
+                  style={{
+                    marginTop: 10,
+                    textAlign: "right",
+                    fontSize: 12,
+                    lineHeight: 1.25,
+                    opacity: 0.85,
+                  }}
+                >
+                  {cancelMsg}
+                </div>
+              ) : null}
 
               <div className="wd-orgRow">
                 <span className="wd-orgLabel">Organizator:</span>{" "}

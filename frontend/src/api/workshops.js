@@ -39,6 +39,10 @@ export function cancelWorkshop(id, userId) {
   return http(`/api/workshops/${id}/cancel`, { method: "POST", body: { userId } });
 }
 
+export function unsubscribeFromWorkshop(id, userId) {
+  return cancelWorkshop(id, userId);
+}
+
 export function getReservedWorkshopIds(userId) {
   const url = `/api/workshops/reserved?userId=${encodeURIComponent(userId)}`;
   return http(url);

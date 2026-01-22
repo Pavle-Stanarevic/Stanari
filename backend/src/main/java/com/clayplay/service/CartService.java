@@ -258,7 +258,9 @@ public class CartService {
                         cartItemRepository.deleteByIdKorisnik(userId);
                         throw new IllegalArgumentException("Nema slobodnih mjesta za radionicu: " + wid);
                     }
-                    if (!rezervacijaRepository.existsByIdKorisnikAndIdRadionica(userId, wid)) {
+
+                    Optional<Rezervacija> existingRez = rezervacijaRepository.findByIdKorisnikAndIdRadionica(userId, wid);
+                    if (existingRez.isEmpty()) {
                         Rezervacija rez = new Rezervacija();
                         rez.setIdKorisnik(userId);
                         rez.setIdRadionica(wid);
@@ -266,6 +268,14 @@ public class CartService {
                         rezervacijaRepository.save(rez);
                         r.setBrSlobMjesta(r.getBrSlobMjesta() - 1);
                         radionicaRepository.save(r);
+                    } else {
+                        Rezervacija rez = existingRez.get();
+                        if (!"reserved".equalsIgnoreCase(rez.getStatusRez())) {
+                            rez.setStatusRez("reserved");
+                            rezervacijaRepository.save(rez);
+                            r.setBrSlobMjesta(r.getBrSlobMjesta() - 1);
+                            radionicaRepository.save(r);
+                        }
                     }
                 }
             } catch (IllegalArgumentException e) {
@@ -329,15 +339,24 @@ public class CartService {
         Long userId = payload.get("userId") instanceof Number ? ((Number) payload.get("userId")).longValue() : null;
         if (userId == null) throw new IllegalArgumentException("Missing userId in payload");
 
-        List<CartItem> items = cartItemRepository.findByIdKorisnikOrderByCreatedAtAsc(userId);
-        if (items == null || items.isEmpty()) return;
+        List<Map<String, Object>> snapshotItems = null;
+        try {
+            if (payload.get("items") instanceof List) {
+                snapshotItems = (List<Map<String, Object>>) payload.get("items");
+            }
+        } catch (ClassCastException ignored) {
+            snapshotItems = null;
+        }
+        if (snapshotItems == null || snapshotItems.isEmpty()) return;
 
-        for (CartItem item : items) {
-            if (item.getProductId() != null) {
-                Long prodId = item.getProductId();
-                Proizvod p = proizvodRepository.findById(prodId).orElseThrow(() -> new IllegalArgumentException("Proizvod ne postoji: " + prodId));
+        for (Map<String, Object> snap : snapshotItems) {
+            Long prodId = snap.get("productId") instanceof Number ? ((Number) snap.get("productId")).longValue() : null;
+            Long wid = snap.get("idRadionica") instanceof Number ? ((Number) snap.get("idRadionica")).longValue() : null;
+
+            if (prodId != null) {
+                Proizvod p = proizvodRepository.findById(prodId)
+                        .orElseThrow(() -> new IllegalArgumentException("Proizvod ne postoji: " + prodId));
                 if (Boolean.TRUE.equals(p.getKupljen())) {
-                    cartItemRepository.deleteByIdKorisnik(userId);
                     throw new IllegalArgumentException("Proizvod je već kupljen: " + prodId);
                 }
                 Kupovina kup = new Kupovina();
@@ -346,19 +365,30 @@ public class CartService {
                 kupovinaRepository.save(kup);
                 p.setKupljen(true);
                 proizvodRepository.save(p);
-            } else if (item.getIdRadionica() != null) {
-                Long wid = item.getIdRadionica();
-                Radionica r = radionicaRepository.findById(wid).orElseThrow(() -> new IllegalArgumentException("Radionica ne postoji: " + wid));
+                continue;
+            }
+
+            if (wid != null) {
+                Radionica r = radionicaRepository.findById(wid)
+                        .orElseThrow(() -> new IllegalArgumentException("Radionica ne postoji: " + wid));
                 if (r.getBrSlobMjesta() == null || r.getBrSlobMjesta() <= 0) {
-                    cartItemRepository.deleteByIdKorisnik(userId);
                     throw new IllegalArgumentException("Radionica nema slobodnih mjesta: " + wid);
                 }
-                Rezervacija rez = new Rezervacija();
-                rez.setIdKorisnik(userId);
-                rez.setIdRadionica(wid);
-                rezervacijaRepository.save(rez);
-                r.setBrSlobMjesta(r.getBrSlobMjesta() - 1);
-                radionicaRepository.save(r);
+
+                Optional<Rezervacija> existingRez = rezervacijaRepository.findByIdKorisnikAndIdRadionica(userId, wid);
+                if (existingRez.isEmpty()) {
+                    Rezervacija rez = new Rezervacija();
+                    rez.setIdKorisnik(userId);
+                    rez.setIdRadionica(wid);
+                    rez.setStatusRez("reserved");
+                    rezervacijaRepository.save(rez);
+                } else {
+                    Rezervacija rez = existingRez.get();
+                    if (!"reserved".equalsIgnoreCase(rez.getStatusRez())) {
+                        rez.setStatusRez("reserved");
+                        rezervacijaRepository.save(rez);
+                    }
+                }
             }
         }
 
