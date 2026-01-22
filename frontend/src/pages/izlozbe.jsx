@@ -446,16 +446,8 @@ export default function Izlozbe() {
                         }
                       >
                         {!user
-                          ? "Odjavljeni ste"
-                          : isOwner
-                          ? "Vaša izložba"
-                          : tab === "past"
-                          ? "Izložba završena"
-                          : status === "pending"
-                          ? "Prijava se obrađuje"
-                          : isReserved
-                          ? "Detalji (već prijavljen/a)"
-                          : "Prijava"}
+                          ? "Detalji"
+                          : "Detalji"}
                       </button>
                     )}
                   </div>
