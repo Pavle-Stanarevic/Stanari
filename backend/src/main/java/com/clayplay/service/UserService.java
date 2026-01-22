@@ -208,4 +208,20 @@ public class UserService {
                 .map(Fotografija::getFotoURL)
                 .orElse(null);
     }
+
+    @Transactional(readOnly = true)
+    public Optional<Polaznik> findPolaznik(Long idKorisnik) {
+        if (idKorisnik == null) return Optional.empty();
+        return polaznikRepository.findByIdKorisnik(idKorisnik);
+    }
+
+    @Transactional
+    public boolean setPolaznikZeliObavijesti(Long idKorisnik, boolean enabled) {
+        if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");
+        Polaznik p = polaznikRepository.findByIdKorisnik(idKorisnik)
+                .orElseThrow(() -> new IllegalArgumentException("Polaznik not found"));
+        p.setZeliObavijesti(enabled);
+        polaznikRepository.save(p);
+        return p.isZeliObavijesti();
+    }
 }

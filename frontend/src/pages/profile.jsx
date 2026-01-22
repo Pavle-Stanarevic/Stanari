@@ -8,6 +8,8 @@ import { updateProfile, me } from "../api/auth.js";
 import { listWorkshops, getReservedWorkshopIds } from "../api/workshops.js";
 import { listExhibitions, getReservedExhibitionIds } from "../api/exhibitions.js";
 
+import { setNotificationsPreference } from "../api/notifications.js";
+
 // ✅ NOVO (dodaješ fajlove ispod)
 import { listProductsBySeller, listSoldItemsBySeller, createProductReview } from "../api/products.js";
 import { listMyPurchasedItems } from "../api/orders.js";
@@ -148,12 +150,9 @@ export default function Profile() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
 
-  // promjena lozinke
-  const [pwCurrent, setPwCurrent] = useState("");
-  const [pwNew, setPwNew] = useState("");
-  const [pwRepeat, setPwRepeat] = useState("");
-  const [pwSaving, setPwSaving] = useState(false);
-  const [pwMsg, setPwMsg] = useState("");
+  // ✅ obavijesti (polaznik)
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifMsg, setNotifMsg] = useState("");
 
   // ✅ MOJE (radionice + izložbe)
   const [myLoading, setMyLoading] = useState(false);
@@ -189,6 +188,7 @@ export default function Profile() {
   const isPolaznik = userType === "polaznik";
   const isAdmin = userType === "admin";
   const isSubscribed = !!safeUser?.isSubscribed;
+  const zeliObavijesti = !!safeUser?.zeliObavijesti;
 
   // admin redirect
   useEffect(() => {
@@ -539,57 +539,19 @@ export default function Profile() {
     }
   };
 
-  const handleChangePassword = async () => {
-    if (!safeUser?.id) {
-      setPwMsg("Niste prijavljeni ili nedostaje ID korisnika.");
-      return;
-    }
-
-    setPwMsg("");
-
-    if (!pwCurrent || !pwNew || !pwRepeat) {
-      setPwMsg("Popunite sva polja za lozinku.");
-      return;
-    }
-    if (pwNew !== pwRepeat) {
-      setPwMsg("Nova lozinka i potvrda se ne podudaraju.");
-      return;
-    }
-    if (!isStrongEnoughPassword(pwNew)) {
-      setPwMsg("Nova lozinka mora imati barem 8 znakova.");
-      return;
-    }
-
-    setPwSaving(true);
-
+  const handleToggleNotifications = async () => {
+    if (!safeUser?.id) return;
+    setNotifSaving(true);
+    setNotifMsg("");
     try {
-      const csrf = getCookie();
-      const res = await fetch(`${API}/api/users/${safeUser.id}/password`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrf ? { "X-XSRF-TOKEN": csrf } : {}),
-        },
-        body: JSON.stringify({
-          currentPassword: pwCurrent,
-          newPassword: pwNew,
-        }),
-      });
-
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(t || `HTTP ${res.status}`);
-      }
-
-      setPwMsg("Lozinka je uspješno promijenjena.");
-      setPwCurrent("");
-      setPwNew("");
-      setPwRepeat("");
+      const updatedUser = await setNotificationsPreference(safeUser.id, !zeliObavijesti);
+      setLocalUser(updatedUser);
+      signIn(updatedUser);
+      setNotifMsg(!zeliObavijesti ? "Pretplaćeni ste na obavijesti." : "Više ne dobivate obavijesti.");
     } catch (e) {
-      setPwMsg(e?.message || "Neuspješna promjena lozinke.");
+      setNotifMsg(e?.message || "Neuspješno - pokušajte ponovno.");
     } finally {
-      setPwSaving(false);
+      setNotifSaving(false);
     }
   };
 
@@ -609,7 +571,7 @@ export default function Profile() {
     : "Moje prijave i kupnje";
 
   return (
-    <div>
+    <div className="profile-page">
       <h1 className="naslov">Vaš profil</h1>
 
       <div className="container-profile">
@@ -760,25 +722,49 @@ export default function Profile() {
 
         <div className="divider" />
 
-        {/* ===== PROMJENA LOZINKE ===== */}
-        <div className="password-box">
-          <p className="section-title">Promjena lozinke</p>
+        {/* ===== OBAVIJESTI (samo za polaznike) ===== */}
+        {!isOrganizator && isPolaznik && (
+          <section
+            className="profile-card"
+            style={{ gridColumn: "1 / -1", maxWidth: "100%" }}
+          >
+            <h3>Obavijesti</h3>
+            <p style={{ marginTop: 0, color: "#666" }}>
+              Pretplati se na obavijesti o novim radionicama i proizvodima.
+            </p>
 
-          <label className="pw-label">Trenutna lozinka</label>
-          <input className="edit-input" type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} disabled={pwSaving} />
+            <button
+              className="primary"
+              onClick={handleToggleNotifications}
+              disabled={notifSaving}
+              type="button"
+              style={
+                zeliObavijesti
+                  ? {
+                      background: "#fff",
+                      color: "#000",
+                      border: "1px solid #000",
+                      padding: "8px 14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      whiteSpace: "nowrap",
+                    }
+                  : {
+                      padding: "8px 14px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      whiteSpace: "nowrap",
+                    }
+              }
+            >
+              {zeliObavijesti ? "Prestani dobivati obavijesti" : "Pretplati me na obavijesti"}
+            </button>
 
-          <label className="pw-label">Nova lozinka</label>
-          <input className="edit-input" type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} disabled={pwSaving} />
-
-          <label className="pw-label">Ponovi novu lozinku</label>
-          <input className="edit-input" type="password" value={pwRepeat} onChange={(e) => setPwRepeat(e.target.value)} disabled={pwSaving} />
-
-          <button className="btn-primary" type="button" onClick={handleChangePassword} disabled={pwSaving}>
-            {pwSaving ? "Spremanje..." : "Promijeni lozinku"}
-          </button>
-
-          {pwMsg && <p className={pwMsg.includes("uspješno") ? "success" : "error"}>{pwMsg}</p>}
-        </div>
+            {!!notifMsg && <div className="helper-text">{notifMsg}</div>}
+          </section>
+        )}
 
         {/* ===== MOJE (isti UI, drugačiji naslov + data) ===== */}
         {(isPolaznik || isOrganizator) && (

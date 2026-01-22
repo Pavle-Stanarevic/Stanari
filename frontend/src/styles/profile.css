@@ -561,3 +561,17 @@ p.value {
   color: #fff;
   border-color: #111827;
 }
+
+.profile-card {
+  grid-column: 1 / -1;
+  max-width: 100%;
+}
+
+.profile-card p {
+  border-bottom: none;
+  padding: 0;
+}
+
+.helper-text {
+  margin-top: 8px;
+}

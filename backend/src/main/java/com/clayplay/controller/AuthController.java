@@ -312,7 +312,7 @@ public class AuthController {
         List<Placa> activeSubs = placaRepository.findActiveSubscriptions(u.getIdKorisnik(), OffsetDateTime.now());
         boolean isSubscribed = !activeSubs.isEmpty();
         userMap.put("isSubscribed", isSubscribed);
-        
+
         if (isSubscribed) {
             userMap.put("subscriptionEndDate", activeSubs.get(0).getDatvrKrajClanarine());
         } else {
@@ -327,6 +327,11 @@ public class AuthController {
         String role = isAdmin ? "ADMIN" : isOrg ? "ORGANIZATOR" : "POLAZNIK";
         userMap.put("role", role);
         userMap.put("userType", isAdmin ? "admin" : isOrg ? "organizator" : "polaznik");
+
+        if (!isAdmin && !isOrg) {
+            userService.findPolaznik(u.getIdKorisnik())
+                    .ifPresent(p -> userMap.put("zeliObavijesti", p.isZeliObavijesti()));
+        }
 
         if (isOrg) {
             Organizator org = organizatorRepository.findById(u.getIdKorisnik()).orElse(null);

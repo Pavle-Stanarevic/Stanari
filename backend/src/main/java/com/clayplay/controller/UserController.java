@@ -3,6 +3,7 @@ package com.clayplay.controller;
 import com.clayplay.dto.ProfileUpdateRequest;
 import com.clayplay.model.Korisnik;
 import com.clayplay.model.Organizator;
+import com.clayplay.model.Polaznik;
 import com.clayplay.model.Placa;
 import com.clayplay.repository.OrganizatorRepository;
 import com.clayplay.repository.PlacaRepository;
@@ -72,6 +73,34 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PatchMapping("/{id}/notifications")
+    public ResponseEntity<?> setNotifications(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, Object> body
+    ) {
+        try {
+            if (userService.isBlocked(id)) return ResponseEntity.status(403).body("User is blocked");
+            if (!userService.isPolaznik(id)) return ResponseEntity.status(403).body("Only polaznik can change notifications");
+
+            boolean enabled = false;
+            if (body != null && body.get("enabled") != null) {
+                enabled = Boolean.TRUE.equals(body.get("enabled")) || "true".equalsIgnoreCase(String.valueOf(body.get("enabled")));
+            } else {
+                return ResponseEntity.badRequest().body("Missing enabled");
+            }
+
+            userService.setPolaznikZeliObavijesti(id, enabled);
+            Korisnik updated = userService.findById(id).orElse(null);
+            if (updated == null) return ResponseEntity.status(404).body("User not found");
+
+            return ResponseEntity.ok(buildUserMap(updated));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Server error");
+        }
+    }
+
     private Map<String, Object> buildUserMap(Korisnik updated) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("id", updated.getIdKorisnik());
@@ -82,7 +111,7 @@ public class UserController {
         List<Placa> activeSubs = placaRepository.findActiveSubscriptions(updated.getIdKorisnik(), OffsetDateTime.now());
         boolean isSubscribed = !activeSubs.isEmpty();
         userMap.put("isSubscribed", isSubscribed);
-        
+
         if (isSubscribed) {
             userMap.put("subscriptionEndDate", activeSubs.get(0).getDatvrKrajClanarine());
         } else {
@@ -102,7 +131,11 @@ public class UserController {
                     .map(Organizator::getImeStudija)
                     .orElse(null);
             userMap.put("studyName", orgStudyName);
+        } else {
+            userService.findPolaznik(updated.getIdKorisnik())
+                    .ifPresent(p -> userMap.put("zeliObavijesti", p.isZeliObavijesti()));
         }
+
         return userMap;
     }
 }
