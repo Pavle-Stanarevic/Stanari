@@ -66,6 +66,13 @@ export default function Header() {
     ? [...NAV_ITEMS, { label: "Pretplata", to: "/plan" }]
     : NAV_ITEMS;
 
+    const isAdmin =
+      isAuthenticated &&
+      (user?.userType === "ADMIN" || !user?.firstName);
+
+    const displayName = isAdmin ? "Admin" : user?.firstName;
+
+
   return (
     <>
       <header className="header">
@@ -114,7 +121,7 @@ export default function Header() {
             {isAuthenticated && user ? (
               <>
                 <Link to="/profile" className="sign-btn">
-                  {user.firstName}
+                  {displayName}
                 </Link>
                 <button className="sign-btn" onClick={handleLogout}>
                   Logout
