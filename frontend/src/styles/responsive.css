@@ -1,0 +1,51 @@
+/* SAMO MOBILE RESPONSIVE FIXES */
+
+@media (max-width: 600px) {
+
+  /* ništa ne smije bježati van ekrana */
+  * {
+    max-width: 100%;
+  }
+
+  img, video, iframe {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* gridovi → 1 stupac */
+  .grid,
+  .products,
+  .grid-karte,
+  .ed-grid,
+  .wd-gallery,
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* flex → kolona */
+  .row,
+  .filters-inner,
+  .toolbar,
+  .actions,
+  .header-inner,
+  .footer-inner {
+    flex-direction: column !important;
+    gap: 10px;
+  }
+
+  /* gumbi i forme */
+  button,
+  .btn,
+  input,
+  select,
+  textarea {
+    width: 100% !important;
+  }
+
+  /* tablice */
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+}

@@ -1,16 +1,59 @@
+/* App.css - NE koristi #root kao container za cijeli layout (to ruši full screen izgled) */
+
 #root {
-  font-family:Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  /* ostavi tvoj font */
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+
+  /* root uvijek full width */
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+
+  /* ne centriraj sav tekst globalno */
+  text-align: initial;
+
   background: #f3f4f6;
 }
 
+/* Ako želiš da većina stranica bude “u centru” kao container,
+   centriraj konkretne wrapere (iz tvog projekta) */
+.page-bg,
+.container,
+.shop-page,
+.product-page,
+.org-wrap,
+.ed-wrap,
+.wd-wrap,
+.admin-wrap,
+.container-profile {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ostavi ostalo */
 .card {
   padding: 2em;
 }
 
 .read-the-docs {
   color: #888;
+}
+
+/* MOBITEL */
+@media (max-width: 600px) {
+  .page-bg,
+  .container,
+  .shop-page,
+  .product-page,
+  .org-wrap,
+  .ed-wrap,
+  .wd-wrap,
+  .admin-wrap,
+  .container-profile {
+    max-width: 100%;
+    margin: 0;
+    padding: 1rem;
+  }
 }

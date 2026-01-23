@@ -154,3 +154,134 @@ button.sign-btn {
   background: #e0f2fe;
   color: #075985;
 }
+
+/* ===== MOBILE ONLY FIX (ne dira desktop) ===== */
+@media (max-width: 768px) {
+  .header {
+    /* pusti da raste, ne forsiraj visinu */
+    height: auto !important;
+
+    /* složi u kolonu */
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    /* manji padding da stane više */
+    padding: 12px 12px !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+
+    gap: 10px !important;
+  }
+
+  /* logo centriraj */
+  .logo {
+    justify-content: center !important;
+  }
+
+  .logo-img {
+    height: 64px !important;
+    padding-top: 0 !important;
+  }
+
+  /* nav + desni dio u novi red, wrap da se sve vidi */
+  .nav-container {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    justify-content: center !important;
+  }
+
+  /* linkovi se smiju prelomiti po riječima (ne po slovima) */
+  .nav-links {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 14px !important;
+  }
+
+  /* BITNO: jedan link ostaje cijela riječ (ne slovo ispod slova) */
+  .nav-links a {
+    white-space: nowrap !important;
+  }
+
+  /* tvoja slova su spanovi => spriječi vertical stack */
+  .nav-char {
+    white-space: nowrap !important;
+  }
+
+  /* desni dio (inline style div) - targetiramo ga bez promjene JSX */
+  .nav-container > div {
+    width: 100% !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  /* gumbi malo manji da stanu */
+  .sign-btn {
+    min-width: auto !important;
+    padding: 8px 12px !important;
+    height: 38px !important;
+  }
+}
+
+/* EXTRA SMALL */
+@media (max-width: 420px) {
+  .nav-links { gap: 10px !important; }
+  .sign-btn { padding: 8px 10px !important; }
+}
+
+/* ===== TABLET / SMALL LAPTOP FIX: 769px – 1080px ===== */
+@media (min-width: 769px) and (max-width: 1080px) {
+  .header {
+    height: auto !important;
+    padding: 12px 20px !important;
+    padding-top: 24px !important;
+    padding-bottom: 24px !important;
+    gap: 16px !important;
+  }
+
+  .logo-img {
+    height: 80px !important;
+  }
+
+  /* nav-container neka se može wrapat na 2 reda,
+     ali uredno (nav gore, gumbi dolje) */
+  .nav-container {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+  }
+
+  /* nav linkovi ostaju u jednom redu (bez slova ispod slova) */
+  .nav-links {
+    flex: 1 1 520px !important;  /* uzme većinu reda */
+    justify-content: flex-end !important;
+    gap: 20px !important;
+
+    flex-wrap: nowrap !important;
+  }
+
+  .nav-links a,
+  .nav-char {
+    white-space: nowrap !important; /* spriječi lomljenje slova */
+  }
+
+  /* desni dio (inline style div) u drugi red ako treba */
+  .nav-container > div {
+    flex: 0 0 auto !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    justify-content: flex-end !important;
+  }
+
+  /* gumbi malo manji da stanu */
+  .sign-btn {
+    min-width: 96px !important;
+    padding: 8px 12px !important;
+    height: 38px !important;
+  }
+}
