@@ -41,6 +41,14 @@ function SkeletonCard({ i }) {
 }
 
 export default function Shop() {
+  const API_BASE = import.meta.env.VITE_API_URL || "";
+
+  function resolveImageUrl(raw) {
+    if (!raw) return "/images/placeholder.jpg";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("/")) return `${API_BASE}${raw}`;
+    return raw;
+  }
   const [products, setProducts] = useState([]);
   const [me, setMe] = useState(null);
   const { user } = useAuth();
@@ -280,7 +288,7 @@ export default function Shop() {
               className="product-card"
             >
               <img
-                src={p.imageUrl || "/images/placeholder.jpg"}
+                src={resolveImageUrl(p.imageUrl)}
                 alt={p.opisProizvod || p.nazivProizvod || p.title || "Proizvod"}
                 loading="lazy"
               />
