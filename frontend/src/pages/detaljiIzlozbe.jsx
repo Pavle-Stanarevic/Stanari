@@ -10,14 +10,13 @@ import {
   getExhibitionApplications,
   listExhibitionComments,
   createExhibitionComment,
-  // NEW (organizer)
   listExhibitionApplicationsByExhibition,
   decideExhibitionApplication,
 } from "../api/exhibitions";
 
 const API = import.meta.env.VITE_API_URL || "";
 
-/* ---------- calendar helpers ---------- */
+
 function toGoogleCalDateUtc(date) {
   const pad = (n) => String(n).padStart(2, "0");
   return (
@@ -45,7 +44,7 @@ function buildGoogleCalendarUrl({ title, details, location, start, end }) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-/* ---------- existing helpers ---------- */
+
 function formatDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -87,7 +86,7 @@ function getDescription(x) {
   return typeof v === "string" ? v.trim() : "";
 }
 
-/* end time calc (if no duration, default 2h) */
+
 function calcEndDate(exh) {
   const startIso = getISO(exh);
   if (!startIso) return null;
@@ -106,7 +105,7 @@ function formatTimeOnly(d) {
   return `${d.toTimeString().slice(0, 5)}h`;
 }
 
-/* organizer helpers */
+
 function normStatus(s) {
   if (!s) return "pending";
   const v = String(s).toLowerCase();
@@ -147,12 +146,12 @@ export default function DetaljiIzlozbe() {
   const [commentPosting, setCommentPosting] = useState(false);
   const [commentError, setCommentError] = useState("");
 
-  /* NEW: organizer applications */
+
   const [appsOpen, setAppsOpen] = useState(false);
   const [appsLoading, setAppsLoading] = useState(false);
   const [appsError, setAppsError] = useState("");
   const [applications, setApplications] = useState([]);
-  const [decisionBusy, setDecisionBusy] = useState({}); // { [applicationId]: true }
+  const [decisionBusy, setDecisionBusy] = useState({}); 
 
   useEffect(() => {
     let alive = true;
@@ -192,7 +191,7 @@ export default function DetaljiIzlozbe() {
     return userId != null && ownerId != null && Number(userId) === Number(ownerId);
   }, [userId, exh]);
 
-  /* participant reserved/app status */
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -350,8 +349,7 @@ export default function DetaljiIzlozbe() {
     setDecisionBusy((s) => ({ ...s, [applicationId]: true }));
     setAppsError("");
     try {
-      await decideExhibitionApplication(exhId, applicationId, userId, decision); // "ACCEPT" | "REJECT"
-      // update list locally after backend confirms
+      await decideExhibitionApplication(exhId, applicationId, userId, decision); 
       setApplications((prev) =>
         (prev || []).map((a) => {
           const idA = a?.applicationId ?? a?.id ?? a?._id;
@@ -457,7 +455,7 @@ export default function DetaljiIzlozbe() {
               )}
             </header>
 
-            {/* ORGANIZER: applications list */}
+
             {isOrganizer && appsOpen && (
               <section className="ed-comments" style={{ borderTop: "none", marginTop: 14, paddingTop: 0 }}>
                 <h2 className="ed-comments-title">Prijavljeni polaznici</h2>
@@ -592,7 +590,7 @@ export default function DetaljiIzlozbe() {
                 </form>
               )}
 
-              {/* Removed info message for non-eligible commenters */}
+
 
               {commentsLoading && <div className="ed-comments-info">Učitavanje komentara…</div>}
               {!commentsLoading && commentsError && (

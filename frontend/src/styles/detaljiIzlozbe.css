@@ -192,7 +192,7 @@
   background: #fff;
 }
 
-/* ===== Opis izložbe ===== */
+
 .ed-desc {
   margin-top: 16px;
   padding: 14px 16px;
@@ -212,7 +212,7 @@
   font-size: 0.98rem;
   line-height: 1.55;
   color: #444;
-  white-space: pre-wrap; /* čuva nove redove iz baze */
+  white-space: pre-wrap; 
 }
 
 .ed-descEmpty {
@@ -221,7 +221,7 @@
   color: #777;
 }
 
-/* ===== Komentari ===== */
+
 .ed-comments {
   margin-top: 16px;
   padding-top: 14px;

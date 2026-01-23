@@ -45,10 +45,10 @@ export default function PregledRadionica() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // tabovi
-  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" | "past"
 
-  // filteri
+  const [activeTab, setActiveTab] = useState("upcoming"); 
+
+
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
@@ -85,7 +85,7 @@ export default function PregledRadionica() {
     };
   }, []);
 
-  // 2) košarica
+
   useEffect(() => {
     let alive = true;
 
@@ -105,7 +105,7 @@ export default function PregledRadionica() {
     };
   }, [user]);
 
-  // 3) prijavljene radionice (samo polaznik)
+
   useEffect(() => {
     let alive = true;
 
@@ -140,7 +140,7 @@ export default function PregledRadionica() {
     };
   }, [user]);
 
-  // 4) podjela na prošle/nadolazeće
+
   const { pastItems, upcomingItems } = useMemo(() => {
     const now = new Date();
     const past = [];
@@ -163,7 +163,7 @@ export default function PregledRadionica() {
 
   const baseList = activeTab === "upcoming" ? upcomingItems : pastItems;
 
-  // 5) filter na aktivnom tabu
+
   const filteredItems = useMemo(() => {
     const locQ = (filterLocation || "").trim().toLowerCase();
     const start = filterStartDate ? new Date(`${filterStartDate}T00:00:00`) : null;
@@ -386,14 +386,14 @@ export default function PregledRadionica() {
               const isReserved = reservedIds.has(wid);
               const inCart = isInCart(wid);
 
-              // --- OVO JE BITNO ZA BOJU KRUŽIĆA ---
+
               const cap = Number(w?.capacity);
               const hasCap = Number.isFinite(cap);
               const isFull = hasCap ? cap <= 0 : false;
 
-              // Past = uvijek crveno. Upcoming = zeleno ako ima mjesta, crveno ako je full.
+
               const circleClass = activeTab === "past" ? "full" : isFull ? "full" : "available";
-              // ------------------------------------
+
 
               return (
                 <li key={wid} className="workshop-item">

@@ -1,8 +1,8 @@
-/* SAMO MOBILE RESPONSIVE FIXES */
+
 
 @media (max-width: 600px) {
 
-  /* ništa ne smije bježati van ekrana */
+
   * {
     max-width: 100%;
   }
@@ -13,7 +13,7 @@
     display: block;
   }
 
-  /* gridovi → 1 stupac */
+
   .grid,
   .products,
   .grid-karte,
@@ -23,7 +23,7 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* flex → kolona */
+
   .row,
   .filters-inner,
   .toolbar,
@@ -34,7 +34,7 @@
     gap: 10px;
   }
 
-  /* gumbi i forme */
+
   button,
   .btn,
   input,
@@ -43,7 +43,7 @@
     width: 100% !important;
   }
 
-  /* tablice */
+
   table {
     display: block;
     overflow-x: auto;

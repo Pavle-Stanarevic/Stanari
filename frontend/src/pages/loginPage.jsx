@@ -17,13 +17,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // ✅ očisti stari session user (da ne ostane cache)
       sessionStorage.removeItem("user");
 
-      // ✅ stvarno napravi login poziv
       const res = await login(email, password);
 
-      // ✅ JWT login: backend vraća { user, token }
+      // login: backend vraća { user, token }
       if (res?.mode === "jwt") {
         const u = res?.data?.user;
         if (!u?.id) throw new Error("Login je uspio, ali backend nije vratio user objekt.");
@@ -32,11 +30,10 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Session login (Spring / /login): dohvatimo trenutnog usera preko /api/auth/me
+      // Session login : dohvatimo trenutnog usera preko /api/auth/me
       const u = await me();
       if (!u) throw new Error("Ne mogu dohvatiti korisnika nakon prijave (me).");
 
-      // Ako backend nekad vrati {user, token} i na /me, normaliziraj:
       signIn(u.user ?? u);
 
       navigate("/");

@@ -15,7 +15,7 @@
 }
 
 .profile-page {
-  max-width: 600px;     /* ← OVDJE se zapravo kontrolira širina */
+  max-width: 600px;     
   margin: 0 auto;
   margin-bottom: 3rem;
 }
@@ -106,7 +106,7 @@ p.value {
   margin: 10px 0;
 }
 
-/* ===== Profilna slika ===== */
+
 .profile-avatar {
   grid-column: 1 / -1;
   display: grid;
@@ -164,7 +164,7 @@ p.value {
   color: #64748b;
 }
 
-/* ===== Promjena lozinke ===== */
+
 .password-box {
   grid-column: 1 / -1;
   display: flex;
@@ -178,7 +178,7 @@ p.value {
   margin-top: 6px;
 }
 
-/* ===== Radionice ===== */
+
 .workshops-box {
   grid-column: 1 / -1;
 }
@@ -208,7 +208,7 @@ p.value {
   font-size: 0.95rem;
 }
 
-/* ===== Mobile ===== */
+
 @media (max-width: 600px) {
   .container-profile {
     grid-template-columns: 1fr;
@@ -236,10 +236,7 @@ p.value {
   }
 }
 
-/* =========================
-   Moje prijave i kupnje
-   (stil kao "Tim organizatora")
-   ========================= */
+
 
 .my-activity {
   grid-column: 1 / -1;
@@ -268,7 +265,7 @@ p.value {
   border-color: rgba(185, 28, 28, 0.2);
 }
 
-/* 3 stupca -> na mobitelu 1 stupac */
+
 .my-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -351,16 +348,16 @@ p.value {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: #3b82f6; /* plavo */
+  background: #3b82f6; 
   flex: 0 0 10px;
 }
 
 .my-dotPast {
-  background: #94a3b8; /* sivo */
+  background: #94a3b8; 
 }
 
 .my-dotBuy {
-  background: #22c55e; /* zeleno */
+  background: #22c55e; 
 }
 
 .my-info {
@@ -383,17 +380,14 @@ p.value {
   margin-top: 3px;
 }
 
-/* mobile */
+
 @media (max-width: 900px) {
   .my-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* =========================
-   Moje prijave i kupnje
-   (stil kao "Tim organizatora")
-   ========================= */
+
 
 .my-activity {
   grid-column: 1 / -1;
@@ -422,7 +416,7 @@ p.value {
   border-color: rgba(185, 28, 28, 0.2);
 }
 
-/* 3 stupca -> na mobitelu 1 stupac */
+
 .my-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -505,12 +499,12 @@ p.value {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: #3b82f6; /* plavo */
+  background: #3b82f6; 
   flex: 0 0 10px;
 }
 
 .my-dotPast {
-  background: #94a3b8; /* sivo */
+  background: #94a3b8; 
 }
 
 .my-info {
@@ -533,7 +527,7 @@ p.value {
   margin-top: 3px;
 }
 
-/* mobile */
+
 @media (max-width: 900px) {
   .my-grid {
     grid-template-columns: 1fr;

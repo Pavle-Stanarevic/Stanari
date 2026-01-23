@@ -1,4 +1,4 @@
-/* ===== PAGE BACKGROUND ===== */
+
 .org-page {
   min-height: 100vh;
   background: #f6f7fb;
@@ -47,7 +47,7 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-/* top hero (avatar + info) */
+
 .org-hero {
   display: grid;
   grid-template-columns: 140px 1fr;
@@ -60,7 +60,7 @@
   height: 120px;
   border-radius: 9999px;
   overflow: hidden;
-  border: 6px solid #2f7d32; /* zeleni prsten kao na slici */
+  border: 6px solid #2f7d32; 
   background: #e8eefc;
 }
 
@@ -103,7 +103,7 @@
   color: #111827;
 }
 
-/* tabs */
+
 .org-tabs {
   margin-top: 18px;
   display: flex;
@@ -134,7 +134,7 @@
   color: #ffffff;
 }
 
-/* list area */
+
 .org-listArea {
   margin-top: 16px;
 }
@@ -192,7 +192,7 @@
   color: rgba(15, 23, 42, 0.35);
 }
 
-/* product variant */
+
 .org-listItem.product .org-liRow {
   display: flex;
   align-items: baseline;

@@ -1,6 +1,4 @@
-/* =========================
-   PAGE
-========================= */
+
 .placanje-page{
   min-height: 100vh;
   padding: 56px 16px 80px;
@@ -13,9 +11,7 @@
   margin: 0 auto;
 }
 
-/* =========================
-   LOADING / ERROR
-========================= */
+
 .placanje-state{
   padding: 60px 16px;
   text-align: center;
@@ -26,9 +22,7 @@
   color: #b00020;
 }
 
-/* =========================
-   HEADER
-========================= */
+
 .placanje-header{
   text-align: center;
   margin-bottom: 34px;
@@ -47,9 +41,7 @@
   color: rgba(0,0,0,0.6);
 }
 
-/* =========================
-   SECTIONS
-========================= */
+
 .placanje-section{
   margin-top: 34px;
 }
@@ -60,9 +52,7 @@
   font-weight: 700;
 }
 
-/* =========================
-   SUBSCRIPTION CARD
-========================= */
+
 .subscription-card{
   border-radius: 16px;
   padding: 20px;
@@ -108,7 +98,7 @@
   font-weight: 800;
 }
 
-/* linkovi */
+
 .link-btn,
 .linkish{
   all: unset;
@@ -122,9 +112,7 @@
   text-decoration: underline;
 }
 
-/* =========================
-   PAYMENT LIST
-========================= */
+
 .payment-list{
   border-radius: 16px;
   overflow: hidden;
@@ -177,9 +165,7 @@
   color: rgba(0,0,0,0.45);
 }
 
-/* =========================
-   ACTION BUTTONS
-========================= */
+
 .placanje-actions{
   margin-top: 3.5rem;
   display: flex;
@@ -188,7 +174,7 @@
   flex-wrap: wrap;
 }
 
-/* PRIMARY – PLAVI */
+
 .primary-btn{
   border: none;
   cursor: pointer;
@@ -206,7 +192,7 @@
   box-shadow: 0 10px 26px rgba(16, 52, 110, 0.25);
 }
 
-/* SECONDARY */
+
 .ghost-btn{
   border: 1px solid rgba(0,0,0,0.14);
   cursor: pointer;

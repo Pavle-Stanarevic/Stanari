@@ -8,9 +8,7 @@ import "../styles/detaljiRadionice.css";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
-/* ---------- calendar helpers ---------- */
 function toGoogleCalDateUtc(date) {
-  // Google expects UTC format: YYYYMMDDTHHMMSSZ
   const pad = (n) => String(n).padStart(2, "0");
   return (
     date.getUTCFullYear() +
@@ -462,7 +460,7 @@ export default function DetaljiRadionice() {
     }
   };
 
-  /* ---------- calendar url (only useful when reserved + upcoming) ---------- */
+
   const calendarUrl = useMemo(() => {
     if (!workshop) return null;
 

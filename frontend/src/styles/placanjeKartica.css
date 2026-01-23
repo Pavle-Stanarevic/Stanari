@@ -1,16 +1,16 @@
-/* ===== PAGE ===== */
+
 .cardpay-page {
   min-height: 100vh;
-  background: #f6f7fb;              /* svijetla pozadina */
+  background: #f6f7fb;             
   display: flex;
-  align-items: center;              /* centriranje po Y */
-  justify-content: center;          /* centriranje po X */
+  align-items: center;              
+  justify-content: center;         
   padding: 24px;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color: #111;
 }
 
-/* ===== CARD ===== */
+
 .cardpay-card {
   width: 100%;
   max-width: 520px;
@@ -20,7 +20,7 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
 }
 
-/* ===== BRANDS ===== */
+
 .cardpay-brands {
   display: flex;
   gap: 10px;
@@ -36,7 +36,7 @@
   border-radius: 999px;
 }
 
-/* ===== TEXT ===== */
+
 .cardpay-required {
   font-size: 13px;
   margin-bottom: 16px;
@@ -55,7 +55,7 @@
   color: #c00;
 }
 
-/* ===== INPUTS ===== */
+
 .cardpay-input {
   width: 100%;
   height: 44px;
@@ -73,7 +73,7 @@
   border-color: #111;
 }
 
-/* ===== GRID ===== */
+
 .cardpay-grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -104,7 +104,7 @@
   color: #666;
 }
 
-/* ===== DISCLAIMER ===== */
+
 .cardpay-disclaimer {
   margin-top: 18px;
   font-size: 12px;
@@ -112,7 +112,7 @@
   color: #555;
 }
 
-/* ===== ERROR ===== */
+
 .cardpay-error {
   margin-top: 14px;
   padding: 10px 12px;
@@ -122,7 +122,7 @@
   font-size: 13px;
 }
 
-/* ===== BUTTONS ===== */
+
 .cardpay-pay {
   margin-top: 18px;
   width: 100%;
