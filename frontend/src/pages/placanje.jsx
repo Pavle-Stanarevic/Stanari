@@ -179,6 +179,7 @@ export default function Placanje() {
 
     const routeMap = {
       card: "/placanje/kartica",
+      paypal: "/placanje/paypal",
     };
 
     const payload =
@@ -274,41 +275,77 @@ export default function Placanje() {
         </section>
 
         <section className="placanje-section">
-          <h2 className="placanje-h2">Odaberite način plaćanja</h2>
+          <h2 className="placanje-h2">Način plaćanja</h2>
 
+          {/* Placanje PayPal*/}
           <div className="payment-list">
             <button
-              className={`payment-row ${paymentMethod === "card" ? "selected" : ""}`}
               type="button"
+              className={`payment-row ${paymentMethod === "card" ? "selected" : ""}`}
               onClick={() => setPaymentMethod("card")}
             >
-              <span className="payment-label">Kreditna ili debitna kartica</span>
-              <span className="payment-right">
-                <img className="payment-icon" src={cardIcon} alt="" />
-              </span>
+              <div>
+                <div className="payment-label">Kartica</div>
+                <div className="subscription-footnote">Visa / Mastercard (Stripe)</div>
+              </div>
+              <div className="payment-right">
+                <img src={cardIcon} alt="Kartica" className="payment-icon" />
+                <span className="payment-chevron">›</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className={`payment-row ${paymentMethod === "paypal" ? "selected" : ""}`}
+              onClick={() => setPaymentMethod("paypal")}
+            >
+              <div>
+                <div className="payment-label">PayPal</div>
+                <div className="subscription-footnote">Brzo plaćanje putem PayPal-a</div>
+              </div>
+              <div className="payment-right">
+                {/* PayPal slika */}
+                <span
+                  className="payment-icon"
+                  style={{
+                    height: 35,
+                    width: 35,
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 10,
+                    background: "rgba(16, 52, 110, 0.08)",
+                    color: "rgb(16, 52, 110)",
+                    fontWeight: 900,
+                    fontSize: 16,
+                  }}
+                  aria-hidden="true"
+                >
+                  P
+                </span>
+                <span className="payment-chevron">›</span>
+              </div>
+            </button>
+          </div>
+
+          <div className="placanje-actions">
+            <button
+              type="button"
+              className="primary-btn"
+              disabled={!paymentMethod}
+              onClick={handleContinue}
+            >
+              Nastavi
+            </button>
+
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => navigate(mode === "cart" ? "/kosarica" : "/plan")}
+            >
+              Odustani
             </button>
           </div>
         </section>
-
-        <div className="placanje-actions">
-          <button
-            className="primary-btn"
-            type="button"
-            onClick={handleContinue}
-            disabled={!paymentMethod}
-            title={!paymentMethod ? "Odaberite način plaćanja" : ""}
-          >
-            Nastavi
-          </button>
-
-          <button
-            className="ghost-btn"
-            type="button"
-            onClick={() => navigate(mode === "cart" ? "/kosarica" : "/plan")}
-          >
-            {mode === "cart" ? "Povratak na košaricu" : "Povratak na planove"}
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -72,4 +72,16 @@ public class SubscriptionService {
         logger.info("Subscription activated for user {}. Valid until: {}", userId, saved.getDatvrKrajClanarine());
         return Optional.of(saved);
     }
+
+    @Transactional
+    public synchronized Optional<Placa> activateSubscriptionPayPal(Long userId, String billing, String transactionId) {
+        logger.info("Activating subscription (PayPal) for user: {}, billing: {}, transactionId: {}", userId, billing, transactionId);
+
+        if (transactionId != null && placaRepository.existsByStripePaymentIntentId(transactionId)) {
+            logger.info("PayPal transactionId {} already processed, skipping.", transactionId);
+            return placaRepository.findFirstByIdKorisnikOrderByDatvrKrajClanarineDesc(userId);
+        }
+
+        return activateSubscription(userId, billing, transactionId);
+    }
 }

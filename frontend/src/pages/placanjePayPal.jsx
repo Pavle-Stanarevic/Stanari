@@ -11,8 +11,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanjeKartica.css";
 import { activateSubscription } from "../api/subscriptions";
 import { capturePayPalCartPayment } from "../api/checkout";
+import useAuth from "../hooks/useAuth";
 
-const DEV_FALLBACK = true;
+const DEV_FALLBACK = false;
 
 function loadPayPalSdk(clientId) {
   return new Promise((resolve, reject) => {
@@ -52,6 +53,7 @@ function computeEndAt(billing) {
 export default function PlacanjePayPal() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // ✅ mode: "subscription" ili "cart"
   const mode = location.state?.mode || "subscription";
@@ -88,7 +90,7 @@ export default function PlacanjePayPal() {
 
       if (!clientId) {
         setLoading(false);
-        setError("Nedostaje VITE_PAYPAL_CLIENT_ID u .env (PayPal sandbox client id).");
+        setError("Nedostaje VITE_PAYPAL_CLIENT_ID u .env (PayPal client id).");
         return;
       }
 
@@ -122,8 +124,6 @@ export default function PlacanjePayPal() {
 
             createOrder: (data, actions) => {
               // ✅ Backend će ionako validirati iznos, ali u PayPal orderu mora biti value.
-              // subscription: amount iz plana
-              // cart: total iz checkout summary-a (ili 0 u DEV fallbacku)
               const value =
                 mode === "cart"
                   ? Number(checkout?.total || 0).toFixed(2)
@@ -154,67 +154,18 @@ export default function PlacanjePayPal() {
                 const transactionId =
                   details?.purchase_units?.[0]?.payments?.captures?.[0]?.id || data?.orderID;
 
-                // -------------------------
-                // ✅ CART MODE
-                // -------------------------
                 if (mode === "cart") {
-                  try {
-                    const result = await capturePayPalCartPayment({
-                      checkoutId,
-                      transactionId,
-                    });
-
-                    navigate("/placanje/uspjeh", {
-                      state: {
-                        mode: "cart",
-                        checkoutId,
-                        checkout,
-                        status: result?.status || "paid",
-                        startAt: result?.startAt,
-                        endAt: result?.endAt,
-                        demo: false,
-                        method: "paypal",
-                        transactionId,
-                      },
-                    });
-                  } catch (e) {
-                    if (!DEV_FALLBACK) throw e;
-
-                    // DEV fallback: simulacija uspjeha
-                    navigate("/placanje/uspjeh", {
-                      state: {
-                        mode: "cart",
-                        checkoutId,
-                        checkout,
-                        status: "paid",
-                        startAt: new Date().toISOString(),
-                        endAt: null,
-                        demo: true,
-                        method: "paypal",
-                        transactionId,
-                      },
-                    });
-                  }
-
-                  return;
-                }
-
-                // -------------------------
-                // ✅ SUBSCRIPTION MODE (kao prije)
-                // -------------------------
-                try {
-                  const result = await activateSubscription({
-                    subscriptionId,
-                    method: "paypal",
+                  const result = await capturePayPalCartPayment({
+                    checkoutId,
                     transactionId,
                   });
 
                   navigate("/placanje/uspjeh", {
                     state: {
-                      mode: "subscription",
-                      subscription,
-                      subscriptionId,
-                      status: result?.status || "active",
+                      mode: "cart",
+                      checkoutId,
+                      checkout,
+                      status: result?.status || "paid",
                       startAt: result?.startAt,
                       endAt: result?.endAt,
                       demo: false,
@@ -222,26 +173,39 @@ export default function PlacanjePayPal() {
                       transactionId,
                     },
                   });
-                } catch (e) {
-                  if (!DEV_FALLBACK) throw e;
 
-                  const startAt = new Date().toISOString();
-                  const endAt = computeEndAt(subscription?.billing);
-
-                  navigate("/placanje/uspjeh", {
-                    state: {
-                      mode: "subscription",
-                      subscription,
-                      subscriptionId,
-                      status: "active",
-                      startAt,
-                      endAt,
-                      demo: true,
-                      method: "paypal",
-                      transactionId,
-                    },
-                  });
+                  return;
                 }
+
+                const resolvedUserId =
+                  user?.id || user?.idKorisnik || location.state?.userId || location.state?.idKorisnik || location.state?.currentUserId;
+
+                if (!resolvedUserId) {
+                  throw new Error("Nedostaje userId (morate biti prijavljeni).");
+                }
+
+                const result = await activateSubscription({
+                  subscriptionId,
+                  method: "paypal",
+                  transactionId,
+                  provider: "paypal",
+                  billing: subscription?.billing,
+                  userId: resolvedUserId,
+                });
+
+                navigate("/placanje/uspjeh", {
+                  state: {
+                    mode: "subscription",
+                    subscription,
+                    subscriptionId,
+                    status: result?.status || "active",
+                    startAt: result?.startAt,
+                    endAt: result?.endAt,
+                    demo: false,
+                    method: "paypal",
+                    transactionId,
+                  },
+                });
               } catch (e) {
                 setError(e?.message || "PayPal plaćanje nije uspjelo.");
               }
@@ -270,7 +234,7 @@ export default function PlacanjePayPal() {
     return () => {
       mounted = false;
     };
-  }, [clientId, navigate, mode, subscription, subscriptionId, checkout, checkoutId]);
+  }, [clientId, navigate, mode, subscription, subscriptionId, checkout, checkoutId, user]);
 
   // Guards UI
   if (mode === "cart" && !checkoutId) {
@@ -305,7 +269,7 @@ export default function PlacanjePayPal() {
     <div className="cardpay-page">
       <div className="cardpay-card">
         <h2 className="cardpay-title">
-          PayPal plaćanje (Sandbox) — {mode === "cart" ? "Narudžba" : "Pretplata"}
+          PayPal plaćanje — {mode === "cart" ? "Narudžba" : "Pretplata"}
         </h2>
 
         <div className="cardpay-disclaimer">

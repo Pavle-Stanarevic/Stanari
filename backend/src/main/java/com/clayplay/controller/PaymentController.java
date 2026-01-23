@@ -9,6 +9,7 @@ import com.clayplay.repository.PlacaRepository;
 import com.clayplay.service.SubscriptionService;
 import com.clayplay.service.CheckoutStore;
 import com.clayplay.service.CartService;
+import com.clayplay.service.PayPalService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -38,14 +39,16 @@ public class PaymentController {
     private final SubscriptionService subscriptionService;
     private final CheckoutStore checkoutStore;
     private final CartService cartService;
+    private final PayPalService payPalService;
 
-    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository, SubscriptionService subscriptionService, CheckoutStore checkoutStore, CartService cartService) {
+    public PaymentController(KorisnikRepository korisnikRepository, ClanarinaRepository clanarinaRepository, PlacaRepository placaRepository, SubscriptionService subscriptionService, CheckoutStore checkoutStore, CartService cartService, PayPalService payPalService) {
         this.korisnikRepository = korisnikRepository;
         this.clanarinaRepository = clanarinaRepository;
         this.placaRepository = placaRepository;
         this.subscriptionService = subscriptionService;
         this.checkoutStore = checkoutStore;
         this.cartService = cartService;
+        this.payPalService = payPalService;
     }
 
     @PostConstruct
@@ -265,6 +268,41 @@ public class PaymentController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of("message", e.getMessage() == null ? e.toString() : e.getMessage()));
+        }
+    }
+
+    @PostMapping("/paypal/cart-capture")
+    public ResponseEntity<?> capturePayPalCart(@RequestBody Map<String, Object> data) {
+        try {
+            String checkoutId = data.get("checkoutId") == null ? null : String.valueOf(data.get("checkoutId"));
+            String transactionId = data.get("transactionId") == null ? null : String.valueOf(data.get("transactionId"));
+
+            if (checkoutId == null || checkoutId.isBlank()) {
+                return ResponseEntity.status(400).body(Map.of("message", "Missing checkoutId"));
+            }
+            if (transactionId == null || transactionId.isBlank()) {
+                return ResponseEntity.status(400).body(Map.of("message", "Missing transactionId"));
+            }
+            if (!payPalService.isConfigured()) {
+                return ResponseEntity.status(503).body(Map.of("message", "PayPal is not configured"));
+            }
+
+            payPalService.verifyCaptureCompleted(transactionId);
+
+            Map<String, Object> prepared = checkoutStore.get(checkoutId);
+            if (prepared == null) return ResponseEntity.status(404).body(Map.of("message", "Checkout not found"));
+
+            cartService.finalizeCheckout(checkoutId, prepared);
+            checkoutStore.remove(checkoutId);
+
+            return ResponseEntity.ok(Map.of("status", "paid", "checkoutId", checkoutId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Server error"));
         }
     }
 }
