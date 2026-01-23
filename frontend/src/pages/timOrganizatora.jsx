@@ -14,7 +14,7 @@ function resolvePhotoUrl(o) {
   if (!raw) return "";
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (raw.startsWith("/")) return `${API}${raw}`;
-  return raw;
+  return `${API}/${raw}`;
 }
 
 export default function TimOrganizatora() {

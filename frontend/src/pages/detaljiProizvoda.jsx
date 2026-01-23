@@ -93,7 +93,7 @@ export default function ProductPage() {
     if (!raw) return "/images/placeholder.jpg";
     if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
     if (raw.startsWith("/")) return `${API_BASE}${raw}`;
-    return raw;
+    return `${API_BASE}/${raw}`;
   }
 
   const onAddToCart = async () => {

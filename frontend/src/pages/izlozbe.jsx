@@ -44,7 +44,7 @@ function getImages(x) {
       if (!v) return null;
       if (v.startsWith("http://") || v.startsWith("https://")) return v;
       if (v.startsWith("/")) return `${API}${v}`;
-      return v;
+      return `${API}/${v}`;
     })
     .filter(Boolean);
 }
