@@ -1,12 +1,11 @@
-// src/api/subscriptions.js
 import { requestJson } from "./http";
 
-// GET /api/subscriptions/pricing
+// dohvati cijene clanarina
 export async function getPricing() {
   return requestJson(`/api/subscriptions/pricing`, { method: "GET" });
 }
 
-// POST /api/subscriptions
+// subscribeaj se
 export async function createSubscription({ userId, planId, billing }) {
   return requestJson(`/api/subscriptions`, {
     method: "POST",
@@ -14,13 +13,11 @@ export async function createSubscription({ userId, planId, billing }) {
   });
 }
 
-// GET /api/subscriptions/:id
 export async function getSubscription(subscriptionId, billing) {
   const url = `/api/subscriptions/${subscriptionId}${billing ? `?billing=${billing}` : ""}`;
   return requestJson(url, { method: "GET" });
 }
 
-// POST /api/subscriptions/:id/activate
 export async function activateSubscription({
   subscriptionId,
   method,
@@ -36,7 +33,7 @@ export async function activateSubscription({
   });
 }
 
-// POST /api/payments/create-payment-intent
+// plati sub
 export async function createPaymentIntent({ userId, amount, billing }) {
   return requestJson(`/api/payments/create-payment-intent`, {
     method: "POST",
@@ -44,7 +41,7 @@ export async function createPaymentIntent({ userId, amount, billing }) {
   });
 }
 
-// POST /api/payments/confirm-success
+// jesi uspio platit
 export async function confirmPaymentSuccess({ userId, paymentIntentId, billing }) {
   return requestJson(`/api/payments/confirm-success`, {
     method: "POST",
@@ -52,7 +49,7 @@ export async function confirmPaymentSuccess({ userId, paymentIntentId, billing }
   });
 }
 
-// POST /api/payments/stripe/checkout-session (subscription)
+// placanje stripeom
 export async function createStripeCheckoutSession({ subscriptionId, billing }) {
   return requestJson(`/api/payments/stripe/checkout-session`, {
     method: "POST",
@@ -60,7 +57,7 @@ export async function createStripeCheckoutSession({ subscriptionId, billing }) {
   });
 }
 
-// POST /api/payments/stripe/confirm
+// potvrdi stripe placanje
 export async function confirmStripeCheckout({ sessionId, subscriptionId }) {
   return requestJson(`/api/payments/stripe/confirm`, {
     method: "POST",

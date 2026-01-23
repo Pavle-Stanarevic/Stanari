@@ -1,4 +1,3 @@
-// src/api/http.js
 const API = import.meta.env.VITE_API_URL || "";
 
 export function getCookie(name = "XSRF-TOKEN") {
@@ -32,7 +31,6 @@ export async function requestJson(path, { method = "GET", data, headers } = {}) 
   try {
     return JSON.parse(text);
   } catch {
-    // ako backend vrati plain text na 200, ne rušimo app
     return { text };
   }
 }

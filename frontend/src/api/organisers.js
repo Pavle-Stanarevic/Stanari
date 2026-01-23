@@ -30,13 +30,11 @@ export function getOrganizator(organizatorId) {
   return http(`/api/organizatori/${encodeURIComponent(organizatorId)}`);
 }
 
-// type: "past" | "upcoming"
 export function getOrganizatorRadionice(organizatorId, type) {
   const t = type ? `?type=${encodeURIComponent(type)}` : "";
   return http(`/api/organizatori/${encodeURIComponent(organizatorId)}/radionice${t}`);
 }
 
-// type: "past" | "upcoming"
 export function getOrganizatorIzlozbe(organizatorId, type) {
   const t = type ? `?type=${encodeURIComponent(type)}` : "";
   return http(`/api/organizatori/${encodeURIComponent(organizatorId)}/izlozbe${t}`);

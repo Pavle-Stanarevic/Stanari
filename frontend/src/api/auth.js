@@ -1,5 +1,3 @@
-
-
 const API = import.meta.env.VITE_API_URL || ""; 
 console.log(`[DEBUG_LOG] auth.js initialized. API URL: "${API}"`);
 

@@ -204,7 +204,7 @@ export default function ProductPage() {
           </section>
 
           <section className="pd-comments">
-            <h2 className="pd-comments-title">Recenzije organizatora</h2>
+            <h2 className="pd-comments-title">Recenzije prodavača</h2>
             {Array.isArray(product?.organizerReviewComments) && product.organizerReviewComments.length ? (
               <ul className="pd-comments-list">
                 {product.organizerReviewComments.map((c, i) => (
