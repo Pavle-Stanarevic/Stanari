@@ -3,6 +3,7 @@ const BASE = `${API_BASE}/api/cart`;
 const STORAGE_KEY_PREFIX = "stanari_cart_v1:";
 let forceLocal = false;
 
+// dohvati ID usera
 function getUserIdFromSession() {
   try {
     const raw = sessionStorage.getItem("user");
@@ -13,6 +14,7 @@ function getUserIdFromSession() {
     return null;
   }
 }
+
 
 function withUser(body = {}) {
   const uid = getUserIdFromSession();
@@ -38,6 +40,7 @@ function loadLocalItems() {
   }
 }
 
+// lokalni dio kosarice - fallback ako backend ne radi
 function saveLocalItems(items) {
   localStorage.setItem(getStorageKey(), JSON.stringify(items || []));
 }
@@ -60,17 +63,20 @@ function shouldUseLocal(err) {
   return msg.includes("\"status\":404") || /not found/i.test(msg);
 }
 
+// backend dio kosarice
 function toWorkshopItem(workshopId, details = {}) {
   const title =
     details?.title ||
     details?.nazivRadionica ||
     details?.name ||
     `Radionica #${workshopId}`;
+
   const price = Number(details?.price ?? details?.cijena ?? details?.cijenaRadionica ?? 0);
   const meta = details?.meta || {
     dateISO: details?.dateISO || details?.startDateTime || details?.date || null,
     location: details?.location || details?.lokacija || null,
   };
+
   return {
     id: `workshop:${workshopId}`,
     type: "workshop",
@@ -89,10 +95,12 @@ function toProductItem(productId, qty, details = {}) {
     details?.opisProizvod ||
     details?.name ||
     `Proizvod #${productId}`;
+
   const price = Number(details?.price ?? details?.cijenaProizvod ?? 0);
   const meta = details?.meta || {
     category: details?.category || details?.kategorijaProizvod || null,
   };
+
   return {
     id: `product:${productId}`,
     type: "product",
@@ -115,7 +123,7 @@ async function fetchJson(url, options = {}) {
   });
 
   const contentType = res.headers.get("content-type") || "";
-  const text = await res.text();
+  const text = await res.text();  
 
   if (!res.ok) {
     const err = new Error(text || `HTTP ${res.status}`);
@@ -123,26 +131,34 @@ async function fetchJson(url, options = {}) {
     err.body = text;
     throw err;
   }
-  if (!contentType.includes("application/json")) {
-    return text ? JSON.parse(text) : null;
+
+  if (contentType.includes("application/json")) {
+    return JSON.parse(text);
   }
-  return text ? JSON.parse(text) : null;
+
+  return text;
 }
 
 export async function getCart() {
+  // fallback za lokalni cart
   if (forceLocal) {
     const items = loadLocalItems();
     notifyCartUpdated(items);
     return { items };
   }
+
+  // pravi cart
   try {
     const uid = getUserIdFromSession();
     const url = uid ? `${BASE}?userId=${encodeURIComponent(uid)}` : `${BASE}`;
     const data = await fetchJson(url);
     const items = extractItems(data);
+
     if (items.length) notifyCartUpdated(items);
     return data;
+
   } catch (e) {
+    // lokalni cart
     if (shouldUseLocal(e)) {
       forceLocal = true;
       const items = loadLocalItems();
@@ -156,11 +172,19 @@ export async function getCart() {
 export async function addWorkshopToCart(workshopId, qty = 1, details = {}) {
   if (!forceLocal) {
     try {
-      const body = withUser({ type: "workshop", workshopId: Number(workshopId), qty: Number(qty), title: details?.title || undefined, price: details?.price ?? undefined, meta: details?.meta ?? undefined });
+      const body = withUser({ type: "workshop",
+                              workshopId: Number(workshopId),
+                              qty: Number(qty),
+                              title: details?.title || undefined,
+                              price: details?.price ?? undefined,
+                              meta: details?.meta ?? undefined });
+
       const data = await fetchJson(`${BASE}/items`, { method: "POST", body: JSON.stringify(body) });
       const items = extractItems(data);
+
       notifyCartUpdated(items);
       return items;
+
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
@@ -181,17 +205,25 @@ export async function addWorkshopToCart(workshopId, qty = 1, details = {}) {
 export async function addProductToCart(productId, qty = 1, details = {}) {
   if (!forceLocal) {
     try {
-      const body = withUser({ type: "product", productId: Number(productId), qty: Number(qty), title: details?.title || undefined, price: details?.price ?? undefined, meta: details?.meta ?? undefined });
+      const body = withUser({ type: "product",
+                              productId: Number(productId),
+                              qty: Number(qty),
+                              title: details?.title || undefined,
+                              price: details?.price ?? undefined,
+                              meta: details?.meta ?? undefined });
+
       const data = await fetchJson(`${BASE}/items`, { method: "POST", body: JSON.stringify(body) });
       const items = extractItems(data);
       notifyCartUpdated(items);
       return items;
+      
     } catch (e) {
       if (!shouldUseLocal(e)) throw e;
       forceLocal = true;
     }
   }
 
+  //lokalni dio kosarice - fallback ak ne radi back
   const items = loadLocalItems();
   const id = `product:${productId}`;
   const existing = items.find((x) => x.id === id);
@@ -205,8 +237,15 @@ export async function addProductToCart(productId, qty = 1, details = {}) {
 
 export async function addCartItem(payload) {
   if (!payload) throw new Error("Missing payload");
-  if (payload.type === "product") return addProductToCart(payload.productId || payload.id || payload.productId, payload.qty || 1, payload);
-  if (payload.type === "workshop") return addWorkshopToCart(payload.workshopId || payload.id || payload.idRadionica, payload.qty || 1, payload);
+
+  if (payload.type === "product") return addProductToCart(payload.productId || payload.id || payload.productId,
+                                                          payload.qty || 1,
+                                                          payload);
+
+  if (payload.type === "workshop") return addWorkshopToCart(payload.workshopId || payload.id || payload.idRadionica,
+                                                            payload.qty || 1,
+                                                            payload);
+
   throw new Error("Unknown cart item type");
 }
 
@@ -226,6 +265,7 @@ export async function updateCartItemQty(itemId, qty) {
     }
   }
 
+  // lokalni dio kosarice
   const items = loadLocalItems();
   const updated = items.map((it) => (it.id === itemId ? { ...it, qty: Number(qty) } : it));
   saveLocalItems(updated);
@@ -248,6 +288,7 @@ export async function removeCartItem(itemId) {
     }
   }
 
+  // lokalni dio kosarice
   const items = loadLocalItems().filter((it) => it.id !== itemId);
   saveLocalItems(items);
   notifyCartUpdated(items);
@@ -268,6 +309,7 @@ export async function clearCart() {
     }
   }
 
+  // lokalni dio kosarice
   saveLocalItems([]);
   notifyCartUpdated([]);
   return [];
@@ -288,6 +330,7 @@ export async function checkoutCart() {
     }
   }
 
+  //lokalni dio kosraice
   saveLocalItems([]);
   notifyCartUpdated([]);
   return { status: "ok" };

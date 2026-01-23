@@ -1,4 +1,3 @@
-// src/api/admin.js
 import { requestJson } from "./http";
 
 /* =========================
