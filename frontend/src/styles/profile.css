@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 1.5fr 2fr 0.9fr;
   gap: 20px 20px;
-  max-width: 700px;
+  max-width: 500px;
   margin: 40px auto;
   padding: 24px 28px;
   background-color: #f9f9f9;
@@ -11,7 +11,12 @@
   font-family: "Inter", sans-serif;
   font-size: 1.05rem;
   color: #333;
-  margin-bottom: 8rem;
+}
+
+.profile-page {
+  max-width: 700px;     /* ← OVDJE se zapravo kontrolira širina */
+  margin: 0 auto;
+  margin-bottom: 3rem;
 }
 
 .container-profile::before {
@@ -108,7 +113,6 @@ p.value {
   gap: 18px;
   align-items: center;
   padding: 8px 0 2px 0;
-  border-bottom: 1px solid #ddd;
 }
 
 .avatar-img img {
