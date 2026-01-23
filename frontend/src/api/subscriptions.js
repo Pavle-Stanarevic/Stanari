@@ -24,13 +24,15 @@ export async function getSubscription(subscriptionId, billing) {
 export async function activateSubscription({
   subscriptionId,
   method,
+  billing,
+  userId,
   cardLast4,
   transactionId,
   provider,
 }) {
   return requestJson(`/api/subscriptions/${subscriptionId}/activate`, {
     method: "POST",
-    data: { method, cardLast4, transactionId, provider },
+    data: { method, billing, userId, cardLast4, transactionId, provider },
   });
 }
 

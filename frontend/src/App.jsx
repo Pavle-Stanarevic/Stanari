@@ -19,6 +19,7 @@ import ProductPage from "./pages/detaljiProizvoda.jsx";
 import TimOrganizatora from "./pages/timOrganizatora.jsx";
 import ProfilOrganizator from "./pages/profilOrganizator.jsx";
 import PlacanjeKartica from "./pages/placanjeKartica.jsx";
+import PlacanjePayPal from "./pages/placanjePayPal.jsx";
 import PlacanjeStripeRedirect from "./pages/placanjeStripeRedirect.jsx";
 import PlacanjeUspjeh from "./pages/placanjeUspjeh.jsx";
 import DetaljiRadionice from "./pages/detaljiRadionice";
@@ -65,6 +66,7 @@ export default function App() {
 
         <Route path="/placanje" element={<Placanje />} />
         <Route path="/placanje/kartica" element={<PlacanjeKartica />} />
+        <Route path="/placanje/paypal" element={<PlacanjePayPal />} />
         <Route path="/placanje/stripe-redirect" element={<PlacanjeStripeRedirect />} />
         <Route path="/placanje-uspjeh" element={<PlacanjeUspjeh />} />
         <Route path="/placanje/uspjeh" element={<PlacanjeUspjeh />} />
