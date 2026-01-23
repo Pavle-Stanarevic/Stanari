@@ -1,5 +1,3 @@
-// frontend/src/api/exhibitions.js
-
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 
 async function fetchJson(path, options = {}) {
@@ -14,7 +12,7 @@ async function fetchJson(path, options = {}) {
 
   const text = await res.text();
 
-  // probaj parsirati JSON ako može
+  // probaj parsirati JSON
   let data = null;
   try {
     data = text ? JSON.parse(text) : null;
@@ -23,7 +21,6 @@ async function fetchJson(path, options = {}) {
   }
 
   if (!res.ok) {
-    // backend ti često vraća plain text; u erroru ćeš to vidjeti
     const msg =
       (data && (data.message || data.error)) ||
       (typeof data === "string" ? data : null) ||
@@ -34,19 +31,11 @@ async function fetchJson(path, options = {}) {
   return data;
 }
 
-/* -------------------- Exhibitions (public) -------------------- */
-
-// GET /api/exhibitions
+// izlozbe
 export function listExhibitions() {
   return fetchJson("/api/exhibitions");
 }
 
-/**
- * VAŽNO:
- * Tvoj backend NEMA GET /api/exhibitions/:id
- * Zato ovu funkciju implementiramo preko listExhibitions() + find.
- * I dalje su svi podaci iz baze/backenda.
- */
 export async function getExhibitionById(id) {
   const all = await listExhibitions();
   const arr = Array.isArray(all) ? all : [];
@@ -57,7 +46,6 @@ export async function getExhibitionById(id) {
   );
 }
 
-// POST /api/exhibitions  (multipart: title, location, description, startDateTime, organizerId, images[])
 export function createExhibition(
   { title, location, description, startDateTime, organizerId },
   files = []
@@ -77,7 +65,6 @@ export function createExhibition(
   });
 }
 
-// POST /api/exhibitions/:id/apply  body: { userId }
 export function applyToExhibition(id, userId) {
   return fetchJson(`/api/exhibitions/${id}/apply`, {
     method: "POST",
@@ -85,7 +72,6 @@ export function applyToExhibition(id, userId) {
   });
 }
 
-// GET /api/exhibitions/reserved?userId=...
 export function getReservedExhibitionIds(userId) {
   return fetchJson(`/api/exhibitions/reserved?userId=${encodeURIComponent(userId)}`);
 }
@@ -95,14 +81,12 @@ export function getExhibitionApplications(userId) {
   return fetchJson(`/api/exhibitions/applications?userId=${encodeURIComponent(userId)}`);
 }
 
-/* -------------------- Comments -------------------- */
 
-// GET /api/exhibitions/:id/comments
+// komentari
 export function listExhibitionComments(id) {
   return fetchJson(`/api/exhibitions/${id}/comments`);
 }
 
-// POST /api/exhibitions/:id/comments  body: { userId, text }
 export function createExhibitionComment(id, userId, text) {
   return fetchJson(`/api/exhibitions/${id}/comments`, {
     method: "POST",
@@ -110,20 +94,14 @@ export function createExhibitionComment(id, userId, text) {
   });
 }
 
-/* -------------------- Organizer: applications list + decision --------------------
-   OVO NEĆE RADITI dok backend ne doda rute.
-   Ali neće ti rušiti app dok ih ne koristiš.
-*/
-
-// GET /api/exhibitions/:id/applications?organizerId=...
+// popis prijavljenih
 export function listExhibitionApplicationsByExhibition(exhibitionId, organizerId) {
   const qs =
     organizerId != null ? `?organizerId=${encodeURIComponent(organizerId)}` : "";
   return fetchJson(`/api/exhibitions/${exhibitionId}/applications${qs}`);
 }
 
-// PATCH /api/exhibitions/:exhibitionId/applications/:applicationId/decision
-// body: { organizerId, decision }  decision: "ACCEPT" | "REJECT"
+// odobri ljude za izlozbu
 export function decideExhibitionApplication(
   exhibitionId,
   applicationId,
