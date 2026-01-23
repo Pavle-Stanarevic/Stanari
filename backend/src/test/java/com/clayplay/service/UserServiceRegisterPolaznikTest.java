@@ -49,7 +49,7 @@ class UserServiceRegisterPolaznikTest {
         req.email = "ana.ivic@example.com";
         req.password = "Test123";
         req.confirmPassword = "Test123";
-        req.userType = "polaznik"; // nije organizator
+        req.userType = "polaznik";
 
         when(korisnikRepository.findByEmail(req.email)).thenReturn(Optional.empty());
         when(korisnikRepository.existsByBrojTelefona(req.contact)).thenReturn(false);
@@ -71,7 +71,7 @@ class UserServiceRegisterPolaznikTest {
         verify(korisnikRepository, times(1)).save(any(Korisnik.class));
         verify(polaznikRepository, times(1)).save(any(Polaznik.class));
         verify(organizatorRepository, never()).save(any());
-        verify(fotografijaRepository, never()).save(any()); // jer nema slike
+        verify(fotografijaRepository, never()).save(any());
         verify(fileStorageService, never()).save(any(), any());
     }
 }

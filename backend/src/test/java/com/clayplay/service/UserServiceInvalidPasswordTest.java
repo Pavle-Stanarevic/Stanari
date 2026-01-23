@@ -41,7 +41,7 @@ class UserServiceInvalidPasswordTest {
         req.lastName = "Ivić";
         req.contact = "0912345678";
         req.email = "ana.ivic@example.com";
-        req.password = "test123";          // nema veliko slovo
+        req.password = "test123";
         req.confirmPassword = "test123";
         req.userType = "polaznik";
 
