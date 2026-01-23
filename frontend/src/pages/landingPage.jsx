@@ -51,7 +51,7 @@ export default function LandingPage() {
             i talentirani umjetnici.
           </SectionCard>
 
-          <SectionCard title="Izložbe radova" cta="Termini izložbi" href="#">
+          <SectionCard title="Izložbe radova" cta="Termini izložbi" href="/izlozbe">
             Naše izložbe radova polaznika dokaz su da se glina ne radi samo
             žlicama i žlicama - nego i ponosom, strpljenjem i čistom radošću
             stvaranja. Svaki izloženi komad priča svoju malu priču o prvim
@@ -69,7 +69,7 @@ export default function LandingPage() {
 
         <section className="location-wrap">
           <div className="location-card-zadnja">
-            <h3>ClayPlay Studio</h3>
+            <h3> Naš ClayPlay Studio</h3>
             <p className="lead">Unska 3, Zagreb • FER kvart</p>
 
             <div className="location-badges">
@@ -86,14 +86,14 @@ export default function LandingPage() {
                 <strong>Kontakt:</strong> info@clayplay.hr • 091 111 222
               </li>
               <li>
-                <strong>Pristup:</strong> Tram 5/7/14, stanica Vjesnik • parking
+                <strong>Pristup:</strong> Tramvaj 5/7/14, stanica Vjesnik • parking
                 u blizini
               </li>
             </ul>
 
             <div className="btn-row">
               <a
-                className="btn"
+                className="btn-upute"
                 href="https://www.google.com/maps/dir/?api=1&destination=45.8016,15.9710"
                 target="_blank"
                 rel="noreferrer"
