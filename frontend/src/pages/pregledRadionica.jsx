@@ -56,7 +56,6 @@ export default function PregledRadionica() {
   const [maxPrice, setMaxPrice] = useState("");
 
   const organizer = user?.userType === "organizator";
-  const polaznik = user?.userType === "polaznik";
   const organizerStatus = String(user?.organizerStatus || "").toUpperCase();
   const isApprovedOrganizer = organizer && organizerStatus === "APPROVED";
   const isPendingOrganizer = organizer && organizerStatus === "PENDING";
@@ -86,7 +85,7 @@ export default function PregledRadionica() {
     };
   }, []);
 
-  // 2) košarica (samo refresh na load / promjena usera)
+  // 2) košarica
   useEffect(() => {
     let alive = true;
 
@@ -244,9 +243,7 @@ export default function PregledRadionica() {
               onClick={() => setFiltersOpen((p) => !p)}
             >
               Filteri
-              {activeFiltersCount > 0 ? (
-                <span className="filters-pill">{activeFiltersCount}</span>
-              ) : null}
+              {activeFiltersCount > 0 ? <span className="filters-pill">{activeFiltersCount}</span> : null}
               <span className={`chev ${filtersOpen ? "open" : ""}`} aria-hidden>
                 ▾
               </span>
@@ -270,6 +267,7 @@ export default function PregledRadionica() {
                 >
                   + Nova radionica
                 </button>
+
                 {!canCreateWorkshop ? (
                   <div className="hint" style={{ margin: 0 }}>
                     {isPendingOrganizer
@@ -327,20 +325,12 @@ export default function PregledRadionica() {
               <div className="filters-grid">
                 <div className="field">
                   <label>Datum od</label>
-                  <input
-                    type="date"
-                    value={filterStartDate}
-                    onChange={(e) => setFilterStartDate(e.target.value)}
-                  />
+                  <input type="date" value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} />
                 </div>
 
                 <div className="field">
                   <label>Datum do</label>
-                  <input
-                    type="date"
-                    value={filterEndDate}
-                    onChange={(e) => setFilterEndDate(e.target.value)}
-                  />
+                  <input type="date" value={filterEndDate} onChange={(e) => setFilterEndDate(e.target.value)} />
                 </div>
 
                 <div className="field field-wide">
@@ -384,6 +374,7 @@ export default function PregledRadionica() {
           <ul className="workshop-list">
             {filteredItems.map((w) => {
               const wid = Number(w?.id ?? w?.idRadionica ?? w?.workshopId);
+
               const ownerId = w?.organizerId ?? w?.organizatorId ?? w?.idKorisnik ?? null;
               const isOwner =
                 organizer &&
@@ -394,12 +385,20 @@ export default function PregledRadionica() {
               const isUpcoming = activeTab === "upcoming";
               const isReserved = reservedIds.has(wid);
               const inCart = isInCart(wid);
-              const isFull = Number(w?.capacity) <= 0;
+
+              // --- OVO JE BITNO ZA BOJU KRUŽIĆA ---
+              const cap = Number(w?.capacity);
+              const hasCap = Number.isFinite(cap);
+              const isFull = hasCap ? cap <= 0 : false;
+
+              // Past = uvijek crveno. Upcoming = zeleno ako ima mjesta, crveno ako je full.
+              const circleClass = activeTab === "past" ? "full" : isFull ? "full" : "available";
+              // ------------------------------------
 
               return (
                 <li key={wid} className="workshop-item">
                   <div className="thumb" aria-hidden>
-                    <div className="thumb-circle" />
+                    <div className={`thumb-circle ${circleClass}`} />
                   </div>
 
                   <div className="content">
