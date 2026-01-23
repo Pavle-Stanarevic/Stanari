@@ -89,6 +89,13 @@ export default function ProductPage() {
 
   const isPurchased = Boolean(product?.kupljen);
 
+  function resolveImageUrl(raw) {
+    if (!raw) return "/images/placeholder.jpg";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("/")) return `${API_BASE}${raw}`;
+    return raw;
+  }
+
   const onAddToCart = async () => {
     try {
       if (!user) throw new Error("Prijavite se da biste mogli dodati u košaricu.");
@@ -145,7 +152,7 @@ export default function ProductPage() {
           <section className="product-hero">
             <div className="product-media">
               <img
-                src={product.imageUrl || "/images/placeholder.jpg"}
+                src={resolveImageUrl(product.imageUrl)}
                 alt={productTitle}
               />
             </div>
