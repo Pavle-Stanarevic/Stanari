@@ -10,7 +10,9 @@ import { getCart } from "../api/cart";
 async function fetchJson(url, options) {
   options = options || {};
   options.credentials = 'include';
-  const res = await fetch(url, options);
+  const base = import.meta.env.VITE_API_URL || "";
+  const fullUrl = `${base}${url}`;
+  const res = await fetch(fullUrl, options);
   const contentType = res.headers.get("content-type") || "";
   const text = await res.text();
 
