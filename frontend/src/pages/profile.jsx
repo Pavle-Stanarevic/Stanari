@@ -27,7 +27,7 @@ function resolvePhotoUrl(u) {
   if (!raw) return "";
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (raw.startsWith("/")) return `${API}${raw}`;
-  return raw;
+  return `${API}/${raw}`;
 }
 
 function getCookie(name = "XSRF-TOKEN") {

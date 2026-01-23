@@ -28,7 +28,7 @@ Aplikacija objedinjuje sve informacije na jednom mjestu i tako rješava problem 
 - **Baza podataka:** PostgreSQL (Docker Compose / Render)  
 - **Autentifikacija:** Google OAuth 2.0  
 - **Orkestracija:** Docker & Docker Compose  
-- **Dizajn i dokumentacija:** draw.io, PlantUML, GitHub Wiki
+- **Dizajn i dokumentacija:** Figma, draw.io, PlantUML, GitHub Wiki
 
 # Članovi tima
 - Pavle Stanarević - Vođa tima, Frontend, Dizajn

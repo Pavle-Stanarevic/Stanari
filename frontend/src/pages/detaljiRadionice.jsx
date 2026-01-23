@@ -45,7 +45,7 @@ function resolvePhotoUrl(raw) {
   if (!raw) return "";
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (raw.startsWith("/")) return `${BASE_URL}${raw}`;
-  return raw;
+  return `${BASE_URL}/${raw}`;
 }
 
 function formatPrice(price) {
