@@ -120,20 +120,20 @@ export default function OrganizacijaRadionica() {
     startTime: "18:30",
     date: new Date(),
     location: "",
-    images: [], // ✅ array File
+    images: [], 
   });
 
   const set = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
-  // ✅ dodavanje vise slika + ak user dodaje vise puta, nadodaj umjesto overwrite
+
   const handleFiles = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setForm((s) => ({ ...s, images: [...(s.images || []), ...files] }));
-    e.target.value = ""; // ✅ omoguci ponovni odabir istih fileova
+    e.target.value = ""; 
   };
 
-  // ✅ opcionalno: makni pojedinu sliku
+
   const removeImageAt = (index) => {
     setForm((s) => ({ ...s, images: (s.images || []).filter((_, i) => i !== index) }));
   };
@@ -299,7 +299,7 @@ export default function OrganizacijaRadionica() {
                 {form.images?.length ? <span>{form.images.length} datoteka odabrano</span> : null}
               </label>
 
-              {/* ✅ lista odabranih slika + remove */}
+
               {form.images?.length ? (
                 <div className="selected-files">
                   {form.images.map((f, i) => (

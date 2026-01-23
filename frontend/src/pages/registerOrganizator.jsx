@@ -22,7 +22,7 @@ export default function RegisterOrganizator() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ obavezna polja za organizatora (plus image se provjerava posebno jer nije u values)
+  // obavezna polja za organizatora 
   const requiredKeys = useMemo(
     () => ["firstName", "lastName", "contact", "email", "password", "confirmPassword", "studyName"],
     []
@@ -47,7 +47,7 @@ export default function RegisterOrganizator() {
 
     const missing = requiredKeys.filter((k) => isEmpty(values?.[k]));
 
-    // ✅ slika nije u values nego dolazi odvojeno
+
     if (!image) missing.push("image");
 
     if (missing.length) {

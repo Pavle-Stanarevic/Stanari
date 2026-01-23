@@ -87,7 +87,7 @@ export default function ProfilOrganizator() {
     };
   }, [organizatorId]);
 
-  // load list per tab
+
   useEffect(() => {
     let alive = true;
     setListLoading(true);
@@ -181,7 +181,7 @@ export default function ProfilOrganizator() {
             </div>
           </div>
 
-          {/* ✅ tabovi umjesto "Popis nadolazecih radionica:" */}
+
           <div className="org-tabs">
             {TABS.map((t) => (
               <button
