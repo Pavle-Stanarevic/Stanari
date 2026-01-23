@@ -91,7 +91,7 @@ export default function Placanje() {
     let mounted = true;
 
     async function run() {
-      // Ako već imamo podatke iz state-a, ne moramo ih ponovno dohvaćati
+
       if (mode === "subscription" && initialSubscription) {
         setLoading(false);
         return;
@@ -139,7 +139,7 @@ export default function Placanje() {
         return;
       }
 
-      // SUBSCRIPTION
+
       if (!subscriptionId) {
         if (DEV_FALLBACK) {
           setSubscription(DEV_SUBSCRIPTION);
@@ -277,7 +277,7 @@ export default function Placanje() {
         <section className="placanje-section">
           <h2 className="placanje-h2">Način plaćanja</h2>
 
-          {/* Placanje PayPal*/}
+
           <div className="payment-list">
             <button
               type="button"
@@ -304,7 +304,7 @@ export default function Placanje() {
                 <div className="subscription-footnote">Brzo plaćanje putem PayPal-a</div>
               </div>
               <div className="payment-right">
-                {/* PayPal slika */}
+
                 <span
                   className="payment-icon"
                   style={{

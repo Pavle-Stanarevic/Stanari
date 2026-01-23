@@ -1,11 +1,3 @@
-// ✅ src/pages/placanjePayPal.jsx
-// Podržava 2 moda:
-// - subscription: aktivira pretplatu (kao prije)
-// - cart: naplata checkout-a iz košarice (backend treba endpoint za potvrdu)
-
-// Dodaj/koristi:
-// - src/api/checkout.js: capturePayPalCartPayment({ checkoutId, transactionId })
-
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/placanjeKartica.css";
@@ -55,7 +47,7 @@ export default function PlacanjePayPal() {
   const location = useLocation();
   const { user } = useAuth();
 
-  // ✅ mode: "subscription" ili "cart"
+
   const mode = location.state?.mode || "subscription";
 
   // subscription mode
@@ -94,7 +86,7 @@ export default function PlacanjePayPal() {
         return;
       }
 
-      // guards
+
       if (mode === "cart") {
         if (!checkoutId) {
           setLoading(false);
@@ -123,7 +115,6 @@ export default function PlacanjePayPal() {
             style: { layout: "vertical", shape: "rect" },
 
             createOrder: (data, actions) => {
-              // ✅ Backend će ionako validirati iznos, ali u PayPal orderu mora biti value.
               const value =
                 mode === "cart"
                   ? Number(checkout?.total || 0).toFixed(2)

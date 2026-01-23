@@ -1,22 +1,22 @@
-/* ===== PAGE BACKGROUND (SIVA) ===== */
+
 .team-page {
   min-height: 100vh;
-  background: #f6f7fb; /* 👈 svijetlo siva kao na slici */
+  background: #f6f7fb;
   color: #111827;
   padding: 40px 16px;
 }
 
-/* ===== CENTERED WHITE CARD ===== */
+
 .team-wrap {
   width: min(900px, 100%);
   margin: 0 auto;
-  background: #ffffff; /* 👈 bijeli card */
+  background: #ffffff; 
   border-radius: 14px;
   padding: 28px 28px 32px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-/* ===== TITLE ===== */
+
 .team-hero {
   margin-bottom: 20px;
 }
@@ -28,7 +28,7 @@
   color: #111827;
 }
 
-/* ===== STATE MESSAGES ===== */
+
 .team-state {
   margin-bottom: 14px;
   padding: 12px 14px;
@@ -43,7 +43,7 @@
   color: #b91c1c;
 }
 
-/* ===== LIST ===== */
+
 .team-list {
   list-style: none;
   padding: 0;
@@ -53,7 +53,7 @@
   gap: 14px;
 }
 
-/* ===== ORGANIZER ROW ===== */
+
 .team-item {
   display: flex;
   align-items: center;
@@ -64,7 +64,7 @@
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-/* klikabilna kartica */
+
 .team-itemClickable {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -85,7 +85,7 @@
   outline-offset: 2px;
 }
 
-/* ===== AVATAR ===== */
+
 .team-avatarWrap {
   width: 42px;
   height: 42px;
@@ -106,7 +106,7 @@
   display: block;
 }
 
-/* ===== TEXT ===== */
+
 .team-info {
   display: flex;
   flex-direction: column;
@@ -124,7 +124,7 @@
   color: #6b7280;
 }
 
-/* ===== MOBILE ===== */
+
 @media (max-width: 480px) {
   .team-wrap {
     padding: 20px;

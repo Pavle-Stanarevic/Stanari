@@ -271,11 +271,11 @@ export default function Shop() {
         </div>
       </section>
 
-      {/* STATUS */}
+
       {loading && <div className="status">Učitavanje...</div>}
       {!loading && error && <div className="status status--error">{error}</div>}
 
-      {/* PROIZVODI */}
+
       <section className="products">
         {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard i={i} />)}
 
@@ -320,7 +320,7 @@ export default function Shop() {
         {showEmpty && <div className="status">Trenutno nema proizvoda.</div>}
       </section>
 
-      {/* MODAL */}
+
       <ShopProductAdd
         open={isAddOpen}
         onClose={() => setIsAddOpen(false)}

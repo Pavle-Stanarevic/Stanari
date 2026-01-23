@@ -10,7 +10,7 @@ import { listExhibitions, getReservedExhibitionIds } from "../api/exhibitions.js
 
 import { setNotificationsPreference } from "../api/notifications.js";
 
-// ✅ NOVO (dodaješ fajlove ispod)
+
 import { listProductsBySeller, listSoldItemsBySeller, createProductReview } from "../api/products.js";
 import { listMyPurchasedItems } from "../api/orders.js";
 
@@ -44,7 +44,7 @@ function isStrongEnoughPassword(pw) {
   return v.length >= 8;
 }
 
-/** -------- helpers -------- */
+
 function parseDateAny(x) {
   if (!x) return null;
   const d = new Date(x);
@@ -126,11 +126,11 @@ function formatMoneyEUR(v) {
   return `${n.toFixed(2)}€`;
 }
 
-/** -------- rute iz tvog projekta -------- */
+
 const ROUTES = {
   workshopDetails: (id) => `/radionica/${id}`,
   exhibitionDetails: (id) => `/izlozbe/${id}`,
-  productDetails: (id) => `/shop/${id}`, // ako ti je drugačije, promijeni samo ovu liniju
+  productDetails: (id) => `/shop/${id}`, 
 };
 
 export default function Profile() {
@@ -150,11 +150,11 @@ export default function Profile() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
 
-  // ✅ obavijesti (polaznik)
+  // obavijesti (polaznik)
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifMsg, setNotifMsg] = useState("");
 
-  // ✅ MOJE (radionice + izložbe)
+  // (radionice + izložbe)
   const [myLoading, setMyLoading] = useState(false);
   const [myError, setMyError] = useState("");
 
@@ -164,15 +164,15 @@ export default function Profile() {
   const [myUpcomingExhibitions, setMyUpcomingExhibitions] = useState([]);
   const [myPastExhibitions, setMyPastExhibitions] = useState([]);
 
-  // ✅ PROIZVODI (organizator: aktivni/prodani, polaznik: kupljeni)
-  const [prodTab, setProdTab] = useState("active"); // active | sold | bought
+  // organizator: aktivni/prodani, polaznik: kupljeni
+  const [prodTab, setProdTab] = useState("active"); 
   const [prodLoading, setProdLoading] = useState(false);
   const [prodError, setProdError] = useState("");
   const [activeProducts, setActiveProducts] = useState([]);
   const [soldItems, setSoldItems] = useState([]);
   const [boughtItems, setBoughtItems] = useState([]);
 
-  // ✅ RECENZIJE ZA KUPLJENE PROIZVODE
+  // RECENZIJE ZA KUPLJENE PROIZVODE
   const [reviewOpenId, setReviewOpenId] = useState(null);
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -207,7 +207,7 @@ export default function Profile() {
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  // ✅ Učitavanje radionica + izložbi (polaznik/organizator)
+
   useEffect(() => {
     if (!safeUser?.id) return;
     let alive = true;
@@ -219,7 +219,7 @@ export default function Profile() {
       setMyError("");
 
       try {
-        // radionice
+
         const wsAll = await listWorkshops();
         const wsArr = Array.isArray(wsAll) ? wsAll : [];
 
@@ -232,7 +232,7 @@ export default function Profile() {
           wsMine = wsArr.filter((w) => Number(w?.organizerId) === Number(uid));
         }
 
-        // izložbe
+ 
         const exAll = await listExhibitions();
         const exArr = Array.isArray(exAll) ? exAll : [];
 
@@ -299,14 +299,14 @@ export default function Profile() {
     };
   }, [safeUser?.id, isPolaznik, isOrganizator]);
 
-  // ✅ Učitavanje proizvoda (organizator: aktivni/prodani, polaznik: kupljeni)
+  // ucitavanje proizvoda 
   useEffect(() => {
     if (!safeUser?.id) return;
     let alive = true;
 
     const uid = safeUser.id;
 
-    // default tab po userType
+
     if (isOrganizator) setProdTab("active");
     if (isPolaznik) setProdTab("bought");
 
@@ -342,7 +342,6 @@ export default function Profile() {
         }
       } catch (e) {
         if (!alive) return;
-        // kad backend još nema endpoint -> poruka, ali UI ostaje
         setProdError(
           e?.message ||
             "Proizvodi trenutno nisu dostupni (backend endpoint još nije spojen)."
@@ -581,7 +580,6 @@ export default function Profile() {
           </p>
         )}
 
-        {/* ===== PROFILNA SLIKA ===== */}
         <div className="profile-avatar">
           <div className="avatar-img">
             <img
@@ -619,7 +617,6 @@ export default function Profile() {
 
         <div className="divider" />
 
-        {/* ===== PODACI ===== */}
         <p className="label">Ime:</p>
         {editingField === "firstName" ? (
           <>
@@ -722,7 +719,6 @@ export default function Profile() {
 
         <div className="divider" />
 
-        {/* ===== OBAVIJESTI (samo za polaznike) ===== */}
         {!isOrganizator && isPolaznik && (
           <section
             className="profile-card"
@@ -766,7 +762,7 @@ export default function Profile() {
           </section>
         )}
 
-        {/* ===== MOJE (isti UI, drugačiji naslov + data) ===== */}
+
         {(isPolaznik || isOrganizator) && (
           <>
             <div className="divider" />
@@ -784,7 +780,6 @@ export default function Profile() {
 
               {!myLoading && !myError && (
                 <div className="my-grid">
-                  {/* RADIONICE */}
                   <div className="my-col">
                     <div className="my-col-title">Radionice</div>
 
@@ -853,7 +848,7 @@ export default function Profile() {
                     </ul>
                   </div>
 
-                  {/* IZLOŽBE */}
+
                   <div className="my-col">
                     <div className="my-col-title">Izložbe</div>
 
@@ -922,11 +917,10 @@ export default function Profile() {
                     </ul>
                   </div>
 
-                  {/* PROIZVODI */}
+
                   <div className="my-col">
                     <div className="my-col-title">Proizvodi</div>
 
-                    {/* tabs samo kad ima smisla */}
                     <div className="my-tabs">
                       {isOrganizator ? (
                         <>
@@ -961,7 +955,7 @@ export default function Profile() {
 
                     {!prodLoading && !prodError && (
                       <>
-                        {/* ORGANIZATOR: aktivni */}
+
                         {isOrganizator && prodTab === "active" && (
                           <ul className="my-list" style={{ marginTop: 10 }}>
                             {activeProducts.length === 0 ? (
@@ -997,7 +991,7 @@ export default function Profile() {
                           </ul>
                         )}
 
-                        {/* ORGANIZATOR: prodani */}
+
                         {isOrganizator && prodTab === "sold" && (
                           <ul className="my-list" style={{ marginTop: 10 }}>
                             {soldItems.length === 0 ? (
@@ -1037,7 +1031,7 @@ export default function Profile() {
                           </ul>
                         )}
 
-                        {/* POLAZNIK: kupljeni */}
+
                         {isPolaznik && (
                           <ul className="my-list" style={{ marginTop: 10 }}>
                             {boughtItems.length === 0 ? (

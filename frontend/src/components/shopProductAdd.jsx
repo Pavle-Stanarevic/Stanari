@@ -5,9 +5,9 @@ import { PRODUCT_CATEGORIES } from "../data/productCategories";
 const DEV_FORCE_USER = false; // frontend test
 
 
-// forcedCategory: ako je postavljeno, kategorija je zakljucana
+
 export default function ShopProductAdd({ open, onClose, onCreated, forcedCategory = "" }) {
-  // const { user } = useAuth();
+
   const { user: realUser } = useAuth();
 
   const user = DEV_FORCE_USER
@@ -51,7 +51,7 @@ export default function ShopProductAdd({ open, onClose, onCreated, forcedCategor
       fd.append("cijenaProizvod", String(Number(cijenaProizvod)));
       fd.append("kategorijaProizvod", forcedCategory || kategorijaProizvod);
 
-      if (imageFile) fd.append("image", imageFile); // "image" uskladit s backendom
+      if (imageFile) fd.append("image", imageFile); 
 
       const base = import.meta.env.VITE_API_URL || "";
       const res = await fetch(`${base}/api/products`, {
@@ -65,7 +65,6 @@ export default function ShopProductAdd({ open, onClose, onCreated, forcedCategor
         throw new Error(msg || `HTTP ${res.status}`);
       }
 
-      // reset
       setOpisProizvod("");
       setCijenaProizvod("");
       setKategorijaProizvod(forcedCategory || "");

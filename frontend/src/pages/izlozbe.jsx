@@ -49,7 +49,7 @@ function getImages(x) {
     .filter(Boolean);
 }
 
-// ✅ placeholder (da vidiš CSS i bez backend-a)
+
 const PLACEHOLDER_EXHIBITIONS = [
   {
     id: 9001,
@@ -112,7 +112,7 @@ export default function Izlozbe() {
 
   const MAX_IMAGE_MB = 5;
 
-  const [tab, setTab] = useState("upcoming"); // upcoming | past
+  const [tab, setTab] = useState("upcoming"); 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -126,14 +126,14 @@ export default function Izlozbe() {
   const [location, setLocation] = useState("");
   const [dateTime, setDateTime] = useState("");
 
-  // ✅ NEW: opis izložbe
+
   const [description, setDescription] = useState("");
 
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
   const fileRef = useRef(null);
 
-  // ✅ dodavanje proizvoda direktno iz kreiranja izložbe
+  //  dodavanje proizvoda direktno iz kreiranja izložbe
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
   const refresh = async () => {
@@ -221,7 +221,7 @@ export default function Izlozbe() {
 
       const files = fileRef.current?.files ? Array.from(fileRef.current.files) : [];
 
-      // ✅ više slika: dozvoli 1+ (već radi), samo tekst promijenjen
+ 
       if (!files.length) throw new Error("Dodaj barem jednu sliku radova (može i više).");
 
       const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -242,7 +242,7 @@ export default function Izlozbe() {
           startDateTime: new Date(dateTime).toISOString(),
           organizerId,
         },
-        files // ✅ array datoteka (1 ili više)
+        files 
       );
 
       setTitle("");
@@ -493,7 +493,6 @@ export default function Izlozbe() {
         )}
       </main>
 
-      {/* MODAL: kategorija je obavezno Izlozbe */}
       <ShopProductAdd
         open={isAddProductOpen}
         onClose={() => setIsAddProductOpen(false)}

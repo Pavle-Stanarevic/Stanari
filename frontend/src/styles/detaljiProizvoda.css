@@ -20,7 +20,7 @@
   color: var(--text);
 }
 
-/* ✅ topbar */
+
 .pd-topbar {
   display: flex;
   justify-content: space-between;
@@ -62,7 +62,6 @@
   opacity: 0.92;
 }
 
-/* status */
 .status {
   margin-top: 12px;
   padding: 12px 14px;

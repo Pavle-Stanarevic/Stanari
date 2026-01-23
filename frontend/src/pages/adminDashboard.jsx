@@ -359,7 +359,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB: PRICING */}
+
       {tab === TABS.PRICING && (
         <div className="card">
           <div className="card-head">
@@ -397,7 +397,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            {/* ✅ Valuta select uklonjen – ostaje fiksno EUR */}
+
           </div>
 
           <div className="pricing-actions">
