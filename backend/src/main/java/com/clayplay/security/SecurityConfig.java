@@ -39,12 +39,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "https://*.onrender.com"
+        config.setAllowedOrigins(Arrays.asList(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "https://stanari-frontend.onrender.com"
         ));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("*"));
@@ -62,7 +62,6 @@ public class SecurityConfig {
 
     @Bean
     public CookieSameSiteSupplier cookieSameSiteSupplier() {
-        // Default to Lax for most cases, but we'll also configure a cookie serializer below
         return CookieSameSiteSupplier.ofLax().whenHasName("JSESSIONID");
     }
 
@@ -72,31 +71,9 @@ public class SecurityConfig {
         org.springframework.session.web.http.DefaultCookieSerializer serializer = new org.springframework.session.web.http.DefaultCookieSerializer();
         serializer.setCookieName("JSESSIONID");
         serializer.setCookiePath("/");
-        // Ensure SameSite=None for cross-site cookie support (Render frontend <> backend)
         serializer.setSameSite("None");
-        // Allow toggling Secure flag from environment; default to true when running over HTTPS in production
-        String secureEnv = System.getenv("SESSION_COOKIE_SECURE");
-        boolean useSecure = true;
-        if (secureEnv != null) {
-            useSecure = Boolean.parseBoolean(secureEnv);
-        }
-        serializer.setUseSecureCookie(useSecure);
+        serializer.setUseSecureCookie(true);
         return serializer;
     }
     */
-
-    @Bean
-    public org.springframework.session.web.http.CookieSerializer cookieSerializer() {
-        org.springframework.session.web.http.DefaultCookieSerializer serializer = new org.springframework.session.web.http.DefaultCookieSerializer();
-        serializer.setCookieName("JSESSIONID");
-        serializer.setCookiePath("/");
-        serializer.setSameSite("None");
-        String secureEnv = System.getenv("SESSION_COOKIE_SECURE");
-        boolean useSecure = true;
-        if (secureEnv != null) {
-            useSecure = Boolean.parseBoolean(secureEnv);
-        }
-        serializer.setUseSecureCookie(useSecure);
-        return serializer;
-    }
 }
