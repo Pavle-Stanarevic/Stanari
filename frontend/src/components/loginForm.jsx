@@ -8,6 +8,7 @@ export default function LoginForm({ onSubmit, loading = false }) {
 
   const submit = (e) => {
     e.preventDefault();
+    console.log("Prijava - uneseni podaci:", { email, password });
     onSubmit({ email, password });
   };
 
@@ -35,7 +36,7 @@ export default function LoginForm({ onSubmit, loading = false }) {
       </button>
       <p>
         Nemaš račun?{" "}
-        <Link to="/register-polaznik" className = "register-link">
+        <Link to="/registerPolaznik" className = "register-link">
           Registriraj se
         </Link>
       </p>

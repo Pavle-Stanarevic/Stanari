@@ -8,23 +8,28 @@ services:
       POSTGRES_DB: stanari
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./database:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     volumes:
       - ./backend:/app
       - m2_repo:/root/.m2
     depends_on:
       - db
+    env_file:
+      - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/stanari
       SPRING_DATASOURCE_USERNAME: stanari
       SPRING_DATASOURCE_PASSWORD: stanari
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 5MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 6MB
+      SERVER_TOMCAT_MAX_SWALLOW_SIZE: 6MB
     ports:
       - "8080:8080"
 
@@ -37,6 +42,8 @@ services:
     ports:
       - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    env_file:
+      - .env
     environment:
       CHOKIDAR_USEPOLLING: "true"
     depends_on:

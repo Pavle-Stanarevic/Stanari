@@ -1,0 +1,380 @@
+.wd-page {
+  min-height: 100vh;
+  background: #f6f7fb;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  padding: 40px 16px;
+}
+
+.wd-topbar {
+  width: min(900px, 100%);
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wd-back {
+  background: transparent;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 800;
+  color: #111827;
+}
+
+.wd-back:hover {
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.wd-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 900;
+  font-size: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.wd-badge.is-finished {
+  background: rgba(185, 28, 28, 0.08);
+  color: #991b1b;
+}
+
+.wd-badge.is-upcoming {
+  background: rgba(17, 24, 39, 0.06);
+  color: #111827;
+}
+
+.wd-wrap {
+  width: min(900px, 100%);
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 22px 22px 28px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.wd-info {
+  padding: 14px 0;
+  color: #374151;
+  font-weight: 650;
+}
+
+.wd-error {
+  padding: 14px 0;
+  color: #b91c1c;
+  font-weight: 900;
+}
+
+.wd-errorSmall {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-weight: 850;
+}
+
+.wd-muted {
+  margin-top: 8px;
+  color: #6b7280;
+  font-weight: 650;
+}
+
+.wd-header {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+
+.wd-titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wd-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.wd-sub {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-weight: 650;
+}
+
+.wd-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.wd-finishedNote {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(185, 28, 28, 0.08);
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  color: #991b1b;
+  font-weight: 900;
+}
+
+.wd-primary {
+  background: #111827;
+  color: #fff;
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wd-primary:hover {
+  background: #1f2937;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.wd-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.wd-secondary {
+  background: #fff;
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wd-secondary:hover {
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.wd-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.wd-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.wd-stat {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.wd-stat .k {
+  font-size: 0.82rem;
+  color: #6b7280;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.wd-stat .v {
+  color: #111827;
+  font-weight: 800;
+}
+
+.wd-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.wd-section h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.wd-sectionTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.wd-galleryTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wd-chip {
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(17, 24, 39, 0.04);
+  color: #111827;
+}
+
+.wd-desc {
+  margin: 10px 0 0;
+  color: #374151;
+  line-height: 1.6;
+  font-weight: 550;
+}
+
+.wd-emptyPhotos {
+  border: 1px dashed rgba(15, 23, 42, 0.18);
+  border-radius: 12px;
+  padding: 14px;
+  color: #6b7280;
+  font-weight: 650;
+  background: #fff;
+}
+
+.wd-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.wd-photo {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  aspect-ratio: 4 / 3;
+}
+
+.wd-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wd-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wd-file {
+  max-width: 260px;
+}
+
+.wd-hint {
+  margin-top: 10px;
+  color: #6b7280;
+  font-weight: 650;
+}
+
+.wd-orgRow {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wd-orgLabel {
+  color: var(--muted, #64748b);
+  font-weight: 600;
+}
+
+.wd-orgLink {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+}
+
+.wd-orgLink:hover {
+  opacity: 0.85;
+}
+
+.wd-orgName {
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .wd-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wd-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .wd-wrap {
+    padding: 18px;
+  }
+
+  .wd-title {
+    font-size: 22px;
+  }
+
+  .wd-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .wd-file {
+    max-width: 100%;
+  }
+}
+
+/* Google Calendar button (shows next to primary button) */
+.wd-calendarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.04);
+  color: inherit;
+
+  transition: transform 0.08s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.wd-calendarBtn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.wd-calendarBtn:active {
+  transform: translateY(0px);
+}

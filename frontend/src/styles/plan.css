@@ -1,0 +1,159 @@
+.features {
+  list-style: none;
+}
+
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.opis-plana{
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding-bottom: 3rem;
+
+}
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 2rem;
+  padding-left: 20rem;
+  padding-right: 20rem;
+  padding-top: 2rem;
+  padding-bottom: 5rem;
+}
+
+.h1-plan{
+  padding-top: 5rem;
+  padding-bottom: 3rem;
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  font-size: clamp(34px, 3.6vw, 52px);
+  letter-spacing: -0.5px;
+  color: #111;
+}
+
+.continue-btn{
+  padding: 10px 50px;
+  border-radius: 2px;
+  background-color: rgb(16, 52, 110);
+  color: white;
+  font-size: larger;
+  border: none;
+  cursor: pointer;
+
+  transition: 
+    background-color 0.25s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.continue-btn:hover{
+  background-color: rgb(24, 74, 150);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 52, 110, 0.35);
+}
+
+.continue-btn:active{
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(16, 52, 110, 0.25);
+}
+
+.continue-btn:disabled {
+  background-color: #9aa5b1;
+  color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+  transform: none;
+}
+
+.continue-btn:disabled:hover {
+  background-color: #9aa5b1;
+  transform: none;
+  box-shadow: none;
+}
+
+.button-container{
+  display: flex;
+  justify-content: center;
+  padding-bottom: 10rem;
+  background-color: #f3f4f6
+}
+
+
+.billing-toggle {
+  position: relative;
+  width: 420px;
+  max-width: 90%;
+  margin: 18px auto 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.billing-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #111;
+  padding: 12px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 1;
+  transition: opacity 0.2s ease;
+}
+
+.billing-tab:not(.active) {
+  opacity: 0.65;
+}
+
+.billing-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 8px);
+  border-radius: 999px;
+  background: #111;
+  transition: transform 0.25s ease;
+}
+
+
+.billing-indicator.monthly {
+  transform: translateX(4px);
+}
+
+.billing-indicator.yearly {
+  transform: translateX(calc(100% + 4px));
+}
+
+.billing-tab.active {
+  color: #fff;
+}
+
+.auth-guard{
+  display: grid;
+  justify-content: center;
+  gap: 3rem;
+  padding-bottom: 20rem;
+}
+
+.plans.single-plan{
+  display: flex;
+  justify-content: center;
+}
+.plans.single-plan .planItem{
+  width: min(360px, 100%);
+}
+
+.subscription-status {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}

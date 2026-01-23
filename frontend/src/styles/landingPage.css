@@ -1,12 +1,14 @@
 .page-bg {
-  background-color: #0f172a; /* tamna pozadina */
+  background-color: #f6f7fb;
   color: #0f172a;
   min-height: 100vh;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
 
 .container {
   max-width: 1000px;
-  margin: 0 auto;
+  margin: auto;
   padding: 2rem;
 }
 
@@ -16,29 +18,43 @@
   margin-bottom: 1rem;
 }
 
-.card {
+.card,
+.location-card {
   background-color: #bae6fd;
+  position: relative;
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   margin-bottom: 1.5rem;
+  border: 1px solid rgba(2, 132, 199, 0.15);
 }
 
-.card-title {
+.location-card-zadnja {
+  background-color: #bae6fd;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(2, 132, 199, 0.15);
+}
+
+.card-title,
+.location-card h3 {
   font-size: 1.25rem;
   font-weight: 600;
   color: #0f172a;
   margin-bottom: 0.5rem;
 }
 
-.card-text {
+.card-text,
+.location-card .lead {
   color: #1e293b;
   font-size: 0.95rem;
   line-height: 1.6;
   margin-bottom: 1rem;
 }
 
-.card-btn {
+.card-btn,
+.btn-upute {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -48,12 +64,23 @@
   border-radius: 8px;
   font-size: 0.9rem;
   text-decoration: none;
+  border: 1px solid transparent;
   transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.card-btn:hover {
+.card-btn:hover,
+.btn:hover {
   background: linear-gradient(to bottom, #000, #0ea5e9);
   transform: translateY(-2px);
+}
+
+.btn--ghost {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(2, 132, 199, 0.25);
+}
+.btn--ghost:hover {
+  background: #e0f2fe;
 }
 
 .icon {
@@ -67,9 +94,103 @@
   gap: 1.5rem;
 }
 
-.footer {
-  color: #94a3b8;
-  text-align: center;
-  font-size: 0.8rem;
-  padding-top: 2rem;
+
+.grid-karte {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+}
+
+.location-wrap {
+  display: grid;
+  grid-template-columns: 1.1fr 1.6fr; 
+  gap: 1.75rem;
+  margin-top: 2rem;
+  align-items: stretch;
+}
+
+.location-card .lead {
+  opacity: 0.9;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.location-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0.75rem 0 1rem;
+}
+
+.badge {
+  background: #0ea5e9;
+  color: white;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2px;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  color: #1e293b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+.info-list li + li {
+  margin-top: 6px;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-left: 10px;
+}
+
+.map-shell {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0b1220;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.25);
+  isolation: isolate;
+}
+
+.map-shell::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(
+    60% 60% at 60% 40%,
+    rgba(14, 165, 233, 0.18),
+    transparent 60%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.map-frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 420px;
+}
+
+@media (max-width: 980px) {
+  .location-wrap {
+    grid-template-columns: 1fr;
+  }
+  .map-frame {
+    height: 360px;
+  }
+}
+
+@media (max-width: 640px) {
+  .map-frame {
+    height: 300px;
+  }
 }

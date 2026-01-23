@@ -1,0 +1,267 @@
+package com.clayplay.service;
+
+import com.clayplay.dto.ProfileUpdateRequest;
+import com.clayplay.dto.RegistrationRequest;
+import com.clayplay.model.Fotografija;
+import com.clayplay.model.Korisnik;
+import com.clayplay.model.Organizator;
+import com.clayplay.model.Polaznik;
+import com.clayplay.repository.AdministratorRepository;
+import com.clayplay.repository.FotografijaRepository;
+import com.clayplay.repository.KorisnikRepository;
+import com.clayplay.repository.OrganizatorRepository;
+import com.clayplay.repository.PlacaRepository;
+import com.clayplay.repository.PolaznikRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+@Service
+public class UserService {
+
+    private final KorisnikRepository korisnikRepository;
+    private final OrganizatorRepository organizatorRepository;
+    private final PolaznikRepository polaznikRepository;
+    private final AdministratorRepository administratorRepository;
+    private final FotografijaRepository fotografijaRepository;
+    private final PlacaRepository placaRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    private static final Pattern NAME_STARTS_WITH_LETTER_PATTERN = Pattern.compile("^[A-Za-zÀ-ÖØ-öø-ÿČĆĐŠŽčćđšž].*");
+
+    public UserService(KorisnikRepository korisnikRepository, OrganizatorRepository organizatorRepository, PolaznikRepository polaznikRepository, AdministratorRepository administratorRepository, FotografijaRepository fotografijaRepository, PlacaRepository placaRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
+        this.korisnikRepository = korisnikRepository;
+        this.organizatorRepository = organizatorRepository;
+        this.polaznikRepository = polaznikRepository;
+        this.administratorRepository = administratorRepository;
+        this.fotografijaRepository = fotografijaRepository;
+        this.placaRepository = placaRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    private static boolean isValidEmail(String email) {
+        if (isBlank(email)) return false;
+        return EMAIL_PATTERN.matcher(email.trim()).matches();
+    }
+
+    private static boolean isValidName(String name) {
+        if (isBlank(name)) return false;
+        return NAME_STARTS_WITH_LETTER_PATTERN.matcher(name.trim()).matches();
+    }
+
+    private static boolean isValidContact(String contact) {
+        if (isBlank(contact)) return false;
+        String digits = contact.replaceAll("\\D", "");
+        return digits.length() >= 7 && digits.length() <= 15;
+    }
+
+    private static void validatePasswordOrThrow(String password) {
+        if (password == null) throw new IllegalArgumentException("Password is required");
+        if (password.length() < 6) throw new IllegalArgumentException("Password must be at least 6 characters long");
+        if (!password.matches(".*[A-Z].*")) throw new IllegalArgumentException("Password must contain at least one uppercase letter");
+        if (!password.matches(".*[a-z].*")) throw new IllegalArgumentException("Password must contain at least one lowercase letter");
+        if (!password.matches(".*[0-9].*")) throw new IllegalArgumentException("Password must contain at least one number");
+    }
+
+    @Transactional
+    public Korisnik register(RegistrationRequest req) {
+        return register(req, null, null);
+    }
+
+    @Transactional
+    public Korisnik register(RegistrationRequest req, byte[] imageBytes, String contentType) {
+        if (req == null) throw new IllegalArgumentException("Invalid registration data");
+
+        if (!isValidName(req.firstName)) throw new IllegalArgumentException("Invalid first name");
+        if (!isValidName(req.lastName)) throw new IllegalArgumentException("Invalid last name");
+        if (!isValidContact(req.contact)) throw new IllegalArgumentException("Invalid contact");
+        if (!isValidEmail(req.email)) throw new IllegalArgumentException("Invalid email");
+        validatePasswordOrThrow(req.password);
+
+        if (req.password == null || !req.password.equals(req.confirmPassword)) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+
+        Optional<Korisnik> exists = korisnikRepository.findByEmail(req.email);
+        if (exists.isPresent()) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
+        if (req.contact != null && korisnikRepository.existsByBrojTelefona(req.contact)) {
+            throw new IllegalArgumentException("Phone number already registered");
+        }
+
+        boolean isOrg = "organizator".equalsIgnoreCase(req.userType);
+        if (isOrg && (imageBytes == null || imageBytes.length == 0)) {
+            throw new IllegalArgumentException("Image is required for organizator");
+        }
+
+        Korisnik k = new Korisnik();
+        k.setIme(req.firstName);
+        k.setPrezime(req.lastName);
+        k.setAdresa(req.address);
+        k.setBrojTelefona(req.contact);
+        k.setEmail(req.email);
+        k.setPassword(passwordEncoder.encode(req.password));
+
+        if (imageBytes != null && imageBytes.length > 0) {
+            String publicUrl = fileStorageService.save(imageBytes, contentType);
+            Fotografija f = new Fotografija();
+            f.setFotoURL(publicUrl);
+            Fotografija savedFoto = fotografijaRepository.save(f);
+            k.setFotoId(savedFoto.getFotoId());
+        }
+
+        Korisnik saved = korisnikRepository.save(k);
+
+        if (isOrg) {
+            Organizator o = new Organizator();
+            o.setIdKorisnik(saved.getIdKorisnik());
+            o.setImeStudija(req.studyName);
+            o.setStatusOrganizator("PENDING");
+            organizatorRepository.save(o);
+        } else {
+            Polaznik p = new Polaznik();
+            p.setIdKorisnik(saved.getIdKorisnik());
+            polaznikRepository.save(p);
+        }
+
+        return saved;
+    }
+
+    public Optional<Korisnik> authenticate(String email, String password) {
+        if (email == null || password == null) return Optional.empty();
+        Optional<Korisnik> opt = korisnikRepository.findByEmail(email);
+        if (opt.isPresent() && passwordEncoder.matches(password, opt.get().getPassword())) {
+            return opt;
+        }
+        return Optional.empty();
+    }
+
+    public boolean isOrganizator(Long idKorisnik) {
+        return organizatorRepository.existsByIdKorisnik(idKorisnik);
+    }
+
+    public boolean isApprovedOrganizator(Long idKorisnik) {
+        return organizatorRepository.existsByIdKorisnikAndStatusOrganizator(idKorisnik, "APPROVED");
+    }
+
+    public boolean hasActiveSubscription(Long idKorisnik) {
+        if (idKorisnik == null) return false;
+        return !placaRepository.findActiveSubscriptions(idKorisnik, java.time.OffsetDateTime.now()).isEmpty();
+    }
+
+    public boolean isPolaznik(Long idKorisnik) {
+        return polaznikRepository.existsByIdKorisnik(idKorisnik);
+    }
+
+    public boolean isAdmin(Long idKorisnik) {
+        return administratorRepository.existsByIdKorisnik(idKorisnik);
+    }
+
+    public boolean isBlocked(Long idKorisnik) {
+        if (idKorisnik == null) return false;
+        return korisnikRepository.findById(idKorisnik)
+                .map(u -> "BLOCKED".equalsIgnoreCase(u.getStatus()))
+                .orElse(false);
+    }
+
+    public Optional<Korisnik> findById(Long id) {
+        return korisnikRepository.findById(id);
+    }
+
+    @Transactional
+    public Korisnik updateProfile(Long idKorisnik, ProfileUpdateRequest req) {
+        if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");
+        if (req == null) throw new IllegalArgumentException("Invalid profile data");
+
+        Korisnik u = korisnikRepository.findById(idKorisnik)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (req.firstName != null) u.setIme(req.firstName);
+        if (req.lastName != null) u.setPrezime(req.lastName);
+        if (req.address != null) u.setAdresa(req.address);
+        if (req.contact != null && !req.contact.equals(u.getBrojTelefona())) {
+            if (korisnikRepository.existsByBrojTelefona(req.contact)) {
+                throw new IllegalArgumentException("Phone number already registered");
+            }
+            u.setBrojTelefona(req.contact);
+        }
+
+        if (req.email != null && !req.email.equals(u.getEmail())) {
+            Optional<Korisnik> exists = korisnikRepository.findByEmail(req.email);
+            if (exists.isPresent()) {
+                throw new IllegalArgumentException("Email already registered");
+            }
+            u.setEmail(req.email);
+        }
+
+        Korisnik saved = korisnikRepository.save(u);
+
+        if (req.studyName != null && isOrganizator(idKorisnik)) {
+            organizatorRepository.findById(idKorisnik).ifPresent(org -> {
+                org.setImeStudija(req.studyName);
+                organizatorRepository.save(org);
+            });
+        }
+
+        return saved;
+    }
+
+    @Transactional
+    public Korisnik updateProfileImage(Long idKorisnik, byte[] imageBytes, String contentType) {
+        if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");
+        if (imageBytes == null || imageBytes.length == 0) throw new IllegalArgumentException("Empty image");
+
+        Korisnik u = korisnikRepository.findById(idKorisnik)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String publicUrl = fileStorageService.save(imageBytes, contentType);
+        Fotografija f = new Fotografija();
+        f.setFotoURL(publicUrl);
+        Fotografija savedFoto = fotografijaRepository.save(f);
+        u.setFotoId(savedFoto.getFotoId());
+        u.setFotografija(savedFoto);
+
+        Korisnik saved = korisnikRepository.save(u);
+        return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public String resolvePhotoUrl(Korisnik u) {
+        if (u == null) return null;
+        Fotografija f = u.getFotografija();
+        if (f != null && f.getFotoURL() != null) return f.getFotoURL();
+        Long fotoId = u.getFotoId();
+        if (fotoId == null) return null;
+        return fotografijaRepository.findById(fotoId)
+                .map(Fotografija::getFotoURL)
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Polaznik> findPolaznik(Long idKorisnik) {
+        if (idKorisnik == null) return Optional.empty();
+        return polaznikRepository.findByIdKorisnik(idKorisnik);
+    }
+
+    @Transactional
+    public boolean setPolaznikZeliObavijesti(Long idKorisnik, boolean enabled) {
+        if (idKorisnik == null) throw new IllegalArgumentException("Missing user id");
+        Polaznik p = polaznikRepository.findByIdKorisnik(idKorisnik)
+                .orElseThrow(() -> new IllegalArgumentException("Polaznik not found"));
+        p.setZeliObavijesti(enabled);
+        polaznikRepository.save(p);
+        return p.isZeliObavijesti();
+    }
+}

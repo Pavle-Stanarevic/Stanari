@@ -1,0 +1,186 @@
+import { useEffect, useMemo, useState } from "react";
+import useAuth from "../hooks/useAuth";
+import "../styles/shopProductAdd.css";
+import { PRODUCT_CATEGORIES } from "../data/productCategories";
+const DEV_FORCE_USER = false; // frontend test
+
+
+// forcedCategory: ako je postavljeno, kategorija je zakljucana
+export default function ShopProductAdd({ open, onClose, onCreated, forcedCategory = "" }) {
+  // const { user } = useAuth();
+  const { user: realUser } = useAuth();
+
+  const user = DEV_FORCE_USER
+    ? { id: 1, role: "ORGANIZER" }
+    : realUser;
+
+
+  const [opisProizvod, setOpisProizvod] = useState("");
+  const [cijenaProizvod, setCijenaProizvod] = useState("");
+  const [kategorijaProizvod, setKategorijaProizvod] = useState(forcedCategory || "");
+  const [imageFile, setImageFile] = useState(null);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const previewUrl = useMemo(() => {
+    if (!imageFile) return "";
+    return URL.createObjectURL(imageFile);
+  }, [imageFile]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (forcedCategory) setKategorijaProizvod(forcedCategory);
+  }, [open, forcedCategory]);
+
+  if (!open) return null;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+
+    try {
+      const fd = new FormData();
+
+      const userId = user?.id ?? user?.idKorisnik ?? user?.userId ?? null;
+      if (!userId) throw new Error("Niste prijavljeni kao organizator.");
+
+      fd.append("userId", String(userId));
+      fd.append("opisProizvod", opisProizvod);
+      fd.append("cijenaProizvod", String(Number(cijenaProizvod)));
+      fd.append("kategorijaProizvod", forcedCategory || kategorijaProizvod);
+
+      if (imageFile) fd.append("image", imageFile); // "image" uskladit s backendom
+
+      const base = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${base}/api/products`, {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `HTTP ${res.status}`);
+      }
+
+      // reset
+      setOpisProizvod("");
+      setCijenaProizvod("");
+      setKategorijaProizvod(forcedCategory || "");
+      setImageFile(null);
+
+      onClose?.();
+      onCreated?.();
+    } catch (e2) {
+      setError(e2?.message || "Greška kod spremanja");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="modal">
+        <div className="modal-header">
+          <h2>Dodaj proizvod</h2>
+          <button
+            className="icon-btn"
+            type="button"
+            onClick={onClose}
+            aria-label="Zatvori"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form className="modal-form" onSubmit={handleSubmit}>
+          <div className="field">
+            <label>Opis proizvoda</label>
+            <textarea
+              placeholder="Npr. ručno rađena keramička vaza..."
+              value={opisProizvod}
+              onChange={(e) => setOpisProizvod(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="row-2">
+            <div className="field">
+              <label>Cijena (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Npr. 29.99"
+                value={cijenaProizvod}
+                onChange={(e) => setCijenaProizvod(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="field">
+              <label>Kategorija</label>
+              {forcedCategory ? (
+                <select value={forcedCategory} disabled required>
+                  <option value={forcedCategory}>{forcedCategory}</option>
+                </select>
+              ) : (
+                <select
+                  value={kategorijaProizvod}
+                  onChange={(e) => setKategorijaProizvod(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    Odaberi kategoriju
+                  </option>
+                  {PRODUCT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          <div className="upload">
+            <div className="upload-top">
+              <p className="upload-hint">Slika proizvoda (JPG/PNG)</p>
+            </div>
+
+            <input
+              className="file-input"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            />
+
+            {imageFile && (
+              <div className="preview">
+                <img src={previewUrl} alt="Preview" />
+                <div className="preview-meta">
+                  <div className="preview-name">{imageFile.name}</div>
+                  <div className="preview-size">
+                    {(imageFile.size / 1024).toFixed(1)} KB
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && <p className="error">{error}</p>}
+
+          <div className="modal-actions">
+            <button className="btn" type="button" onClick={onClose} disabled={saving}>
+              Odustani
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={saving}>
+              {saving ? "Spremanje..." : "Spremi"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
