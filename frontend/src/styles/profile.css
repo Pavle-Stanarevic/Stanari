@@ -2,7 +2,8 @@
   display: grid;
   grid-template-columns: 1.5fr 2fr 0.9fr;
   gap: 20px 20px;
-  max-width: 500px;
+  width: 100%;
+  max-width: 900px;   
   margin: 40px auto;
   padding: 24px 28px;
   background-color: #f9f9f9;
@@ -14,12 +15,12 @@
 }
 
 .profile-page {
-  max-width: 700px;     /* ← OVDJE se zapravo kontrolira širina */
+  max-width: 600px;     /* ← OVDJE se zapravo kontrolira širina */
   margin: 0 auto;
   margin-bottom: 3rem;
 }
 
-.container-profile::before {
+.container-profile::before  {
   content: "📋 Podaci o korisniku";
   grid-column: 1 / -1;
   font-size: 1.25rem;
