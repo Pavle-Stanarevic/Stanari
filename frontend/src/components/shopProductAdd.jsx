@@ -53,7 +53,8 @@ export default function ShopProductAdd({ open, onClose, onCreated, forcedCategor
 
       if (imageFile) fd.append("image", imageFile); // "image" uskladit s backendom
 
-      const res = await fetch("/api/products", {
+      const base = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${base}/api/products`, {
         method: "POST",
         credentials: "include",
         body: fd,
